@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -91,7 +91,7 @@ def get_comparison(request_id: int, request: Request):
         comparison = session.get(ComparisonRequest, request_id)
         if comparison is None:
             raise HTTPException(404, "comparison request not found")
-        return {"id": comparison.id, "status": comparison.status, "candidates_scored_count": comparison.candidates_scored_count, "candidate_cursor_artifact_id": comparison.candidate_cursor_artifact_id, "error": comparison.error}
+        return {"id": comparison.id, "status": comparison.status, "candidates_scored_count": comparison.candidates_scored_count, "error": comparison.error}
 
 
 @router.get("/comparisons/{request_id}/results")

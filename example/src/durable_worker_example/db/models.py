@@ -1,4 +1,4 @@
-﻿from datetime import datetime
+from datetime import datetime
 
 from sqlalchemy import DateTime, Float, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
@@ -40,7 +40,6 @@ class ComparisonRequest(Base):
     query_artifact_id: Mapped[int] = mapped_column(ForeignKey("feature_artifact.id"))
     status: Mapped[str] = mapped_column(String(20), default="pending", index=True)
     retained_max_k: Mapped[int] = mapped_column(Integer, default=10)
-    candidate_cursor_artifact_id: Mapped[int] = mapped_column(Integer, default=0)
     candidates_scored_count: Mapped[int] = mapped_column(Integer, default=0)
     claim_token: Mapped[str | None] = mapped_column(String(36), nullable=True)
     lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
@@ -53,3 +52,11 @@ class TopComparison(Base):
     request_id: Mapped[int] = mapped_column(ForeignKey("comparison_request.id"), index=True)
     candidate_artifact_id: Mapped[int] = mapped_column(ForeignKey("feature_artifact.id"))
     score: Mapped[float] = mapped_column(Float)
+
+
+class ScoredCandidate(Base):
+    """Completion ledger, including candidates discarded from the top-K."""
+
+    __tablename__ = "scored_candidate"
+    request_id: Mapped[int] = mapped_column(ForeignKey("comparison_request.id"), primary_key=True)
+    candidate_artifact_id: Mapped[int] = mapped_column(ForeignKey("feature_artifact.id"), primary_key=True)

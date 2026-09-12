@@ -9,7 +9,7 @@ from sqlalchemy import and_, delete, or_, select, update
 from sqlalchemy.orm import sessionmaker
 
 from durable_worker_example.config import Settings
-from durable_worker_example.db.models import ComparisonRequest, Document, FeatureArtifact, TopComparison
+from durable_worker_example.db.models import ComparisonRequest, Document, FeatureArtifact, ScoredCandidate, TopComparison
 from durable_worker_example.worker.execution import build_features, score_feature_pairs
 
 logger = logging.getLogger(__name__)
@@ -144,6 +144,18 @@ class Coordinator:
                 next_renewal = time.monotonic() + self._settings.claim_lease_seconds / 3
             self._stop.wait(self._settings.poll_seconds)
 
+    def _unscored_candidates(self, request):
+        scored = select(ScoredCandidate.request_id).where(
+            ScoredCandidate.request_id == request.id,
+            ScoredCandidate.candidate_artifact_id == FeatureArtifact.id,
+        ).exists()
+        return select(FeatureArtifact).where(
+            FeatureArtifact.workspace_id == request.workspace_id,
+            FeatureArtifact.id != request.query_artifact_id,
+            FeatureArtifact.status == "ready",
+            ~scored,
+        ).order_by(FeatureArtifact.id)
+
     def _claim_comparison_page(self) -> tuple[int, str, dict[str, int], list[tuple[int, dict[str, int]]]] | None:
         claim = self._claim_comparison_page_with_db_lock if self._supports_skip_locked else self._claim_comparison_page_with_conditional_update
         return claim()
@@ -166,9 +178,7 @@ class Coordinator:
             if query is None or query.status != "ready" or query.feature_json is None:
                 return None
             candidates = list(session.scalars(
-                select(FeatureArtifact)
-                .where(FeatureArtifact.workspace_id == request.workspace_id, FeatureArtifact.id > request.candidate_cursor_artifact_id, FeatureArtifact.id != request.query_artifact_id, FeatureArtifact.status == "ready")
-                .order_by(FeatureArtifact.id)
+                self._unscored_candidates(request)
                 .limit(self._settings.comparison_page_size)
             ))
             if not candidates:
@@ -179,7 +189,7 @@ class Coordinator:
             return request.id, token, query.feature_json, [(item.id, item.feature_json) for item in candidates]
 
     def _claim_comparison_page_with_conditional_update(self) -> tuple[int, str, dict[str, int], list[tuple[int, dict[str, int]]]] | None:
-        """Claim only if eligibility and the cursor still match the selected page."""
+        """Claim only if no page completed since the candidates were selected."""
         token = str(uuid.uuid4())
         now = _now()
         with self._sessions.begin() as session:
@@ -195,9 +205,7 @@ class Coordinator:
             if query is None or query.status != "ready" or query.feature_json is None:
                 return None
             candidates = list(session.scalars(
-                select(FeatureArtifact)
-                .where(FeatureArtifact.workspace_id == request.workspace_id, FeatureArtifact.id > request.candidate_cursor_artifact_id, FeatureArtifact.id != request.query_artifact_id, FeatureArtifact.status == "ready")
-                .order_by(FeatureArtifact.id)
+                self._unscored_candidates(request)
                 .limit(self._settings.comparison_page_size)
             ))
             if not candidates:
@@ -207,7 +215,8 @@ class Coordinator:
                 .where(
                     ComparisonRequest.id == request.id,
                     or_(ComparisonRequest.status == "pending", ComparisonRequest.status == "partial", and_(ComparisonRequest.status == "scanning", ComparisonRequest.lease_expires_at < now)),
-                    ComparisonRequest.candidate_cursor_artifact_id == request.candidate_cursor_artifact_id,
+                    # Prevent claiming a stale page after another owner completed it.
+                    ComparisonRequest.candidates_scored_count == request.candidates_scored_count,
                 )
                 .values(status="scanning", claim_token=token, lease_expires_at=self._lease_until())
                 .execution_options(synchronize_session=False)
@@ -235,9 +244,14 @@ class Coordinator:
             best = sorted(best_by_id.items(), key=lambda pair: pair[1], reverse=True)[:request.retained_max_k]
             session.execute(delete(TopComparison).where(TopComparison.request_id == request_id))
             session.add_all(TopComparison(request_id=request_id, candidate_artifact_id=artifact_id, score=score) for artifact_id, score in best)
-            request.candidate_cursor_artifact_id = max(artifact_id for artifact_id, _ in scores)
+            session.add_all(
+                ScoredCandidate(request_id=request_id, candidate_artifact_id=artifact_id)
+                for artifact_id, _ in scores
+            )
+            # Make completion records visible to the remaining-work query.
+            session.flush()
             request.candidates_scored_count += len(scores)
-            has_more_ready = session.scalar(select(FeatureArtifact.id).where(FeatureArtifact.workspace_id == request.workspace_id, FeatureArtifact.id > request.candidate_cursor_artifact_id, FeatureArtifact.id != request.query_artifact_id, FeatureArtifact.status == "ready").limit(1)) is not None
+            has_more_ready = session.scalar(self._unscored_candidates(request).limit(1)) is not None
             has_pending_build = session.scalar(select(FeatureArtifact.id).where(FeatureArtifact.workspace_id == request.workspace_id, FeatureArtifact.status.in_(["pending", "building"])).limit(1)) is not None
             request.status = "partial" if has_more_ready or has_pending_build else "ready"
             request.claim_token = None
