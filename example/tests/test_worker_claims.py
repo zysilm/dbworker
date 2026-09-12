@@ -1,190 +1,229 @@
 import tempfile
 import unittest
-from dataclasses import replace
+import uuid
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta
+from dataclasses import replace
+from datetime import timedelta
 from threading import Barrier
+from typing import Any
 
-from sqlalchemy import create_engine, event, select, update
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import Connection, String, create_engine, event, select, update
+from sqlalchemy.orm import Mapped, mapped_column, sessionmaker
 
 from durable_worker_example.config import Settings
 from durable_worker_example.db.engine import Base
 from durable_worker_example.db.models import Workspace, Document, FeatureArtifact, ComparisonRequest, ScoredCandidate, TopComparison
-from durable_worker_example.worker.runtime import Coordinator
+from durable_worker_example.domain.workflows import create_workers
+from durable_worker_example.worker.runtime import Coordinator, Finished, Unfinished, Worker, Claim, Context, LostClaim, Outcome, now
+
+
+class ExternalSource(Base):
+    __tablename__ = "test_external_source"
+    key: Mapped[str] = mapped_column(String(36), primary_key=True)
+
+
+def no_database_output(source: ExternalSource, context: Context[ExternalSource]) -> Finished:
+    return Finished()
 
 
 class ClaimsTest(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.directory = tempfile.TemporaryDirectory()
         self.engine = create_engine(f"sqlite:///{self.directory.name}/test.db", connect_args={"check_same_thread": False})
+        self.session_factory = sessionmaker(self.engine, expire_on_commit=False)
+        self.builds, self.comparisons = create_workers(replace(Settings(), comparison_page_size=1))
         Base.metadata.create_all(self.engine)
-        self.sessions = sessionmaker(self.engine, expire_on_commit=False)
-        self.workers = [Coordinator(self.sessions, Settings()) for _ in range(2)]
-        with self.sessions.begin() as session:
+        self.coordinators = [Coordinator(self.session_factory) for _ in range(2)]
+        for coordinator in self.coordinators:
+            coordinator.register(self.builds)
+            coordinator.register(self.comparisons)
+            coordinator.create_worker_tables()
+        # Unit tests run pure CPU functions in threads; a separate smoke test
+        # exercises the production process pools.
+        self.cpu = ThreadPoolExecutor(2)
+        with self.session_factory.begin() as session:
             session.add(Workspace(id=1, name="test"))
             for i in (1, 2):
                 session.add(Document(id=i, workspace_id=1, name=str(i), text="apple"))
-                session.add(FeatureArtifact(id=i, workspace_id=1, document_id=i, status="pending" if i == 1 else "ready", feature_json={"apple": 1}))
+                session.add(FeatureArtifact(id=i, workspace_id=1, document_id=i, feature_json=None if i == 1 else {"apple": 1}))
 
-    def tearDown(self):
-        for worker in self.workers:
-            worker._build_pool.shutdown()
-            worker._comparison_pool.shutdown()
+    def tearDown(self) -> None:
+        for coordinator in self.coordinators:
+            coordinator.stop()
+        self.cpu.shutdown()
         self.engine.dispose()
         self.directory.cleanup()
 
-    def race(self, method):
+    def run_work(self, worker: Worker[Any], coordinator: int = 0) -> Outcome:
+        runtime = self.coordinators[coordinator]
+        claim = runtime.claim(worker)
+        self.assertIsNotNone(claim)
+        return runtime.execute_claim(worker, claim, self.cpu)
+
+    def expire(self, worker: Worker[Any]) -> None:
+        with self.session_factory.begin() as session:
+            session.execute(update(worker.table).values(lease_expires_at=now() - timedelta(seconds=1)))
+
+    def prepare_comparison(self) -> None:
+        self.run_work(self.builds)
+        with self.session_factory.begin() as session:
+            session.add(ComparisonRequest(id=1, workspace_id=1, query_artifact_id=1, retained_max_k=1))
+
+    def race(self, worker: Worker[Any], statement_prefix: str) -> list[Claim | None]:
         barrier = Barrier(2)
-        # Force both coordinators to read the same candidate before either
-        # attempts the conditional UPDATE.
-        update_barrier = Barrier(2)
-        def before_update(conn, cursor, statement, parameters, context, executemany):
-            if statement.startswith("UPDATE"):
-                update_barrier.wait(timeout=10)
-        event.listen(self.engine, "before_cursor_execute", before_update)
-        def run(worker):
-            barrier.wait()
-            return getattr(worker, method)()
+        def before_write(conn: Connection, cursor: object, statement: str, parameters: object, context: object, executemany: bool) -> None:
+            if statement.startswith(statement_prefix):
+                barrier.wait(timeout=10)
+        event.listen(self.engine, "before_cursor_execute", before_write)
         try:
             with ThreadPoolExecutor(2) as pool:
-                return list(pool.map(run, self.workers))
+                return list(pool.map(lambda coordinator: coordinator.claim(worker), self.coordinators))
         finally:
-            event.remove(self.engine, "before_cursor_execute", before_update)
+            event.remove(self.engine, "before_cursor_execute", before_write)
 
-    def test_competing_artifact_claims(self):
-        self.assertFalse(self.workers[0]._supports_skip_locked)
-        claims = self.race('_claim_artifact')
-        self.assertEqual(sum(claim is not None for claim in claims), 1)
+    def test_simultaneous_first_claim(self) -> None:
+        claims = self.race(self.builds, "INSERT INTO artifact_build_work")
+        self.assertEqual(sum(c is not None for c in claims), 1)
 
-    def test_stale_artifact_cannot_finish_or_renew(self):
-        first = self.workers[0]._claim_artifact()
-        with self.sessions.begin() as session:
-            session.execute(update(FeatureArtifact).where(FeatureArtifact.id == 1).values(lease_expires_at=datetime.utcnow() - timedelta(seconds=1)))
-        second = self.workers[1]._claim_artifact()
-        self.assertNotEqual(first[1], second[1])
-        self.workers[0]._finish_artifact(1, first[1], {"wrong": 1})
-        with self.sessions() as session:
-            before = session.get(FeatureArtifact, 1).lease_expires_at
-        self.workers[0]._renew_artifact_leases({object(): (1, first[1])})
-        with self.sessions() as session:
-            artifact = session.get(FeatureArtifact, 1)
-            self.assertEqual(artifact.claim_token, second[1])
-            self.assertEqual(artifact.lease_expires_at, before)
-            self.assertEqual(artifact.status, "building")
-        self.workers[1]._finish_artifact(1, second[1], {"correct": 1})
-        with self.sessions() as session:
-            self.assertEqual(session.get(FeatureArtifact, 1).feature_json, {"correct": 1})
+    def test_simultaneous_reclaim(self) -> None:
+        self.coordinators[0].claim(self.builds)
+        self.expire(self.builds)
+        claims = self.race(self.builds, "UPDATE artifact_build_work")
+        self.assertEqual(sum(c is not None for c in claims), 1)
 
-    def prepare_comparison(self):
-        with self.sessions.begin() as session:
-            session.execute(update(FeatureArtifact).values(status="ready"))
-            session.add(ComparisonRequest(id=1, workspace_id=1, query_artifact_id=1))
+    def test_stale_result_and_renewal(self) -> None:
+        first = self.coordinators[0].claim(self.builds)
+        self.expire(self.builds)
+        second = self.coordinators[1].claim(self.builds)
+        with self.assertRaises(LostClaim):
+            self.coordinators[0].execute_claim(self.builds, first, self.cpu)
+        self.coordinators[0].renew(self.builds, [first])
+        with self.session_factory() as session:
+            self.assertIsNone(session.get(FeatureArtifact, 1).feature_json)
+            self.assertEqual(self.builds.state(session, 1)["claim_token"], second.token)
+        self.coordinators[1].execute_claim(self.builds, second, self.cpu)
+        self.assertIsNone(self.coordinators[0].claim(self.builds))
 
-    def test_competing_comparison_claims(self):
+    def test_competing_comparison_claims(self) -> None:
         self.prepare_comparison()
-        claims = self.race('_claim_comparison_page')
-        self.assertEqual(sum(claim is not None for claim in claims), 1)
+        claims = self.race(self.comparisons, "INSERT INTO comparison_work")
+        self.assertEqual(sum(c is not None for c in claims), 1)
 
-    def test_comparison_ownership_and_completion(self):
+    def test_comparison_stale_and_duplicate_completion(self) -> None:
         self.prepare_comparison()
-        first = self.workers[0]._claim_comparison_page()
-        with self.sessions.begin() as session:
-            session.execute(update(ComparisonRequest).values(lease_expires_at=datetime.utcnow() - timedelta(seconds=1)))
-        second = self.workers[1]._claim_comparison_page()
-        self.workers[0]._finish_comparison_page(1, first[1], [(2, 0.1)])
-        with self.sessions() as session:
-            self.assertEqual(session.get(ComparisonRequest, 1).candidates_scored_count, 0)
-            self.assertEqual(list(session.scalars(select(TopComparison))), [])
-            self.assertEqual(list(session.scalars(select(ScoredCandidate))), [])
-        self.workers[1]._finish_comparison_page(1, second[1], [(2, 1.0)])
-        self.workers[1]._finish_comparison_page(1, second[1], [(2, 0.2)])
-        with self.sessions() as session:
-            request = session.get(ComparisonRequest, 1)
-            self.assertEqual(request.status, "ready")
-            self.assertEqual(request.candidates_scored_count, 1)
-            self.assertEqual(session.scalar(select(TopComparison)).score, 1.0)
+        first = self.coordinators[0].claim(self.comparisons)
+        self.expire(self.comparisons)
+        second = self.coordinators[1].claim(self.comparisons)
+        with self.assertRaises(LostClaim):
+            self.coordinators[0].execute_claim(self.comparisons, first, self.cpu)
+        self.coordinators[1].execute_claim(self.comparisons, second, self.cpu)
+        with self.assertRaises(LostClaim):
+            self.coordinators[1].execute_claim(self.comparisons, second, self.cpu)
+        with self.session_factory() as session:
+            self.assertEqual(session.get(ComparisonRequest, 1).candidates_scored_count, 1)
             self.assertEqual(list(session.scalars(select(ScoredCandidate.candidate_artifact_id))), [2])
 
-    def test_comparison_failure_rolls_back_ownership(self):
+    def test_result_and_completion_rollback(self) -> None:
         self.prepare_comparison()
-        claim = self.workers[0]._claim_comparison_page()
-        def reject_completion(conn, cursor, statement, parameters, context, executemany):
+        claim = self.coordinators[0].claim(self.comparisons)
+        def fail_insert(conn: Connection, cursor: object, statement: str, parameters: object, context: object, executemany: bool) -> None:
             if statement.startswith("INSERT INTO scored_candidate"):
-                raise RuntimeError("Simulated completion-record failure")
-        event.listen(self.engine, "before_cursor_execute", reject_completion)
+                raise RuntimeError("injected failure")
+        event.listen(self.engine, "before_cursor_execute", fail_insert)
         try:
             with self.assertRaises(RuntimeError):
-                self.workers[0]._finish_comparison_page(1, claim[1], [(2, 1.0)])
+                self.coordinators[0].execute_claim(self.comparisons, claim, self.cpu)
         finally:
-            event.remove(self.engine, "before_cursor_execute", reject_completion)
-        with self.sessions() as session:
-            request = session.get(ComparisonRequest, 1)
-            self.assertEqual(request.status, "scanning")
-            self.assertEqual(request.claim_token, claim[1])
-            self.assertEqual(request.candidates_scored_count, 0)
+            event.remove(self.engine, "before_cursor_execute", fail_insert)
+        with self.session_factory() as session:
+            self.assertEqual(self.comparisons.state(session, 1)["claim_token"], claim.token)
+            self.assertEqual(session.get(ComparisonRequest, 1).candidates_scored_count, 0)
             self.assertEqual(list(session.scalars(select(ScoredCandidate))), [])
             self.assertEqual(list(session.scalars(select(TopComparison))), [])
-        # A rolled-back page remains reclaimable and has no completion markers.
-        with self.sessions.begin() as session:
-            session.execute(update(ComparisonRequest).values(lease_expires_at=datetime.utcnow() - timedelta(seconds=1)))
-        retry = self.workers[1]._claim_comparison_page()
-        self.assertEqual([item[0] for item in retry[3]], [2])
+        self.expire(self.comparisons)
+        self.assertIsInstance(self.run_work(self.comparisons), Finished)
 
-    def test_late_lower_id_and_discarded_top_k_are_tracked(self):
+    def test_late_lower_id_and_top_k_eviction(self) -> None:
         self.prepare_comparison()
-        with self.sessions.begin() as session:
-            session.get(ComparisonRequest, 1).retained_max_k = 1
+        with self.session_factory.begin() as session:
             session.add(Document(id=0, workspace_id=1, name="late", text="banana"))
-            session.add(FeatureArtifact(id=0, workspace_id=1, document_id=0, status="building"))
-        first = self.workers[0]._claim_comparison_page()
-        self.assertEqual([item[0] for item in first[3]], [2])
-        self.workers[0]._finish_comparison_page(1, first[1], [(2, 1.0)])
-        with self.sessions.begin() as session:
-            self.assertEqual(session.get(ComparisonRequest, 1).status, "partial")
-            artifact = session.get(FeatureArtifact, 0)
-            artifact.status = "ready"
-            artifact.feature_json = {"banana": 1}
-        second = self.workers[0]._claim_comparison_page()
-        self.assertEqual([item[0] for item in second[3]], [0])
-        self.workers[0]._finish_comparison_page(1, second[1], [(0, 0.0)])
-        with self.sessions() as session:
-            request = session.get(ComparisonRequest, 1)
-            self.assertEqual(request.status, "ready")
-            self.assertEqual(request.candidates_scored_count, 2)
+            session.add(FeatureArtifact(id=0, workspace_id=1, document_id=0))
+        self.assertIsInstance(self.run_work(self.comparisons), Unfinished)
+        self.assertIsNone(self.coordinators[0].claim(self.comparisons))
+        self.run_work(self.builds)
+        self.assertIsInstance(self.run_work(self.comparisons), Finished)
+        with self.session_factory() as session:
             self.assertEqual(set(session.scalars(select(ScoredCandidate.candidate_artifact_id))), {0, 2})
             self.assertEqual(list(session.scalars(select(TopComparison.candidate_artifact_id))), [2])
-            self.assertEqual(list(session.scalars(self.workers[0]._unscored_candidates(request))), [])
-        # Completion is scoped to the request, not shared across comparisons.
-        with self.sessions.begin() as session:
+            self.assertEqual(session.get(ComparisonRequest, 1).candidates_scored_count, 2)
+        with self.session_factory.begin() as session:
             session.add(ComparisonRequest(id=2, workspace_id=1, query_artifact_id=1))
-        third = self.workers[0]._claim_comparison_page()
-        self.assertEqual([item[0] for item in third[3]], [0, 2])
+        self.assertIsInstance(self.run_work(self.comparisons), Unfinished)
+        self.assertIsInstance(self.run_work(self.comparisons), Finished)
+        with self.session_factory() as session:
+            self.assertEqual(len(list(session.scalars(select(ScoredCandidate).where(ScoredCandidate.request_id == 2)))), 2)
 
-    def test_page_completed_between_selection_and_claim_is_rejected(self):
+    def test_empty_comparison_finishes(self) -> None:
         self.prepare_comparison()
-        for worker in self.workers:
-            worker._settings = replace(worker._settings, comparison_page_size=1)
-        with self.sessions.begin() as session:
-            session.add(Document(id=3, workspace_id=1, name="third", text="apple"))
-            session.add(FeatureArtifact(id=3, workspace_id=1, document_id=3, status="ready", feature_json={"apple": 1}))
+        with self.session_factory.begin() as session:
+            session.add(Workspace(id=2, name="other"))
+            session.get(FeatureArtifact, 2).workspace_id = 2
+        self.assertIsInstance(self.run_work(self.comparisons), Finished)
 
-        completed = False
-        def complete_before_claim(conn, cursor, statement, parameters, context, executemany):
-            nonlocal completed
-            if not completed and statement.startswith("UPDATE comparison_request"):
-                completed = True
-                other = self.workers[1]._claim_comparison_page()
-                self.workers[1]._finish_comparison_page(1, other[1], [(2, 1.0)])
+    def test_failed_remaining_build_allows_finalization(self) -> None:
+        self.prepare_comparison()
+        with self.session_factory.begin() as session:
+            session.add(Document(id=3, workspace_id=1, name="bad", text="bad"))
+            session.add(FeatureArtifact(id=3, workspace_id=1, document_id=3))
+        self.assertIsInstance(self.run_work(self.comparisons), Unfinished)
+        claim = self.coordinators[0].claim(self.builds)
+        self.coordinators[0]._fail(self.builds, claim, ValueError("bad input"))
+        self.assertIsInstance(self.run_work(self.comparisons), Finished)
 
-        event.listen(self.engine, "before_cursor_execute", complete_before_claim)
-        try:
-            self.assertIsNone(self.workers[0]._claim_comparison_page())
-        finally:
-            event.remove(self.engine, "before_cursor_execute", complete_before_claim)
-        next_page = self.workers[0]._claim_comparison_page()
-        self.assertEqual([item[0] for item in next_page[3]], [3])
+    def test_unready_query_does_not_block_later_request(self) -> None:
+        with self.session_factory.begin() as session:
+            session.add(ComparisonRequest(id=1, workspace_id=1, query_artifact_id=1))
+            session.add(ComparisonRequest(id=2, workspace_id=1, query_artifact_id=2))
+            session.add(Document(id=3, workspace_id=1, name="ready", text="apple"))
+            session.add(FeatureArtifact(id=3, workspace_id=1, document_id=3, feature_json={"apple": 1}))
+        claim = self.coordinators[0].claim(self.comparisons)
+        self.assertEqual(claim.source_id, 2)
+
+    def test_failed_build_reset(self) -> None:
+        claim = self.coordinators[0].claim(self.builds)
+        self.coordinators[0]._fail(self.builds, claim, ValueError("bad"))
+        self.assertIsNone(self.coordinators[0].claim(self.builds))
+        with self.session_factory.begin() as session:
+            self.assertEqual(self.builds.state(session, 1)["status"], "failed")
+            self.assertTrue(self.builds.reset_failed(session, 1))
+        self.run_work(self.builds)
+        with self.session_factory() as session:
+            self.assertEqual(self.builds.state(session, 1)["status"], "finished")
+
+    def test_noninteger_source_without_domain_result(self) -> None:
+        worker = Worker(name="external_task", source=ExternalSource, handler=no_database_output)
+        coordinator = self.coordinators[0]
+        coordinator.register(worker)
+        coordinator.create_worker_tables()
+        key = str(uuid.uuid4())
+        with self.session_factory.begin() as session:
+            session.add(ExternalSource(key=key))
+        self.assertIsInstance(self.run_work(worker), Finished)
+        with self.session_factory() as session:
+            self.assertEqual(worker.state(session, key)["status"], "finished")
+
+    def test_invalid_handler_outcome_rolls_back(self) -> None:
+        def handler(source: FeatureArtifact, context: Context[FeatureArtifact]) -> None:
+            context.session.get(FeatureArtifact, source.id).feature_json = {"wrong": 1}
+            return None
+        worker = Worker(name="invalid_result", source=FeatureArtifact, handler=handler)
+        self.coordinators[0].register(worker)
+        self.coordinators[0].create_worker_tables()
+        with self.assertRaises(TypeError):
+            self.run_work(worker)
+        with self.session_factory() as session:
+            self.assertIsNone(session.get(FeatureArtifact, 1).feature_json)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

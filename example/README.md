@@ -1,18 +1,10 @@
 # Durable worker example
 
-This is a deliberately small, standalone FastAPI project. It demonstrates a durable database-backed pipeline without referring to any particular business domain.
-
-## What it models
-
-1. A workspace imports text files as **documents**.
-2. Each document gets one **feature artifact**. A coordinator claims pending artifacts and sends CPU-heavy token-frequency extraction to a `ProcessPoolExecutor`.
-3. A comparison request scores one ready artifact against every other ready artifact in its workspace and retains the best matches.
-
-The database is the durable source of truth. It holds status, ownership token, and lease expiry; there is no broker queue containing one message per item.
+A small FastAPI application demonstrating database-owned CPU work without a broker. Documents are converted to word-frequency features. Comparison requests score ready artifacts in the same workspace and retain only their best K matches.
 
 ## Run
 
-From the repository root, activate the existing virtual environment so Poetry uses it:
+From the repository root:
 
 ```sh
 source .venv/bin/activate
@@ -21,34 +13,78 @@ poetry install
 poetry run durable-worker-example-api
 ```
 
-The service listens on `http://127.0.0.1:8001` by default. Its SQLite database is `example.db` in this directory.
+The API listens on `http://127.0.0.1:8001`. The default database is `example.db` in the current directory.
 
-## Core pattern
+## Registering a worker
 
-- A coordinator thread claims only up to its process-pool capacity.
-- A claim gives a row a random ownership token and short renewable lease.
-- The coordinator renews leases while CPU child processes work.
-- Only a matching token may write completion. If the coordinator dies, the lease expires and another coordinator can reclaim the row.
-- The process-pool functions receive only serializable data and return normal Python values. Database sessions remain in the coordinator process.
+The runtime has no knowledge of artifacts or comparisons. An application registers one handler per workflow:
 
-The worker uses separate claim functions: `FOR UPDATE SKIP LOCKED` on supported PostgreSQL/MySQL/MariaDB versions, and conditional updates otherwise (including SQLite). Claims commit before CPU work is submitted. Comparison completion checks ownership and saves the top-K results, scored-candidate records, and count in one transaction.
+```python
+worker = Worker(
+    name="artifact_build",
+    source=FeatureArtifact,
+    eligible=lambda: select(FeatureArtifact)
+        .where(FeatureArtifact.feature_json.is_(None))
+        .order_by(FeatureArtifact.id),
+    handler=build_artifact,
+    concurrency=2,
+)
+coordinator.register(worker)
+coordinator.create_worker_tables()
+coordinator.start()
+```
 
-Run the worker ownership tests from this directory:
+`source` is a SQLAlchemy mapped model with one primary-key column. The generated `<name>_work` table has a unique `source_id` foreign key with the same column type, plus status, claim token, lease expiry, and error. Stable workflow names identify tables across restarts. Eligibility returns a SQLAlchemy SELECT of the source model and may use joins, subqueries, and application-defined ordering. With no eligibility callback, all source records are considered.
+
+A source with no work row has not been claimed; its API status is `null`. Work rows and API responses use `working`, `unfinished`, `finished`, and `failed` directly. `Finished()` prevents further claims; `Unfinished()` releases ownership for a later eligible invocation. Failed work requires an explicit `worker.reset_failed(session, source_id)`; there are no automatic claim or task retry loops.
+
+## One handler, short transactions
+
+```python
+def build_artifact(artifact: FeatureArtifact, context: Context[FeatureArtifact]) -> Finished:
+    with context.read() as session:
+        text = session.get(Document, artifact.document_id).text
+
+    features = context.cpu(build_features, text)
+
+    context.session.get(FeatureArtifact, artifact.id).feature_json = features
+    return Finished()
+```
+
+The handler runs in a bounded control thread. `context.cpu(function, *args)` sends plain inputs to that workflow's process pool and waits for the result. CPU functions must be importable top-level functions with serializable inputs and outputs. Database sessions and ORM objects never go to child processes. Close read sessions before calling CPU functions.
+
+`context.session` starts the final save transaction and verifies ownership atomically before application writes. The runtime commits those writes together with the handler's returned outcome. An exception or invalid outcome rolls back the save. The handler must not commit, roll back, or close this session itself, and must do no lengthy work once saving starts. `context.cpu()` rejects calls after the save transaction opens. For a handler with no database output, simply returning `Finished()` is enough to persist completion.
+
+Arbitrary actions such as file exports are allowed. Their effects are outside the database transaction and must tolerate repetition if an execution loses its claim or crashes before recording completion.
+
+## Application data and progress
+
+- `FeatureArtifact` stores its document reference and feature output.
+- `ComparisonRequest` stores query/workspace/K parameters and its scored count.
+- `TopComparison` retains only the best K scores.
+- `ScoredCandidate` records every completed request/candidate pair, including candidates discarded from the top-K.
+- `artifact_build_work` and `comparison_work` contain execution ownership and state.
+
+`domain/workflows.py` owns candidate selection, result aggregation, and completion tracking. The framework has no collection ledger or progress backend. Applications whose result tables already identify completed items can use those results directly.
+
+A comparison claims one request, selects at most 50 ready unscored candidates, calculates a page, and saves the top-K, completion records, count, and outcome in one transaction. IDs order currently ready candidates but do not act as a cursor. A lower-ID artifact that becomes ready later will still be included.
+
+Comparison eligibility requires a usable query and either ready unscored candidates or no remaining builds. This lets requests finish on empty pages and prevents requests waiting for data from blocking runnable requests behind them. Failed builds are excluded from outstanding builds; a failed query still needs a successful build before its comparison can run. Finished comparisons are not reopened for later imports or retried builds.
+
+## Claims and execution
+
+Supported PostgreSQL/MySQL/MariaDB versions use a source-row `FOR UPDATE SKIP LOCKED` while acquiring ownership. SQLite and other backends use a conditional update. A unique source key arbitrates simultaneous first work-row creation. Claims commit before handlers start. Every save verifies the claim token; a replaced owner cannot commit results. Expiry makes work reclaimable, and the current owner may still finish if no replacement has acquired it.
+
+Each registered workflow has bounded handler threads and a CPU process pool sized by its concurrency. Scheduling threads renew leases while handlers run. Shutdown stops new claims and drains active handlers while renewing their leases, then closes pools. A handler that never returns can therefore delay graceful shutdown. Capacity is still per application process; there is no global CPU limit across API processes.
+
+`engine.py` remains SQLite-oriented. The worker's locking path requires live integration tests and suitable connection configuration/transactional tables before deployment with another backend. Database infrastructure errors can still stop a scheduling thread; this refactor does not add a retry policy.
+
+## Tests
+
+From this directory:
 
 ```sh
 PYTHONPATH=src poetry run python -m unittest discover -s tests -v
 ```
 
-The tests use file-backed SQLite with separate connections. The locking path still requires integration testing against the corresponding database servers and transactional tables.
-
-## Why comparisons are the awkward case
-
-Building an artifact is independent: claim one row, calculate it, save it.
-
-A comparison request aggregates many scores into one request row: it owns a score count and a retained top-K. A separate `scored_candidate` table records every completed pair, including candidates outside the top-K. Pages select ready candidates with no completion record, so artifacts that become ready out of order are not skipped. The pair of request ID and candidate ID is the primary key, preventing duplicate completion records. The example intentionally scores one bounded page at a time. That is easy to read and makes recovery clear, but it also exposes the design question a larger system must answer: how should it allow bounded parallel pages without several pages racing to update the same count and top-K?
-
-A future framework can share claim/lease/process-pool mechanics, while retaining separate domain logic for independent work and aggregation work.
-
-Progress no longer depends on increasing artifact IDs; IDs only order the currently ready candidates. The example still uses integer keys. Requests include ready candidates as they run and wait for pending/building artifacts; completed requests are not reopened for later imports. Empty-page finalization and blocked-request scheduling remain separate limitations.
-
-Schema change: existing databases need migration before running this version. Remove `candidate_cursor_artifact_id` from `comparison_request` and create `scored_candidate`; old top-K results cannot reconstruct completion history, so existing comparisons need to be reset and rescored (clear their results, counts, and claims). `create_all()` alone does not migrate existing tables.
+Tests cover file-backed SQLite claim races, lease reclamation, atomic result/ownership rollback, late candidates, top-K retention, application progress, generic noninteger source keys, and API behavior with real process pools. PostgreSQL/MySQL still require live integration testing.

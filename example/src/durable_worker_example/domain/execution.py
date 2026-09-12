@@ -1,4 +1,4 @@
-﻿from durable_worker_example.domain.features import extract_features, score_features
+from durable_worker_example.domain.features import extract_features, score_features
 
 
 def build_features(text: str) -> dict[str, int]:

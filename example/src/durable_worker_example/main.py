@@ -1,23 +1,31 @@
-﻿from contextlib import asynccontextmanager
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
 
 from durable_worker_example.api.routes import router
 from durable_worker_example.config import settings
-from durable_worker_example.db.engine import Base, create_engine_and_sessions
+from durable_worker_example.domain.workflows import create_workers
+from durable_worker_example.db.engine import Base, create_engine_and_session_factory
 from durable_worker_example.worker.runtime import Coordinator
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    engine, sessions = create_engine_and_sessions(settings.database_url)
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    engine, session_factory = create_engine_and_session_factory(settings.database_url)
     Base.metadata.create_all(engine)
-    coordinator = Coordinator(sessions, settings)
-    coordinator.start()
+    coordinator = Coordinator(session_factory, lease_seconds=settings.claim_lease_seconds, poll_seconds=settings.poll_seconds)
+    builds, comparisons = create_workers(settings)
+    coordinator.register(builds)
+    coordinator.register(comparisons)
+    coordinator.create_worker_tables()
+    app.state.build_worker = builds
+    app.state.comparison_worker = comparisons
     app.state.engine = engine
-    app.state.sessions = sessions
+    app.state.session_factory = session_factory
     app.state.coordinator = coordinator
+    coordinator.start()
     try:
         yield
     finally:
