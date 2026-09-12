@@ -2,18 +2,19 @@ import tempfile
 import unittest
 import uuid
 from concurrent.futures import ThreadPoolExecutor
+from collections.abc import Callable
 from dataclasses import replace
 from datetime import timedelta
 from threading import Barrier
 
 from sqlalchemy import Connection, String, create_engine, event, select, update
-from sqlalchemy.orm import Mapped, mapped_column, sessionmaker
+from sqlalchemy.orm import Mapped, Session, mapped_column, sessionmaker
 
 from durable_worker_example.config import Settings
 from durable_worker_example.db.engine import Base
 from durable_worker_example.db.models import Workspace, Document, FeatureArtifact, ComparisonRequest, ScoredCandidate, TopComparison
 from durable_worker_example.domain.workflows import create_workers
-from durable_worker_example.worker.runtime import Coordinator, Finished, Unfinished, Worker, Claim, LostClaim, Outcome, now
+from durable_worker_example.worker.runtime import Coordinator, Finished, Unfinished, Worker, Claim, LostClaim, Outcome, now, _execute_claim
 
 
 class ExternalSource(Base):
@@ -21,7 +22,7 @@ class ExternalSource(Base):
     key: Mapped[str] = mapped_column(String(36), primary_key=True)
 
 
-def no_database_output(source: ExternalSource, coordinator: Coordinator) -> Finished:
+def no_database_output(source: ExternalSource, session_factory: sessionmaker[Session], save_session: Callable[[], Session]) -> Finished:
     return Finished()
 
 
@@ -32,14 +33,11 @@ class ClaimsTest(unittest.TestCase):
         self.session_factory = sessionmaker(self.engine, expire_on_commit=False)
         self.builds, self.comparisons = create_workers(replace(Settings(), comparison_page_size=1))
         Base.metadata.create_all(self.engine)
-        self.coordinators = [Coordinator(self.session_factory) for _ in range(2)]
+        self.coordinators = [Coordinator(self.session_factory, database_url=self.engine.url) for _ in range(2)]
         for coordinator in self.coordinators:
             coordinator.register(self.builds)
             coordinator.register(self.comparisons)
             coordinator.create_worker_tables()
-        # Unit tests run pure CPU functions in threads; a separate smoke test
-        # exercises the production process pools.
-        self.cpu = ThreadPoolExecutor(2)
         with self.session_factory.begin() as session:
             session.add(Workspace(id=1, name="test"))
             for i in (1, 2):
@@ -49,7 +47,6 @@ class ClaimsTest(unittest.TestCase):
     def tearDown(self) -> None:
         for coordinator in self.coordinators:
             coordinator.stop()
-        self.cpu.shutdown()
         self.engine.dispose()
         self.directory.cleanup()
 
@@ -57,7 +54,7 @@ class ClaimsTest(unittest.TestCase):
         runtime = self.coordinators[coordinator]
         claim = runtime.claim(worker)
         self.assertIsNotNone(claim)
-        return runtime.execute_claim(worker, claim, self.cpu)
+        return _execute_claim(worker, claim, runtime.session_factory)
 
     def expire(self, worker: Worker) -> None:
         with self.session_factory.begin() as session:
@@ -95,12 +92,12 @@ class ClaimsTest(unittest.TestCase):
         self.expire(self.builds)
         second = self.coordinators[1].claim(self.builds)
         with self.assertRaises(LostClaim):
-            self.coordinators[0].execute_claim(self.builds, first, self.cpu)
+            _execute_claim(self.builds, first, self.coordinators[0].session_factory)
         self.coordinators[0].renew(self.builds, [first])
         with self.session_factory() as session:
             self.assertIsNone(session.get(FeatureArtifact, 1).feature_json)
             self.assertEqual(self.builds.state(session, 1)["claim_token"], second.token)
-        self.coordinators[1].execute_claim(self.builds, second, self.cpu)
+        _execute_claim(self.builds, second, self.coordinators[1].session_factory)
         self.assertIsNone(self.coordinators[0].claim(self.builds))
 
     def test_competing_comparison_claims(self) -> None:
@@ -114,10 +111,10 @@ class ClaimsTest(unittest.TestCase):
         self.expire(self.comparisons)
         second = self.coordinators[1].claim(self.comparisons)
         with self.assertRaises(LostClaim):
-            self.coordinators[0].execute_claim(self.comparisons, first, self.cpu)
-        self.coordinators[1].execute_claim(self.comparisons, second, self.cpu)
+            _execute_claim(self.comparisons, first, self.coordinators[0].session_factory)
+        _execute_claim(self.comparisons, second, self.coordinators[1].session_factory)
         with self.assertRaises(LostClaim):
-            self.coordinators[1].execute_claim(self.comparisons, second, self.cpu)
+            _execute_claim(self.comparisons, second, self.coordinators[1].session_factory)
         with self.session_factory() as session:
             self.assertEqual(session.get(ComparisonRequest, 1).candidates_scored_count, 1)
             self.assertEqual(list(session.scalars(select(ScoredCandidate.candidate_artifact_id))), [2])
@@ -131,7 +128,7 @@ class ClaimsTest(unittest.TestCase):
         event.listen(self.engine, "before_cursor_execute", fail_insert)
         try:
             with self.assertRaises(RuntimeError):
-                self.coordinators[0].execute_claim(self.comparisons, claim, self.cpu)
+                _execute_claim(self.comparisons, claim, self.coordinators[0].session_factory)
         finally:
             event.remove(self.engine, "before_cursor_execute", fail_insert)
         with self.session_factory() as session:
@@ -212,8 +209,8 @@ class ClaimsTest(unittest.TestCase):
             self.assertEqual(worker.state(session, key)["status"], "finished")
 
     def test_invalid_handler_outcome_rolls_back(self) -> None:
-        def handler(source: FeatureArtifact, coordinator: Coordinator) -> None:
-            coordinator.save_session().get(FeatureArtifact, source.id).feature_json = {"wrong": 1}
+        def handler(source: FeatureArtifact, session_factory: sessionmaker[Session], save_session: Callable[[], Session]) -> None:
+            save_session().get(FeatureArtifact, source.id).feature_json = {"wrong": 1}
             return None
         worker = Worker(name="invalid_result", source=FeatureArtifact, handler=handler)
         self.coordinators[0].register(worker)
@@ -228,12 +225,12 @@ class ClaimsTest(unittest.TestCase):
         barrier = Barrier(2)
         session_ids: dict[int, int] = {}
 
-        def handler(source: FeatureArtifact, coordinator: Coordinator) -> Finished:
-            self.assertIs(coordinator, self.coordinators[0])
-            value = coordinator.run_cpu(abs, -source.id)
+        def handler(source: FeatureArtifact, session_factory: sessionmaker[Session], save_session: Callable[[], Session]) -> Finished:
+            self.assertIs(session_factory, self.session_factory)
+            value = abs(-source.id)
             barrier.wait(timeout=10)
-            session = coordinator.save_session()
-            self.assertIs(session, coordinator.save_session())
+            session = save_session()
+            self.assertIs(session, save_session())
             session_ids[source.id] = id(session)
             artifact = session.get(FeatureArtifact, source.id)
             assert artifact is not None
@@ -249,14 +246,11 @@ class ClaimsTest(unittest.TestCase):
         first, second = coordinator.claim(worker), coordinator.claim(worker)
         assert first is not None and second is not None
         with ThreadPoolExecutor(2) as handlers:
-            successful = handlers.submit(coordinator.execute_claim, worker, first, self.cpu)
-            failed = handlers.submit(coordinator.execute_claim, worker, second, self.cpu)
+            successful = handlers.submit(_execute_claim, worker, first, coordinator.session_factory)
+            failed = handlers.submit(_execute_claim, worker, second, coordinator.session_factory)
             self.assertIsInstance(successful.result(timeout=10), Finished)
             with self.assertRaisesRegex(ValueError, "rollback this invocation"):
                 failed.result(timeout=10)
-            # Reusing a handler thread must not retain its previous invocation.
-            with self.assertRaisesRegex(RuntimeError, "active handler invocation"):
-                handlers.submit(coordinator.save_session).result(timeout=10)
         self.assertNotEqual(session_ids[1], session_ids[2])
         with self.session_factory() as session:
             self.assertEqual(session.get(FeatureArtifact, 1).feature_json, {"new": 1})
@@ -264,33 +258,6 @@ class ClaimsTest(unittest.TestCase):
             self.assertEqual(worker.state(session, 1)["status"], "finished")
             self.assertEqual(worker.state(session, 2)["claim_token"], second.token)
 
-    def test_coordinator_operations_require_active_invocation(self) -> None:
-        coordinator = self.coordinators[0]
-        with self.assertRaisesRegex(RuntimeError, "active handler invocation"):
-            coordinator.run_cpu(abs, -1)
-        with self.assertRaisesRegex(RuntimeError, "active handler invocation"):
-            coordinator.save_session()
-        self.run_work(self.builds)
-        with self.assertRaisesRegex(RuntimeError, "active handler invocation"):
-            coordinator.save_session()
-
-    def test_cpu_after_save_is_rejected_and_save_rolled_back(self) -> None:
-        def handler(source: FeatureArtifact, coordinator: Coordinator) -> Finished:
-            artifact = coordinator.save_session().get(FeatureArtifact, source.id)
-            assert artifact is not None
-            artifact.feature_json = {"wrong": 1}
-            coordinator.run_cpu(abs, -1)
-            return Finished()
-        worker = Worker(name="cpu_after_save", source=FeatureArtifact, handler=handler,
-                        eligible=lambda: select(FeatureArtifact).order_by(FeatureArtifact.id))
-        self.coordinators[0].register(worker)
-        self.coordinators[0].create_worker_tables()
-        with self.assertRaisesRegex(RuntimeError, "CPU work must precede"):
-            self.run_work(worker)
-        with self.session_factory() as session:
-            self.assertIsNone(session.get(FeatureArtifact, 1).feature_json)
-        with self.assertRaisesRegex(RuntimeError, "active handler invocation"):
-            self.coordinators[0].save_session()
 
 
 if __name__ == "__main__":

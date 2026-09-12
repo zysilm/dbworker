@@ -20,6 +20,12 @@ The API listens on `http://127.0.0.1:8001`. The default database is `example.db`
 The runtime has no knowledge of artifacts or comparisons. An application registers one handler per workflow:
 
 ```python
+coordinator = Coordinator(
+    session_factory,
+    database_url=settings.database_url,
+    poll_seconds=0.25,
+    max_poll_seconds=10,
+)
 worker = Worker(
     name="artifact_build",
     source=FeatureArtifact,
@@ -41,20 +47,38 @@ A source with no work row has not been claimed; its API status is `null`. Work r
 ## One handler, short transactions
 
 ```python
-def build_artifact(artifact: FeatureArtifact, coordinator: Coordinator) -> Finished:
-    with coordinator.session_factory() as session:
-        text = session.get(Document, artifact.document_id).text
+from collections.abc import Callable
+from sqlalchemy.orm import Session, sessionmaker
 
-    features = coordinator.run_cpu(build_features, text)
 
-    session = coordinator.save_session()
-    session.get(FeatureArtifact, artifact.id).feature_json = features
+def build_artifact(
+    artifact: FeatureArtifact,
+    session_factory: sessionmaker[Session],
+    save_session: Callable[[], Session],
+) -> Finished:
+    with session_factory() as session:
+        document = session.get(Document, artifact.document_id)
+        if document is None:
+            raise ValueError("Artifact document no longer exists")
+        text = document.text
+
+    features = build_features(text)
+
+    session = save_session()
+    current = session.get(FeatureArtifact, artifact.id)
+    if current is None:
+        raise ValueError("Artifact no longer exists")
+    current.feature_json = features
     return Finished()
 ```
 
-The handler runs in a bounded control thread. `coordinator.run_cpu(function, *args)` sends plain inputs to that workflow's process pool and waits for the result. CPU functions must be importable top-level functions with serializable inputs and outputs. Database sessions and ORM objects never go to child processes. Close read sessions before calling CPU functions.
+The entire handler runs in a child process: source loading, database reads, ORM/JSON decoding, computation, and the final save. Call CPU functions normally. The parent Coordinator performs claiming, dispatch and lease renewal; FastAPI keeps its own database sessions. Each child creates its own engine and session factory once and reuses them across jobs. Sessions, connections, ORM instances, and the parent Coordinator never cross process boundaries. A dispatched job contains only its source ID and claim token; the child returns `Finished()` or `Unfinished()`.
 
-`coordinator.save_session()` starts the current invocation’s final save transaction and verifies ownership atomically before application writes. The coordinator commits those writes together with the handler's returned outcome. An exception or invalid outcome rolls back the save. The handler must not commit, roll back, or close this session itself, and must do no lengthy work once saving starts. `coordinator.run_cpu()` rejects calls after the save transaction opens. Concurrent invocations have independent claims and save sessions, held internally by the coordinator and cleared when each invocation exits. `run_cpu()` and `save_session()` are only available during a handler invocation. For a handler with no database output, simply returning `Finished()` is enough to persist completion.
+Handlers and mapped source classes must be importable. Eligibility callbacks execute only in the parent and can remain lambdas or closures. For configured handlers, bind serializable values to a top-level function with `functools.partial`, as `create_workers()` does for the comparison page size. Do not bind sessions or engines. Registered work-table metadata is reconstructed in children, including tables referenced by dependent workflows.
+
+`session_factory()` creates an independent session inside the child. Close read sessions before lengthy computation. `save_session()` verifies ownership atomically and opens the invocation's final save transaction. The child runtime commits application writes and the returned outcome together. An exception or invalid outcome rolls back the save. Do not commit, roll back, or close this session yourself; repeated calls during the invocation return the same session. Complete lengthy work before opening it. For a handler without database output, returning `Finished()` is enough to persist completion.
+
+`database_url` must identify the same database used by FastAPI and the parent session factory. Optional `engine_options` are passed to SQLAlchemy `create_engine()` in each child (for example, connection or pool settings). Only serializable configuration crosses the process boundary. SQLite must be file-backed; separate process-local in-memory databases cannot coordinate work.
 
 Arbitrary actions such as file exports are allowed. Their effects are outside the database transaction and must tolerate repetition if an execution loses its claim or crashes before recording completion.
 
@@ -78,9 +102,9 @@ Supported PostgreSQL/MySQL/MariaDB versions use a source-row `FOR UPDATE SKIP LO
 
 Polling adapts independently for each workflow. Successful claims fill available slots immediately, and job completion wakes the scheduler to refill capacity. An empty claim waits `poll_seconds` (default 0.25 seconds), then doubles the delay after each further empty claim: 0.5, 1, 2, 4, 8, up to `max_poll_seconds` (default 10 seconds). A successful claim resets the delay. Configure both values in `Settings` or the `Coordinator` constructor. New database entries are discovered at the next scheduled poll; lease renewal and shutdown do not wait for the backoff to expire.
 
-Each registered workflow has bounded handler threads and a CPU process pool sized by its concurrency. Scheduling threads renew leases while handlers run. Shutdown stops new claims and drains active handlers while renewing their leases, then closes pools. A handler that never returns can therefore delay graceful shutdown. Capacity is still per application process; there is no global CPU limit across API processes.
+Each registered workflow has one parent scheduling thread and a process pool sized by its concurrency. There are no handler thread pools or nested CPU pools. Scheduling threads renew leases while handlers run. Shutdown stops new claims and drains active handlers while renewing their leases, then closes pools. A handler that never returns can therefore delay graceful shutdown. Capacity is still per application process; there is no global CPU limit across API processes.
 
-`engine.py` remains SQLite-oriented. The worker's locking path requires live integration tests and suitable connection configuration/transactional tables before deployment with another backend. Database infrastructure errors can still stop a scheduling thread; this refactor does not add a retry policy.
+`engine.py` remains SQLite-oriented. The worker's locking path requires live integration tests and suitable connection configuration/transactional tables before deployment with another backend. Database infrastructure errors or a broken process pool can stop scheduling; there is no automatic pool restart or retry policy.
 
 ## Tests
 
@@ -90,4 +114,4 @@ From this directory:
 PYTHONPATH=src poetry run python -m unittest discover -s tests -v
 ```
 
-Tests cover file-backed SQLite claim races, lease reclamation, atomic result/ownership rollback, late candidates, top-K retention, application progress, generic noninteger source keys, and API behavior with real process pools. PostgreSQL/MySQL still require live integration testing.
+Tests cover file-backed SQLite claim races, lease reclamation, atomic result/ownership rollback, late candidates, top-K retention, application progress, generic noninteger source keys, child-process execution and reuse, failure rollback, shutdown lease renewal, and API behavior with real process pools. PostgreSQL/MySQL still require live integration testing.

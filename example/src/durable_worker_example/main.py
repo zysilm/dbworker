@@ -16,7 +16,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     engine, session_factory = create_engine_and_session_factory(settings.database_url)
     Base.metadata.create_all(engine)
     coordinator = Coordinator(
-        session_factory, lease_seconds=settings.claim_lease_seconds,
+        session_factory, database_url=settings.database_url, lease_seconds=settings.claim_lease_seconds,
         poll_seconds=settings.poll_seconds, max_poll_seconds=settings.max_poll_seconds,
     )
     builds, comparisons = create_workers(settings)

@@ -32,16 +32,15 @@ class ClockEvent:
 class PollingTest(unittest.TestCase):
     def setUp(self) -> None:
         self.engine = create_engine('sqlite://')
-        self.coordinator = Coordinator(sessionmaker(self.engine))
+        self.coordinator = Coordinator(sessionmaker(self.engine), database_url=self.engine.url)
         self.worker = cast(Worker, Mock(name='worker', concurrency=1))
         self.clock = ClockEvent()
         self.handlers = Mock()
-        self.cpu = Mock()
         self.addCleanup(self.engine.dispose)
 
     def run_scheduler(self) -> None:
         with patch('durable_worker_example.worker.runtime.time.monotonic', side_effect=lambda: self.clock.now):
-            self.coordinator._run(self.worker, self.handlers, self.cpu, self.clock)
+            self.coordinator._run(self.worker, self.handlers, self.clock)
 
     def test_empty_claims_back_off_to_cap_and_success_resets_delay(self) -> None:
         times: list[float] = []
@@ -127,4 +126,4 @@ class PollingTest(unittest.TestCase):
 
     def test_maximum_poll_interval_validation(self) -> None:
         with self.assertRaises(ValueError):
-            Coordinator(sessionmaker(self.engine), poll_seconds=1, max_poll_seconds=.5)
+            Coordinator(sessionmaker(self.engine), database_url=self.engine.url, poll_seconds=1, max_poll_seconds=.5)
