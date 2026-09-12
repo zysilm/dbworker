@@ -133,15 +133,20 @@ class Coordinator:
         *,
         lease_seconds: float = 30,
         poll_seconds: float = 0.25,
+        max_poll_seconds: float = 10,
     ) -> None:
         if lease_seconds <= 0 or poll_seconds <= 0:
             raise ValueError("Lease and poll intervals must be positive")
+        if max_poll_seconds < poll_seconds:
+            raise ValueError("Maximum poll interval must be at least the initial interval")
         self.session_factory = session_factory
         self.lease_seconds = lease_seconds
         self.poll_seconds = poll_seconds
+        self.max_poll_seconds = max_poll_seconds
         self.workers: dict[str, Worker] = {}
         self._running: dict[str, tuple[threading.Thread, ThreadPoolExecutor, ProcessPoolExecutor]] = {}
         self._stop = threading.Event()
+        self._wakeups: dict[str, threading.Event] = {}
         self._invocation: ContextVar[_Invocation | None] = ContextVar(
             f"coordinator_invocation_{id(self)}", default=None,
         )
@@ -331,10 +336,16 @@ class Coordinator:
 
     def _run(
         self, worker: Worker, handlers: ThreadPoolExecutor, cpu: ProcessPoolExecutor,
+        wakeup: threading.Event,
     ) -> None:
         active: dict[Future[Outcome], Claim] = {}
         next_renewal = time.monotonic()
+        next_claim_at = 0.0
+        delay = self.poll_seconds
         while not self._stop.is_set() or active:
+            # Clear before inspecting futures so a completion during this iteration
+            # still wakes the wait below.
+            wakeup.clear()
             for future in list(active):
                 if future.done():
                     claim = active.pop(future)
@@ -345,19 +356,30 @@ class Coordinator:
                     except Exception as exc:
                         logger.exception("Worker %s failed for %s", worker.name, claim.source_id)
                         self._fail(worker, claim, exc)
-            if not self._stop.is_set():
-                while len(active) < worker.concurrency:
+            if time.monotonic() >= next_renewal:
+                if active:
+                    self.renew(worker, active.values())
+                next_renewal = time.monotonic() + self.lease_seconds / 3
+            if not self._stop.is_set() and time.monotonic() >= next_claim_at:
+                while len(active) < worker.concurrency and not self._stop.is_set():
                     next_claim = self.claim(worker)
                     if next_claim is None:
+                        next_claim_at = time.monotonic() + delay
+                        delay = min(delay * 2, self.max_poll_seconds)
                         break
-                    active[handlers.submit(self.execute_claim, worker, next_claim, cpu)] = next_claim
-            if time.monotonic() >= next_renewal:
-                self.renew(worker, active.values())
-                next_renewal = time.monotonic() + self.lease_seconds / 3
-            if self._stop.is_set():
-                time.sleep(self.poll_seconds)
-            else:
-                self._stop.wait(self.poll_seconds)
+                    delay = self.poll_seconds
+                    next_claim_at = 0.0
+                    future = handlers.submit(self.execute_claim, worker, next_claim, cpu)
+                    active[future] = next_claim
+                    future.add_done_callback(lambda completed: wakeup.set())
+            deadlines: list[float] = []
+            if active:
+                deadlines.append(next_renewal)
+            if not self._stop.is_set() and len(active) < worker.concurrency:
+                deadlines.append(next_claim_at)
+            if not deadlines:
+                break
+            wakeup.wait(max(0.0, min(deadlines) - time.monotonic()))
 
     def start(self) -> None:
         if self._running:
@@ -366,14 +388,19 @@ class Coordinator:
         for worker in self.workers.values():
             handlers = ThreadPoolExecutor(max_workers=worker.concurrency, thread_name_prefix=worker.name)
             cpu = ProcessPoolExecutor(max_workers=worker.concurrency, mp_context=multiprocessing.get_context("spawn"))
-            thread = threading.Thread(target=self._run, args=(worker, handlers, cpu), name=worker.name, daemon=True)
+            wakeup = threading.Event()
+            self._wakeups[worker.name] = wakeup
+            thread = threading.Thread(target=self._run, args=(worker, handlers, cpu, wakeup), name=worker.name, daemon=True)
             self._running[worker.name] = (thread, handlers, cpu)
             thread.start()
 
     def stop(self) -> None:
         self._stop.set()
+        for wakeup in self._wakeups.values():
+            wakeup.set()
         for thread, handlers, cpu in self._running.values():
             thread.join()
             handlers.shutdown(wait=True)
             cpu.shutdown(wait=True)
         self._running.clear()
+        self._wakeups.clear()
