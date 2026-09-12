@@ -9,7 +9,7 @@ from durable_worker_example.config import Settings
 
 from durable_worker_example.db.models import ComparisonRequest, Document, FeatureArtifact, ScoredCandidate, TopComparison
 from durable_worker_example.domain.execution import build_features, score_feature_pairs
-from durable_worker_example.worker.runtime import Context, Finished, Outcome, Unfinished, Worker
+from durable_worker_example.worker.runtime import Coordinator, Finished, Outcome, Unfinished, Worker
 
 
 def ready_candidates(request: ComparisonRequest) -> Select[tuple[FeatureArtifact]]:
@@ -25,21 +25,22 @@ def ready_candidates(request: ComparisonRequest) -> Select[tuple[FeatureArtifact
     ).order_by(FeatureArtifact.id)
 
 
-def build_artifact(artifact: FeatureArtifact, context: Context[FeatureArtifact]) -> Finished:
-    with context.read() as session:
+def build_artifact(artifact: FeatureArtifact, coordinator: Coordinator) -> Finished:
+    with coordinator.session_factory() as session:
         document = session.get(Document, artifact.document_id)
         if document is None:
             raise ValueError("Artifact document no longer exists")
         text = document.text
-    features = context.cpu(build_features, text)
-    current = context.session.get(FeatureArtifact, artifact.id)
+    features = coordinator.run_cpu(build_features, text)
+    session = coordinator.save_session()
+    current = session.get(FeatureArtifact, artifact.id)
     if current is None:
         raise ValueError("Artifact no longer exists")
     current.feature_json = features
     return Finished()
 
 
-def create_workers(settings: Settings) -> tuple[Worker[FeatureArtifact], Worker[ComparisonRequest]]:
+def create_workers(settings: Settings) -> tuple[Worker, Worker]:
     builds = Worker(
         name="artifact_build", source=FeatureArtifact, handler=build_artifact,
         eligible=lambda: select(FeatureArtifact).where(FeatureArtifact.feature_json.is_(None)).order_by(FeatureArtifact.id),
@@ -79,8 +80,8 @@ def create_workers(settings: Settings) -> tuple[Worker[FeatureArtifact], Worker[
             .order_by(ComparisonRequest.id)
         )
 
-    def compare_artifacts(request: ComparisonRequest, context: Context[ComparisonRequest]) -> Outcome:
-        with context.read() as session:
+    def compare_artifacts(request: ComparisonRequest, coordinator: Coordinator) -> Outcome:
+        with coordinator.session_factory() as session:
             query_artifact = session.get(FeatureArtifact, request.query_artifact_id)
             if query_artifact is None or query_artifact.feature_json is None:
                 raise ValueError("Comparison query has no features")
@@ -90,10 +91,10 @@ def create_workers(settings: Settings) -> tuple[Worker[FeatureArtifact], Worker[
                 if artifact.feature_json is None:
                     raise ValueError("A selected candidate has no features")
                 candidates.append((artifact.id, artifact.feature_json))
-        scores = context.cpu(score_feature_pairs, query, candidates) if candidates else []
+        scores = coordinator.run_cpu(score_feature_pairs, query, candidates) if candidates else []
         # This session checks ownership before any result writes. The coordinator
         # commits all application changes and the returned outcome together.
-        session = context.session
+        session = coordinator.save_session()
         current = session.get(ComparisonRequest, request.id)
         if current is None:
             raise ValueError("Comparison request no longer exists")

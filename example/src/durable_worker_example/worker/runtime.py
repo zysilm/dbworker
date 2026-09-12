@@ -10,9 +10,10 @@ import time
 import uuid
 from collections.abc import Callable, Iterable
 from concurrent.futures import Executor, Future, ProcessPoolExecutor, ThreadPoolExecutor
+from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any, Generic, ParamSpec, TypeAlias, TypeVar, cast
+from typing import Any, ParamSpec, TypeAlias, TypeVar, cast
 
 from sqlalchemy import Column, DateTime, ForeignKey, String, Table, Text, and_, inspect, insert, or_, select, update
 from sqlalchemy.exc import IntegrityError
@@ -20,7 +21,6 @@ from sqlalchemy.engine import CursorResult, RowMapping
 from sqlalchemy.orm import DeclarativeBase, Mapper, Session, sessionmaker
 from sqlalchemy.sql import ColumnElement, Select
 
-SourceT = TypeVar("SourceT", bound=DeclarativeBase)
 ResultT = TypeVar("ResultT")
 Parameters = ParamSpec("Parameters")
 
@@ -55,14 +55,14 @@ class LostClaim(Exception):
     """The result belongs to an execution whose ownership has been replaced."""
 
 
-class Worker(Generic[SourceT]):
+class Worker:
     def __init__(
         self,
         *,
         name: str,
-        source: type[SourceT],
-        handler: Callable[[SourceT, Context[SourceT]], Outcome],
-        eligible: Callable[[], Select[tuple[SourceT]]] | None = None,
+        source: type[DeclarativeBase],
+        handler: Callable[[Any, Coordinator], Outcome],
+        eligible: Callable[[], Select[tuple[Any]]] | None = None,
         concurrency: int = 1,
     ) -> None:
         if not re.fullmatch(r"[a-z][a-z0-9_]*", name):
@@ -74,7 +74,7 @@ class Worker(Generic[SourceT]):
         self.handler = handler
         self.eligible = eligible or (lambda: select(source))
         self.concurrency = concurrency
-        mapper = cast(Mapper[SourceT], inspect(source))
+        mapper = cast(Mapper[Any], inspect(source))
         if len(mapper.primary_key) != 1:
             raise ValueError("Worker sources must have one primary-key column")
         self.source_key = cast(Column[Any], mapper.primary_key[0])
@@ -108,83 +108,25 @@ class Worker(Generic[SourceT]):
         return result.rowcount == 1
 
 
-class Context(Generic[SourceT]):
-    """One handler invocation. The coordinator commits after the handler returns.
+@dataclass
+class _Invocation:
+    """Private per-invocation data; coordination stays on Coordinator."""
 
-    read() supplies a short-lived read session. cpu() runs a pure function in
-    the process pool. Access session only for the final save: it acquires write
-    protection, and its transaction remains open until the outcome is committed.
-    Handlers must not commit/rollback this session or perform CPU work after it
-    has been opened.
-    """
-
-    def __init__(
-        self,
-        coordinator: Coordinator,
-        worker: Worker[SourceT],
-        claim: Claim,
-        cpu_pool: Executor,
-    ) -> None:
-        self._coordinator = coordinator
-        self.worker = worker
-        self.claim = claim
-        self._cpu_pool = cpu_pool
-        self._session: Session | None = None
-
-    def read(self) -> Session:
-        if self._session is not None:
-            raise RuntimeError("Use the final save session once saving has begun")
-        return self._coordinator.session_factory()
-
-    def cpu(
-        self,
-        function: Callable[Parameters, ResultT],
-        *args: Parameters.args,
-        **kwargs: Parameters.kwargs,
-    ) -> ResultT:
-        if self._session is not None:
-            raise RuntimeError("CPU work must precede the final save transaction")
-        return self._cpu_pool.submit(function, *args, **kwargs).result()
-
-    @property
-    def session(self) -> Session:
-        if self._session is None:
-            session = self._coordinator.session_factory()
-            table = self.worker.table
-            try:
-                result = cast(CursorResult[Any], session.execute(
-                    update(table).where(
-                        table.c.source_id == self.claim.source_id,
-                        table.c.status == "working",
-                        table.c.claim_token == self.claim.token,
-                    ).values(status="unfinished", claim_token=None, lease_expires_at=None)
-                ))
-                if result.rowcount != 1:
-                    raise LostClaim()
-            except BaseException:
-                session.rollback()
-                session.close()
-                raise
-            self._session = session
-        return self._session
-
-    def finish(self, outcome: Outcome) -> None:
-        if not isinstance(outcome, (Finished, Unfinished)):
-            raise TypeError("A worker handler must return Finished() or Unfinished()")
-        session = self.session
-        session.execute(
-            update(self.worker.table)
-            .where(self.worker.table.c.source_id == self.claim.source_id)
-            .values(status="finished" if isinstance(outcome, Finished) else "unfinished", error=None)
-        )
-        session.commit()
-
-    def close(self) -> None:
-        if self._session is not None:
-            self._session.close()  # Rolls back an unsuccessful save.
+    worker: Worker
+    claim: Claim
+    cpu_pool: Executor
+    session: Session | None = None
 
 
 class Coordinator:
+    """Owns claims, scheduling, CPU execution, and final save transactions.
+
+    Handlers receive this coordinator. session_factory creates independent read
+    sessions; run_cpu() uses the current worker's pool; save_session() starts
+    the current invocation's final transaction. The coordinator commits that
+    transaction together with the outcome after the handler returns.
+    """
+
     def __init__(
         self,
         session_factory: sessionmaker[Session],
@@ -197,11 +139,12 @@ class Coordinator:
         self.session_factory = session_factory
         self.lease_seconds = lease_seconds
         self.poll_seconds = poll_seconds
-        # A registry contains different mapped source types; individual Worker
-        # instances retain the source/handler type relationship.
-        self.workers: dict[str, Worker[Any]] = {}
+        self.workers: dict[str, Worker] = {}
         self._running: dict[str, tuple[threading.Thread, ThreadPoolExecutor, ProcessPoolExecutor]] = {}
         self._stop = threading.Event()
+        self._invocation: ContextVar[_Invocation | None] = ContextVar(
+            f"coordinator_invocation_{id(self)}", default=None,
+        )
         with session_factory() as session:
             dialect = session.connection().dialect
             version = dialect.server_version_info or ()
@@ -211,7 +154,65 @@ class Coordinator:
                 or dialect.name in ("mysql", "mariadb") and getattr(dialect, "is_mariadb", False) and version >= (10, 6)
             )
 
-    def register(self, worker: Worker[SourceT]) -> Worker[SourceT]:
+    def _current_invocation(self) -> _Invocation:
+        invocation = self._invocation.get()
+        if invocation is None:
+            raise RuntimeError("This operation requires an active handler invocation")
+        return invocation
+
+    def run_cpu(
+        self,
+        function: Callable[Parameters, ResultT],
+        *args: Parameters.args,
+        **kwargs: Parameters.kwargs,
+    ) -> ResultT:
+        """Execute pure CPU work before starting the final save transaction."""
+        invocation = self._current_invocation()
+        if invocation.session is not None:
+            raise RuntimeError("CPU work must precede the final save transaction")
+        return invocation.cpu_pool.submit(function, *args, **kwargs).result()
+
+    def save_session(self) -> Session:
+        """Verify ownership and open this invocation's coordinator-owned save.
+
+        The handler must not commit, roll back, or close this session. Returning
+        Finished/Unfinished commits its writes and the outcome together; failure
+        rolls them back. Repeated calls within a handler return the same session.
+        """
+        invocation = self._current_invocation()
+        if invocation.session is None:
+            session = self.session_factory()
+            table = invocation.worker.table
+            try:
+                result = cast(CursorResult[Any], session.execute(
+                    update(table).where(
+                        table.c.source_id == invocation.claim.source_id,
+                        table.c.status == "working",
+                        table.c.claim_token == invocation.claim.token,
+                    ).values(status="unfinished", claim_token=None, lease_expires_at=None)
+                ))
+                if result.rowcount != 1:
+                    raise LostClaim()
+            except BaseException:
+                session.rollback()
+                session.close()
+                raise
+            invocation.session = session
+        return invocation.session
+
+    def _finish(self, outcome: Outcome) -> None:
+        if not isinstance(outcome, (Finished, Unfinished)):
+            raise TypeError("A worker handler must return Finished() or Unfinished()")
+        invocation = self._current_invocation()
+        session = self.save_session()
+        session.execute(
+            update(invocation.worker.table)
+            .where(invocation.worker.table.c.source_id == invocation.claim.source_id)
+            .values(status="finished" if isinstance(outcome, Finished) else "unfinished", error=None)
+        )
+        session.commit()
+
+    def register(self, worker: Worker) -> Worker:
         if self._running:
             raise RuntimeError("Register workers before starting the coordinator")
         if worker.name in self.workers:
@@ -230,7 +231,7 @@ class Coordinator:
             and_(table.c.status == "working", table.c.lease_expires_at < timestamp),
         )
 
-    def _candidate(self, worker: Worker[SourceT], timestamp: datetime) -> Select[tuple[Any]]:
+    def _candidate(self, worker: Worker, timestamp: datetime) -> Select[tuple[Any]]:
         table = worker.table
         return (
             worker.eligible()
@@ -241,7 +242,7 @@ class Coordinator:
         )
 
     def _record_claim(
-        self, session: Session, worker: Worker[SourceT], source_id: object | None, timestamp: datetime,
+        self, session: Session, worker: Worker, source_id: object | None, timestamp: datetime,
     ) -> Claim | None:
         if source_id is None:
             return None
@@ -271,7 +272,7 @@ class Coordinator:
                 return None
         return Claim(source_id, token)
 
-    def _claim_with_db_lock(self, worker: Worker[SourceT]) -> Claim | None:
+    def _claim_with_db_lock(self, worker: Worker) -> Claim | None:
         timestamp = now()
         with self.session_factory.begin() as session:
             # Lock the source row, which exists even before the first work row.
@@ -280,18 +281,18 @@ class Coordinator:
             ))
             return self._record_claim(session, worker, source_id, timestamp)
 
-    def _claim_with_conditional_update(self, worker: Worker[SourceT]) -> Claim | None:
+    def _claim_with_conditional_update(self, worker: Worker) -> Claim | None:
         timestamp = now()
         with self.session_factory.begin() as session:
             source_id = session.scalar(self._candidate(worker, timestamp))
             return self._record_claim(session, worker, source_id, timestamp)
 
-    def claim(self, worker: Worker[SourceT]) -> Claim | None:
+    def claim(self, worker: Worker) -> Claim | None:
         if self._supports_skip_locked:
             return self._claim_with_db_lock(worker)
         return self._claim_with_conditional_update(worker)
 
-    def renew(self, worker: Worker[SourceT], claims: Iterable[Claim]) -> None:
+    def renew(self, worker: Worker, claims: Iterable[Claim]) -> None:
         table = worker.table
         with self.session_factory.begin() as session:
             for claim in claims:
@@ -301,21 +302,26 @@ class Coordinator:
                 ).values(lease_expires_at=now() + timedelta(seconds=self.lease_seconds)))
 
     def execute_claim(
-        self, worker: Worker[SourceT], claim: Claim, cpu_pool: Executor,
+        self, worker: Worker, claim: Claim, cpu_pool: Executor,
     ) -> Outcome:
-        context = Context(self, worker, claim, cpu_pool)
+        invocation = _Invocation(worker, claim, cpu_pool)
+        token = self._invocation.set(invocation)
         try:
             with self.session_factory() as session:
                 source = session.get(worker.source, claim.source_id)
                 if source is None:
                     raise ValueError("Worker source no longer exists")
-            outcome = worker.handler(source, context)
-            context.finish(outcome)
+            outcome = worker.handler(source, self)
+            self._finish(outcome)
             return outcome
         finally:
-            context.close()
+            try:
+                if invocation.session is not None:
+                    invocation.session.close()  # Roll back any unsuccessful save.
+            finally:
+                self._invocation.reset(token)
 
-    def _fail(self, worker: Worker[SourceT], claim: Claim, error: Exception) -> None:
+    def _fail(self, worker: Worker, claim: Claim, error: Exception) -> None:
         table = worker.table
         with self.session_factory.begin() as session:
             session.execute(update(table).where(
@@ -324,7 +330,7 @@ class Coordinator:
             ).values(status="failed", error=str(error), claim_token=None, lease_expires_at=None))
 
     def _run(
-        self, worker: Worker[SourceT], handlers: ThreadPoolExecutor, cpu: ProcessPoolExecutor,
+        self, worker: Worker, handlers: ThreadPoolExecutor, cpu: ProcessPoolExecutor,
     ) -> None:
         active: dict[Future[Outcome], Claim] = {}
         next_renewal = time.monotonic()

@@ -41,19 +41,20 @@ A source with no work row has not been claimed; its API status is `null`. Work r
 ## One handler, short transactions
 
 ```python
-def build_artifact(artifact: FeatureArtifact, context: Context[FeatureArtifact]) -> Finished:
-    with context.read() as session:
+def build_artifact(artifact: FeatureArtifact, coordinator: Coordinator) -> Finished:
+    with coordinator.session_factory() as session:
         text = session.get(Document, artifact.document_id).text
 
-    features = context.cpu(build_features, text)
+    features = coordinator.run_cpu(build_features, text)
 
-    context.session.get(FeatureArtifact, artifact.id).feature_json = features
+    session = coordinator.save_session()
+    session.get(FeatureArtifact, artifact.id).feature_json = features
     return Finished()
 ```
 
-The handler runs in a bounded control thread. `context.cpu(function, *args)` sends plain inputs to that workflow's process pool and waits for the result. CPU functions must be importable top-level functions with serializable inputs and outputs. Database sessions and ORM objects never go to child processes. Close read sessions before calling CPU functions.
+The handler runs in a bounded control thread. `coordinator.run_cpu(function, *args)` sends plain inputs to that workflow's process pool and waits for the result. CPU functions must be importable top-level functions with serializable inputs and outputs. Database sessions and ORM objects never go to child processes. Close read sessions before calling CPU functions.
 
-`context.session` starts the final save transaction and verifies ownership atomically before application writes. The runtime commits those writes together with the handler's returned outcome. An exception or invalid outcome rolls back the save. The handler must not commit, roll back, or close this session itself, and must do no lengthy work once saving starts. `context.cpu()` rejects calls after the save transaction opens. For a handler with no database output, simply returning `Finished()` is enough to persist completion.
+`coordinator.save_session()` starts the current invocation’s final save transaction and verifies ownership atomically before application writes. The coordinator commits those writes together with the handler's returned outcome. An exception or invalid outcome rolls back the save. The handler must not commit, roll back, or close this session itself, and must do no lengthy work once saving starts. `coordinator.run_cpu()` rejects calls after the save transaction opens. Concurrent invocations have independent claims and save sessions, held internally by the coordinator and cleared when each invocation exits. `run_cpu()` and `save_session()` are only available during a handler invocation. For a handler with no database output, simply returning `Finished()` is enough to persist completion.
 
 Arbitrary actions such as file exports are allowed. Their effects are outside the database transaction and must tolerate repetition if an execution loses its claim or crashes before recording completion.
 
