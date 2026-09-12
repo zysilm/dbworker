@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 
 from sqlalchemy import and_, delete, or_, select, update
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import OperationalError
 
 from durable_worker_example.config import Settings
 from durable_worker_example.db.models import ComparisonRequest, Document, FeatureArtifact, TopComparison
@@ -54,31 +53,9 @@ class Coordinator:
     def _lease_until(self) -> datetime:
         return _now() + timedelta(seconds=self._settings.claim_lease_seconds)
 
-    def _retry_claim(self, claim):
-        for attempt in range(3):
-            try:
-                return claim()
-            except OperationalError as exc:
-                original = exc.orig
-                sqlite_code = getattr(original, "sqlite_errorcode", 0) or 0
-                sqlstate = getattr(original, "sqlstate", None) or getattr(original, "pgcode", None)
-                mysql_code = original.args[0] if original.args else None
-                retryable = (
-                    (sqlite_code & 0xFF) in (5, 6)
-                    or sqlstate in ("40001", "40P01", "55P03")
-                    or mysql_code in (1205, 1213)
-                )
-                if not retryable:
-                    raise
-                if attempt == 2:
-                    logger.warning("Claim deferred after database contention")
-                    return None
-                if self._stop.wait(0.01 * 2 ** attempt):
-                    return None
-
     def _claim_artifact(self) -> tuple[int, str, str] | None:
         claim = self._claim_artifact_with_db_lock if self._supports_skip_locked else self._claim_artifact_with_conditional_update
-        return self._retry_claim(claim)
+        return claim()
 
     def _claim_artifact_with_db_lock(self) -> tuple[int, str, str] | None:
         """Hold the selected row lock until the ownership fields commit."""
@@ -169,7 +146,7 @@ class Coordinator:
 
     def _claim_comparison_page(self) -> tuple[int, str, dict[str, int], list[tuple[int, dict[str, int]]]] | None:
         claim = self._claim_comparison_page_with_db_lock if self._supports_skip_locked else self._claim_comparison_page_with_conditional_update
-        return self._retry_claim(claim)
+        return claim()
 
     def _claim_comparison_page_with_db_lock(self) -> tuple[int, str, dict[str, int], list[tuple[int, dict[str, int]]]] | None:
         """Lock the request while selecting its next page and recording ownership."""

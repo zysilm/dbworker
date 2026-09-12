@@ -31,7 +31,7 @@ The service listens on `http://127.0.0.1:8001` by default. Its SQLite database i
 - Only a matching token may write completion. If the coordinator dies, the lease expires and another coordinator can reclaim the row.
 - The process-pool functions receive only serializable data and return normal Python values. Database sessions remain in the coordinator process.
 
-The worker uses separate claim functions: `FOR UPDATE SKIP LOCKED` on supported PostgreSQL/MySQL/MariaDB versions, and conditional updates otherwise (including SQLite). Claims commit before CPU work is submitted. Comparison completion checks ownership and saves the top-K results and cursor in one transaction. Known transient claim errors receive bounded retries; exhausted attempts are deferred to the next poll.
+The worker uses separate claim functions: `FOR UPDATE SKIP LOCKED` on supported PostgreSQL/MySQL/MariaDB versions, and conditional updates otherwise (including SQLite). Claims commit before CPU work is submitted. Comparison completion checks ownership and saves the top-K results and cursor in one transaction.
 
 Run the worker ownership tests from this directory:
 
