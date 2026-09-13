@@ -1,116 +1,201 @@
 # dbworker
 
-Database-backed work coordination using SQLAlchemy and child processes, without a separate broker. Applications register ordinary handler functions; the coordinator claims work, renews leases and dispatches handlers. A handler's database writes and completion outcome commit together.
+Portable database-backed work coordination with SQLAlchemy and process workers. A single-script Redis + Celery alternative that uses your existing database.
 
-## Layout
-
-```text
-pyproject.toml                 Framework Poetry project
-src/
-    dbworker.py                Coordinator, worker execution and outcomes
-examples/                      Independent applications, not a Python package
-    imagededup_system_dbwork/
-        pyproject.toml         Example dependencies and API command
-        src/imagededup_system_dbwork/
-        tests/                 Application and worker integration tests
-    imagededup_system_redis_celery/
-        pyproject.toml         Independent Redis/Celery image example
-        src/imagededup_system_redis_celery/
-        tests/
-benchmarks/
-    imagededup_benckmark/       Dataset download, sequential API benchmarks, JSON results
-tests/                         Framework-only tests
-```
-
-The framework module lives directly under `src` and is imported as `dbworker`. Its only runtime dependency is SQLAlchemy. Example applications are excluded from the framework distribution. Each example owns its Poetry project and references the repository root as an editable path dependency.
-
-## Install and test the framework
+Requires Python 3.12+. Install into your application:
 
 ```sh
-poetry install
-poetry run python -m unittest discover -s tests -v
-poetry run mypy --strict src/dbworker.py
+poetry add /path/to/dbworker
 ```
 
-## Run the image deduplication example
+## Quick start
 
-```sh
-cd examples/imagededup_system_dbwork
-poetry env use python3.12
-poetry install
-poetry run imagededup-system-dbwork-api
-# In a second terminal in the same project directory:
-poetry run imagededup-system-dbwork-workers
-```
-
-The example serves `http://127.0.0.1:8001`. Its [README](examples/imagededup_system_dbwork/README.md) explains the API, application progress tables, claiming and execution behavior.
-
-## Redis and Celery comparison example
-
-The independent [Redis/Celery image example](examples/imagededup_system_redis_celery/README.md) provides the same image API on port 8002. It uses Celery prefork workers and Redis, with SQL results and a transactional publication outbox. It has its own Poetry project, takes existing image files, and does not depend on DBWorker or include dataset downloading.
-
-## Image benchmarks
-
-The [benchmark project](benchmarks/imagededup_benckmark/README.md) owns MIRFLICKR downloading and preparation. It runs the image APIs sequentially with four build workers and four comparison workers each, covering build-only, comparison-only and mixed workloads, and writes structured JSON results.
-
-## Handler interface
+Use your existing SQLAlchemy `session_factory` and database URL:
 
 ```python
-from dbworker import Coordinator, Finished
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from dbworker import Coordinator
 
 coordinator = Coordinator(session_factory, database_url=database_url)
+```
 
+You write a **handler**: a Python function containing the work you want to run. DBWorker runs handlers in separate processes.
+
+Before calling your handler, DBWorker chooses the next task and marks it as “being worked on” in the database. This step is called a **claim**. It lets several processes share the tasks without choosing the same task at the same time.
+
+DBWorker keeps the claim active until your handler finishes. If the process crashes, the claim expires so another process can take over the task.
+
+`source` is the database table that supplies input to your handler, specified as a SQLAlchemy model. It can store user requests, or any entries whose creation should automatically start a procedure. Each new entry gives DBWorker new work to run, and the selected entry is passed to your handler. Its primary key identifies that work so DBWorker can track its completion; the model must have a single primary-key column.
+
+`eligible` controls which inputs can be claimed next. Without it, any new entry can be picked up. Add it when work should wait for a condition or run in a particular order. In the example below, `YourModel` stands for your model. The `enabled` filter and ordering by `id` illustrate a selection rule; replace them with your own conditions and ordering.
+
+Decorate your handler like this. The comments describe where your application logic goes:
+
+**Complete the work in one invocation:**
+
+```python
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+from dbworker import Finished
 
 @coordinator.transactional_worker(
-    name="artifact_build",
-    source=FeatureArtifact,
-    eligible=lambda: select(FeatureArtifact)
-        .where(FeatureArtifact.hash_value.is_(None))
-        .order_by(FeatureArtifact.id),
+    name="process",
+    source=YourModel,
+    eligible=lambda: (
+        select(YourModel)
+        .where(YourModel.enabled.is_(True))
+        .order_by(YourModel.id)
+    ),
     concurrency=4,
 )
-def build_artifact(artifact: FeatureArtifact, session: Session) -> Finished:
-    # Use ordinary SQLAlchemy operations. The runtime commits the final
-    # transaction and task outcome together after this function returns.
-    ...
+def process(source: YourModel, session: Session) -> Finished:
+    # Your procedure goes here.
+    # Return Finished() when the procedure is complete.
     return Finished()
 ```
 
-The decorator creates and registers the worker internally; no separate `Worker(...)` or registration call is needed. It preserves the ordinary function and its signature. Registration starts no processing: create application and worker tables, then call `coordinator.start()` and eventually `coordinator.stop()`. Register all handlers before starting.
+- `name` identifies the worker for status queries.
+- `concurrency=4` allows four handlers to run in child processes.
+- `source` is the selected instance of your source model.
+- `session` is a normal SQLAlchemy session supplied by DBWorker. The handler can leave either argument unused.
 
-The FastAPI example declares decorated handlers in `workers.py`, calling plain application functions in `domain/artifact_build.py` and `domain/comparison.py`. Run `imagededup-system-dbwork-api` and `imagededup-system-dbwork-workers` in separate terminals with the same database URL. Only the worker service starts the coordinator; the API uses registered definitions to read status. Importing handlers starts no processing. See the example README for shared database and image paths.
+Before each claim, DBWorker calls `eligible` and uses its query to select the next item. If nothing can be claimed, it waits and checks again. If your application later enables an item, a subsequent check can select it. Finished, failed, and currently claimed items are excluded automatically; you do not need to put those checks in your query. Omitting `eligible` lets DBWorker select from all entries in `source`.
 
-Handlers must remain importable for spawned child processes. `functools.partial` can bind serializable handler configuration when applying the decorator to an existing function.
+**Process part of the work, then continue in another invocation:**
 
-Execution status is accessible through `coordinator.execution_status(session, worker="artifact_build", source_id=artifact_id)`. Failed work can be reset through `coordinator.workers["artifact_build"].reset_failed(session, artifact_id)`. The decorator's transaction contract applies only during worker execution; direct function calls remain ordinary calls.
+```python
+from dbworker import Finished, Outcome, Unfinished
 
-The handler receives a real SQLAlchemy `Session`, owned and closed by the runtime. Return `Finished()` or `Unfinished()`; do not commit or close this session. Early commits are rejected. The runtime verifies claim ownership and commits the final application writes and task outcome together; errors or a replaced claim roll back the transaction.
+@coordinator.transactional_worker(
+    name="process_in_steps",
+    source=YourModel,
+    eligible=lambda: (
+        select(YourModel)
+        .where(YourModel.enabled.is_(True))
+        .order_by(YourModel.id)
+    ),
+    concurrency=4,
+)
+def process_in_steps(source: YourModel, session: Session) -> Outcome:
+    # Your procedure goes here.
+    # Return Unfinished() if it needs another invocation to continue.
+    # Return Finished() instead when it is complete.
+    return Unfinished()
+```
 
-After read-only work, copy the values needed for computation and call `session.rollback()` to release the connection. Compute using those copied values; the next SQL operation starts the final transaction. Rollback expires ORM objects and discards any pending writes, so do not use it after work you intend to persist. Accessing expired ORM attributes during computation would perform another database read.
+`Finished()` means the work item is complete. `Unfinished()` means this invocation is done, but more work remains. Both save the execution status and commit any writes made through the supplied session; the handler does not have to make any database writes. After `Unfinished()`, DBWorker can invoke the handler again when eligible. Each invocation starts the function from the beginning. Your procedure decides how to continue; DBWorker does not save its position in the function. Use `Outcome` as the return annotation when a handler can return either result.
 
-This is not one transaction spanning all reads and computation: only the final transaction is committed with completion. External effects and writes through independent connections are outside that guarantee. See the example for a complete CPU handler and application-owned progress tracking.
+If the handler raises an exception, DBWorker rolls back its transaction and marks the work failed. If your procedure has prerequisites that can be checked in the database, `eligible` can delay claiming until they are met.
 
-## Querying execution status and dependencies
+DBWorker owns the handler's commit and session cleanup. Do not commit or close this session yourself. For long computations, you can release a read transaction with `session.rollback()` first. Copy needed values before rollback, and do this before making writes you want to keep.
+
+### Start and stop
+
+Register handlers at module scope in an importable module. In your worker service, initialize DBWorker's tables and start the coordinator:
+
+```python
+if __name__ == "__main__":
+    coordinator.create_worker_tables()
+    coordinator.start()
+```
+
+`start()` returns while workers keep running. When a source entry matches `eligible`, DBWorker can claim its work and call the handler—there is no enqueue call.
+
+On service shutdown, call:
+
+```python
+coordinator.stop()
+```
+
+`stop()` stops new claims and waits for active handlers to finish. Your API can run independently, using the same database. See the [complete example](examples/imagededup_system_dbwork/README.md) for runnable API and worker commands with shutdown handling.
+
+## Track progress and coordinate dependent work
+
+Your application may need to show whether work is running or complete. Another worker may also depend on that information: one procedure prepares something, and a second can begin only after preparation finishes. If preparation fails, the application may need to report that failure instead of continuing.
+
+DBWorker tracks execution separately for each worker and source entry. Access it through the coordinator using the worker's registered name and the source entry's primary key; you do not need to manage or query DBWorker's internal tables yourself.
+
+Use `execution_status()` to get the current status in your API or handler:
 
 ```python
 from dbworker import ExecutionStatus
 
-execution_status = coordinator.execution_status(
-    session, worker="artifact_build", source_id=artifact_id,
-)
-if execution_status is ExecutionStatus.FINISHED:
-    ...
+with session_factory() as session:
+    status = coordinator.execution_status(
+        session, worker="process", source_id=source_id,
+    )
+```
 
-build_finished_or_failed = coordinator.has_execution_status(
-    worker="artifact_build", source_id=FeatureArtifact.id,
-    statuses=(ExecutionStatus.FINISHED, ExecutionStatus.FAILED),
+This returns `None` before the first claim, or an `ExecutionStatus` enum: `WORKING`, `UNFINISHED`, `FINISHED`, or `FAILED`.
+
+Sometimes you need to select inputs based on the status of their work—for example, list only inputs whose processing has finished. Calling `execution_status()` for each input would mean checking them individually.
+
+`has_execution_status()` lets you include that check in a database query. It returns a SQLAlchemy condition meaning: **“Does this worker have one of these execution statuses for this input?”** It does not run a query or return a Python `True` or `False` when called.
+
+```python
+finished = coordinator.has_execution_status(
+    worker="process",
+    source_id=YourModel.id,
+    statuses=(ExecutionStatus.FINISHED,),
 )
 ```
 
-`ExecutionStatus` is a `StrEnum` with `WORKING`, `UNFINISHED`, `FINISHED`, and `FAILED`. SQLAlchemy stores their lowercase values and reads enum members. A source with no execution record returns `None`; an unknown worker name raises `KeyError`. An expired lease remains `WORKING` until a subsequent transition.
+- `worker` names the registered worker whose status you want to check.
+- `source_id` identifies its input. Using `YourModel.id` checks the corresponding input for each entry considered by the query.
+- `statuses` contains the acceptable statuses. The condition matches if any one applies; an input with no execution record does not match.
 
-`has_execution_status()` constructs a SQLAlchemy `EXISTS` expression without querying the database. Its source ID may be a literal, mapped attribute, or aliased SQL column. Use it in eligibility queries or application functions. The example passes its coordinator to the comparison functions, which construct their build-status predicate internally. Unclaimed sources match none of the statuses, so negating a terminal-status predicate includes them. An empty status collection matches nothing. Register the referenced worker before constructing its predicate.
+Use the condition in an ordinary SQLAlchemy query:
 
-Generated work-table names are an implementation detail. The example uses this public method for parent-process eligibility and child-process completion decisions, while retaining its application-owned `ScoredCandidate` ledger.
+```python
+query = select(YourModel).where(finished)
+
+with session_factory() as session:
+    inputs = session.scalars(query).all()
+```
+
+This returns inputs whose work under `process` is finished. The database checks their statuses as part of this query.
+
+The same condition can be combined with other query filters, including in an `eligible` query. Register the named worker before calling `has_execution_status()`.
+
+## Understand failures and retry work
+
+When a handler raises an exception, DBWorker records the error and marks the work as `FAILED`. It will not automatically run that work again. Your application may need to show what went wrong and let someone retry after correcting the cause.
+
+`state()` reads the execution details for one input, giving you more information than its status alone:
+
+```python
+with session_factory() as session:
+    state = coordinator.workers["process"].state(session, source_id)
+    error = state["error"] if state is not None else None
+```
+
+`"process"` is the worker's registered name, and `source_id` is the input's primary key. The result is a mapping containing `execution_status`, the recorded `error`, and `lease_expires_at` (the claim's expiration time). It returns `None` if that worker has never claimed this input. You can use the error to explain the failure in your API or logs.
+
+After correcting the cause, use `reset_failed()` to allow another attempt:
+
+```python
+with session_factory.begin() as session:
+    reset = coordinator.workers["process"].reset_failed(session, source_id)
+```
+
+`reset_failed()` changes a failed execution to `UNFINISHED` and clears its recorded error and claim. It returns `True` if it reset a failed execution, or `False` if there was no failed execution to reset. The `begin()` block commits this change.
+
+Resetting does not call the handler immediately. The running coordinator can claim the work again when it matches `eligible`. The handler starts from the beginning; resetting does not delete application results or progress. If the handler has effects outside the database transaction, make them safe to repeat.
+
+## Configuration
+
+| `Coordinator` argument | Purpose | Default |
+|---|---|---|
+| `session_factory` | SQLAlchemy session factory used for coordination. | Required |
+| `database_url` | Database URL used by child processes; use the same database. | Required |
+| `engine_options` | SQLAlchemy `create_engine()` options for child processes. | `None` |
+| `lease_seconds` | Claim lifetime without renewal. Active claims are renewed automatically. | `30` |
+| `poll_seconds` | Initial wait after finding no claimable work. | `0.25` |
+| `max_poll_seconds` | Maximum wait after exponential backoff. Successful claims continue without waiting. | `10` |
+
+For SQLite, use a file-backed database. Worker names must start with a lowercase letter and contain only lowercase letters, digits and underscores.
+
+## Examples
+
+- [Image deduplication](examples/imagededup_system_dbwork/README.md): independent FastAPI and worker services, artifact building, paged comparisons, and worker dependencies.
+- [Redis + Celery equivalent](examples/imagededup_system_redis_celery/README.md).
+- [Benchmarks](benchmarks/imagededup_benckmark/README.md) with structured JSON results.
