@@ -23,6 +23,7 @@ imagededup = "==0.3.3.post2"
 [tool.poetry.group.dev.dependencies]
 httpx = ">=0.28,<1.0"
 mypy = ">=1.0,<3.0"
+pytest = "^9.1.1"
 
 [tool.poetry.scripts]
 imagededup-system-dbwork-api = "imagededup_system_dbwork.main_fastapi:run"
