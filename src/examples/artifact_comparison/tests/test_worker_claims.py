@@ -2,10 +2,10 @@ import tempfile
 import unittest
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from collections.abc import Callable
 from dataclasses import replace
 from datetime import timedelta
 from threading import Barrier
+from unittest.mock import patch
 
 from sqlalchemy import Connection, String, create_engine, event, select, update
 from sqlalchemy.orm import Mapped, Session, mapped_column, sessionmaker
@@ -14,7 +14,7 @@ from durable_worker_example.config import Settings
 from durable_worker_example.db.engine import Base
 from durable_worker_example.db.models import Workspace, Document, FeatureArtifact, ComparisonRequest, ScoredCandidate, TopComparison
 from durable_worker_example.domain.workflows import create_workers
-from durable_worker_example.worker.runtime import Coordinator, Finished, Unfinished, Worker, Claim, LostClaim, Outcome, now, _execute_claim
+from dbworker import Coordinator, Finished, Unfinished, Worker, Claim, LostClaim, Outcome, now, _execute_claim, transactional
 
 
 class ExternalSource(Base):
@@ -22,7 +22,8 @@ class ExternalSource(Base):
     key: Mapped[str] = mapped_column(String(36), primary_key=True)
 
 
-def no_database_output(source: ExternalSource, session_factory: sessionmaker[Session], save_session: Callable[[], Session]) -> Finished:
+@transactional
+def no_database_output(source: ExternalSource, session: Session) -> Finished:
     return Finished()
 
 
@@ -209,8 +210,9 @@ class ClaimsTest(unittest.TestCase):
             self.assertEqual(worker.state(session, key)["status"], "finished")
 
     def test_invalid_handler_outcome_rolls_back(self) -> None:
-        def handler(source: FeatureArtifact, session_factory: sessionmaker[Session], save_session: Callable[[], Session]) -> None:
-            save_session().get(FeatureArtifact, source.id).feature_json = {"wrong": 1}
+        @transactional
+        def handler(source: FeatureArtifact, session: Session) -> None:
+            source.feature_json = {"wrong": 1}
             return None
         worker = Worker(name="invalid_result", source=FeatureArtifact, handler=handler)
         self.coordinators[0].register(worker)
@@ -225,17 +227,17 @@ class ClaimsTest(unittest.TestCase):
         barrier = Barrier(2)
         session_ids: dict[int, int] = {}
 
-        def handler(source: FeatureArtifact, session_factory: sessionmaker[Session], save_session: Callable[[], Session]) -> Finished:
-            self.assertIs(session_factory, self.session_factory)
-            value = abs(-source.id)
+        @transactional
+        def handler(source: FeatureArtifact, session: Session) -> Finished:
+            source_id = source.id
+            value = abs(-source_id)
+            session.rollback()
             barrier.wait(timeout=10)
-            session = save_session()
-            self.assertIs(session, save_session())
-            session_ids[source.id] = id(session)
-            artifact = session.get(FeatureArtifact, source.id)
+            session_ids[source_id] = id(session)
+            artifact = session.get(FeatureArtifact, source_id)
             assert artifact is not None
             artifact.feature_json = {"new": value}
-            if source.id == 2:
+            if source_id == 2:
                 raise ValueError("rollback this invocation only")
             return Finished()
 
@@ -257,6 +259,64 @@ class ClaimsTest(unittest.TestCase):
             self.assertEqual(session.get(FeatureArtifact, 2).feature_json, {"apple": 1})
             self.assertEqual(worker.state(session, 1)["status"], "finished")
             self.assertEqual(worker.state(session, 2)["claim_token"], second.token)
+
+
+    def test_handler_cannot_commit_results_before_completion(self) -> None:
+        @transactional
+        def handler(source: FeatureArtifact, session: Session) -> Finished:
+            source.feature_json = {"premature": 1}
+            session.flush()
+            session.commit()
+            return Finished()
+
+        worker = Worker(name="premature_commit", source=FeatureArtifact, handler=handler)
+        self.coordinators[0].register(worker)
+        self.coordinators[0].create_worker_tables()
+        with self.assertRaisesRegex(RuntimeError, "worker commits"):
+            self.run_work(worker)
+        with self.session_factory() as session:
+            self.assertIsNone(session.get(FeatureArtifact, 1).feature_json)
+            self.assertEqual(worker.state(session, 1)["status"], "working")
+
+    def test_stale_explicit_sql_is_rolled_back(self) -> None:
+        @transactional
+        def handler(source: FeatureArtifact, session: Session) -> Finished:
+            key = source.id
+            session.rollback()
+            session.execute(update(FeatureArtifact).where(FeatureArtifact.id == key).values(feature_json={"stale": 1}))
+            return Finished()
+
+        worker = Worker(name="stale_sql", source=FeatureArtifact, handler=handler)
+        self.coordinators[0].register(worker)
+        self.coordinators[0].create_worker_tables()
+        first = self.coordinators[0].claim(worker)
+        self.expire(worker)
+        replacement = self.coordinators[1].claim(worker)
+        with self.assertRaises(LostClaim):
+            _execute_claim(worker, first, self.session_factory)
+        with self.session_factory() as session:
+            self.assertIsNone(session.get(FeatureArtifact, 1).feature_json)
+            self.assertEqual(worker.state(session, 1)["claim_token"], replacement.token)
+
+    def test_example_releases_connection_during_cpu_work(self) -> None:
+        def build(text: str) -> dict[str, int]:
+            self.assertEqual(self.engine.pool.checkedout(), 0)
+            return {"apple": 1}
+
+        def score(query: dict[str, int], candidates: list[tuple[int, dict[str, int]]]) -> list[tuple[int, float]]:
+            self.assertEqual(self.engine.pool.checkedout(), 0)
+            return [(key, 1.0) for key, _ in candidates]
+
+        with patch("durable_worker_example.domain.workflows.build_features", side_effect=build):
+            self.prepare_comparison()
+        with patch("durable_worker_example.domain.workflows.score_feature_pairs", side_effect=score):
+            self.assertIsInstance(self.run_work(self.comparisons), Finished)
+
+    def test_undecorated_handler_rejected(self) -> None:
+        def handler(source: FeatureArtifact, session: Session) -> Finished:
+            return Finished()
+        with self.assertRaisesRegex(ValueError, "@transactional"):
+            Worker(name="undecorated", source=FeatureArtifact, handler=handler)
 
 
 

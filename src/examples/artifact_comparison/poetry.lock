@@ -52,6 +52,22 @@ files = [
 ]
 
 [[package]]
+name = "dbworker"
+version = "0.1.0"
+description = "Database-backed coordination for process workers."
+optional = false
+python-versions = ">=3.12,<4.0"
+files = []
+develop = true
+
+[package.dependencies]
+sqlalchemy = ">=2.0,<3.0"
+
+[package.source]
+type = "directory"
+url = "../../.."
+
+[[package]]
 name = "fastapi"
 version = "0.141.1"
 description = "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
@@ -998,4 +1014,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.12,<4.0"
-content-hash = "8d199d63096b468f02b85316d5af23c13f13d3b5f464f57d3bdf0edaad00a4db"
+content-hash = "fae7f50efc1c6e5b5e07759c072054d81074490b9a9ab89ece7b5ebd5b26cbf4"

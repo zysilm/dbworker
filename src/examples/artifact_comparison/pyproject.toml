@@ -6,11 +6,13 @@ build-backend = "poetry.core.masonry.api"
 name = "durable-worker-example"
 version = "0.1.0"
 authors = []
-description = "Small, generic example of durable database-backed work coordination."
+description = "FastAPI artifact building and comparison example for dbworker."
+readme = "README.md"
 packages = [{ include = "durable_worker_example", from = "src" }]
 
 [tool.poetry.dependencies]
 python = ">=3.12,<4.0"
+dbworker = { path = "../../..", develop = true }
 fastapi = ">=0.115,<1.0"
 uvicorn = { extras = ["standard"], version = ">=0.30,<1.0" }
 sqlalchemy = ">=2.0,<3.0"

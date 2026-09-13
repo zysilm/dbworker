@@ -13,10 +13,11 @@ from collections.abc import Callable, Iterable
 from concurrent.futures import Future, ProcessPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any, TypeAlias, cast
+from functools import partial
+from typing import Any, TypeAlias, TypeVar, cast
 from multiprocessing.util import Finalize
 
-from sqlalchemy import Column, DateTime, ForeignKey, String, Table, Text, and_, create_engine, inspect, insert, or_, select, update
+from sqlalchemy import Column, DateTime, ForeignKey, String, Table, Text, and_, create_engine, event, inspect, insert, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine import CursorResult, RowMapping, URL, make_url
 from sqlalchemy.orm import DeclarativeBase, Mapper, Session, sessionmaker
@@ -41,7 +42,18 @@ class Unfinished:
 
 
 Outcome: TypeAlias = Finished | Unfinished
-Handler: TypeAlias = Callable[[Any, sessionmaker[Session], Callable[[], Session]], Outcome]
+Handler: TypeAlias = Callable[[Any, Session], Outcome]
+_Function = TypeVar("_Function", bound=Callable[..., Any])
+
+
+def transactional(handler: _Function) -> _Function:
+    """Declare a worker handler whose session and final commit belong to the runtime.
+
+    The function stays importable and unchanged. The transaction contract applies
+    when a Worker executes it, not when application code calls it directly.
+    """
+    setattr(handler, "_dbworker_transactional", True)
+    return handler
 
 
 @dataclass(frozen=True)
@@ -68,6 +80,11 @@ class Worker:
             raise ValueError("Worker name must contain lowercase letters, digits, and underscores")
         if concurrency < 1:
             raise ValueError("Worker concurrency must be positive")
+        function = handler
+        while isinstance(function, partial):
+            function = function.func
+        if not getattr(function, "_dbworker_transactional", False):
+            raise ValueError("Worker handlers must be decorated with @transactional")
         self.name = name
         self.source = source
         self.handler = handler
@@ -146,49 +163,35 @@ def _execute_in_process(claim: Claim) -> Outcome:
 
 def _execute_claim(worker: Worker, claim: Claim, session_factory: sessionmaker[Session]) -> Outcome:
     """Run a whole handler and atomically persist its writes and outcome."""
-    save: Session | None = None
-    active = True
+    with session_factory() as session:
+        def prevent_handler_commit(session: Session) -> None:
+            raise RuntimeError("The worker commits the handler session; return Finished() or Unfinished() instead")
 
-    def save_session() -> Session:
-        nonlocal save
-        if not active:
-            raise RuntimeError("save_session is only available during the handler invocation")
-        if save is None:
-            session = session_factory()
-            try:
+        event.listen(session, "before_commit", prevent_handler_commit)
+        try:
+            source = session.get(worker.source, claim.source_id)
+            if source is None:
+                raise ValueError("Worker source no longer exists")
+            outcome = worker.handler(source, session)
+            if not isinstance(outcome, (Finished, Unfinished)):
+                raise TypeError("A worker handler must return Finished() or Unfinished()")
+            # All handler writes, including already-flushed SQL, are still in
+            # this transaction. Rejecting ownership rolls them all back.
+            with session.no_autoflush:
                 result = cast(CursorResult[Any], session.execute(
                     update(worker.table).where(
                         worker.table.c.source_id == claim.source_id,
                         worker.table.c.status == "working",
                         worker.table.c.claim_token == claim.token,
-                    ).values(status="unfinished", claim_token=None, lease_expires_at=None)
+                    ).values(status="finished" if isinstance(outcome, Finished) else "unfinished",
+                             claim_token=None, lease_expires_at=None, error=None)
                 ))
-                if result.rowcount != 1:
-                    raise LostClaim()
-            except BaseException:
-                session.close()
-                raise
-            save = session
-        return save
-
-    try:
-        with session_factory() as session:
-            source = session.get(worker.source, claim.source_id)
-            if source is None:
-                raise ValueError("Worker source no longer exists")
-        outcome = worker.handler(source, session_factory, save_session)
-        if not isinstance(outcome, (Finished, Unfinished)):
-            raise TypeError("A worker handler must return Finished() or Unfinished()")
-        session = save_session()
-        session.execute(update(worker.table).where(worker.table.c.source_id == claim.source_id).values(
-            status="finished" if isinstance(outcome, Finished) else "unfinished", error=None,
-        ))
+            if result.rowcount != 1:
+                raise LostClaim()
+        finally:
+            event.remove(session, "before_commit", prevent_handler_commit)
         session.commit()
         return outcome
-    finally:
-        active = False
-        if save is not None:
-            save.close()  # Roll back an unsuccessful save before the parent handles failure.
 
 
 class Coordinator:

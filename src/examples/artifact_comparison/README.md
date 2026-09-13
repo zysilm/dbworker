@@ -7,19 +7,22 @@ A small FastAPI application demonstrating database-owned CPU work without a brok
 From the repository root:
 
 ```sh
-source .venv/bin/activate
-cd example
+cd src/examples/artifact_comparison
 poetry install
 poetry run durable-worker-example-api
 ```
 
 The API listens on `http://127.0.0.1:8001`. The default database is `example.db` in the current directory.
 
+The example is an independent Poetry project. Its editable `dbworker` dependency points to the repository root (`../../..`); framework edits are used directly. FastAPI, the application models and the scoring ledger belong to this example. The parent `examples` directory is not a package.
+
 ## Registering a worker
 
 The runtime has no knowledge of artifacts or comparisons. An application registers one handler per workflow:
 
 ```python
+from dbworker import Coordinator, Worker
+
 coordinator = Coordinator(
     session_factory,
     database_url=settings.database_url,
@@ -44,43 +47,43 @@ coordinator.start()
 
 A source with no work row has not been claimed; its API status is `null`. Work rows and API responses use `working`, `unfinished`, `finished`, and `failed` directly. `Finished()` prevents further claims; `Unfinished()` releases ownership for a later eligible invocation. Failed work requires an explicit `worker.reset_failed(session, source_id)`; there are no automatic claim or task retry loops.
 
-## One handler, short transactions
+## One decorated handler, short transactions
 
 ```python
-from collections.abc import Callable
-from sqlalchemy.orm import Session, sessionmaker
+from dbworker import Finished, transactional
+from sqlalchemy import update
+from sqlalchemy.orm import Session
 
 
-def build_artifact(
-    artifact: FeatureArtifact,
-    session_factory: sessionmaker[Session],
-    save_session: Callable[[], Session],
-) -> Finished:
-    with session_factory() as session:
-        document = session.get(Document, artifact.document_id)
-        if document is None:
-            raise ValueError("Artifact document no longer exists")
-        text = document.text
-
+@transactional
+def build_artifact(artifact: FeatureArtifact, session: Session) -> Finished:
+    artifact_id = artifact.id
+    document = session.get(Document, artifact.document_id)
+    if document is None:
+        raise ValueError("Artifact document no longer exists")
+    text = document.text
+    # Copy values before rollback expires ORM objects. No connection is held
+    # while computing; the next SQL statement starts the final transaction.
+    session.rollback()
     features = build_features(text)
-
-    session = save_session()
-    current = session.get(FeatureArtifact, artifact.id)
-    if current is None:
-        raise ValueError("Artifact no longer exists")
-    current.feature_json = features
+    session.execute(update(FeatureArtifact).where(FeatureArtifact.id == artifact_id).values(feature_json=features))
     return Finished()
+
 ```
 
-The entire handler runs in a child process: source loading, database reads, ORM/JSON decoding, computation, and the final save. Call CPU functions normally. The parent Coordinator performs claiming, dispatch and lease renewal; FastAPI keeps its own database sessions. Each child creates its own engine and session factory once and reuses them across jobs. Sessions, connections, ORM instances, and the parent Coordinator never cross process boundaries. A dispatched job contains only its source ID and claim token; the child returns `Finished()` or `Unfinished()`.
+The handler is a normal importable function. `@transactional` declares that Worker owns its session and final commit; register it with `Worker(handler=build_artifact, ...)`. The decorator does not wrap the function or change calls made directly outside a Worker. Use `functools.partial` to bind serializable configuration, as the comparison handler does for its page size.
 
-Handlers and mapped source classes must be importable. Eligibility callbacks execute only in the parent and can remain lambdas or closures. For configured handlers, bind serializable values to a top-level function with `functools.partial`, as `create_workers()` does for the comparison page size. Do not bind sessions or engines. Registered work-table metadata is reconstructed in children, including tables referenced by dependent workflows.
+The entire handler runs in a child process: source loading, reads, JSON decoding, computation and writes. It receives `(source, session)`, with the source loaded into that session. The parent performs claiming, dispatch and lease renewal. Each child creates its engine and session factory once; sessions, connections, source objects and the parent Coordinator never cross process boundaries.
 
-`session_factory()` creates an independent session inside the child. Close read sessions before lengthy computation. `save_session()` verifies ownership atomically and opens the invocation's final save transaction. The child runtime commits application writes and the returned outcome together. An exception or invalid outcome rolls back the save. Do not commit, roll back, or close this session yourself; repeated calls during the invocation return the same session. Complete lengthy work before opening it. For a handler without database output, returning `Finished()` is enough to persist completion.
+The session is a normal SQLAlchemy `Session`. The runtime owns closing and committing it. Return `Finished()` or `Unfinished()` instead of committing; attempts to commit the managed session inside a handler are rejected. Do not close it or bypass its transaction through raw connection commits. You can query, mutate ORM objects, execute SQL and flush normally.
 
-`database_url` must identify the same database used by FastAPI and the parent session factory. Optional `engine_options` are passed to SQLAlchemy `create_engine()` in each child (for example, connection or pool settings). Only serializable configuration crosses the process boundary. SQLite must be file-backed; separate process-local in-memory databases cannot coordinate work.
+A session can live for the invocation without holding a connection throughout. The example copies IDs and input data, then calls `session.rollback()` after its read-only phase. This releases the read transaction and connection before CPU work. Rollback expires ORM instances: retain plain values and do not read expired attributes while computing. It also discards pending writes, so this boundary must precede writes you intend to retain. The next SQL operation starts another transaction; there is no outer `session.begin()` spanning the function.
 
-Arbitrary actions such as file exports are allowed. Their effects are outside the database transaction and must tolerate repetition if an execution loses its claim or crashes before recording completion.
+After the handler returns, the runtime conditionally updates task state using its ownership token in the final transaction, then commits application writes and outcome together. A replaced claim, exception or invalid outcome rolls back all writes in that transaction, including SQL already flushed. The ownership check no longer locks the work row before computation. Earlier rolled-back read transactions are not part of the final atomic save, and input data is not a frozen snapshot across those transactions.
+
+Handlers and mapped source classes must be importable. Eligibility callbacks execute only in the parent and can remain lambdas or closures. Registered work-table metadata is reconstructed in children, including tables referenced by dependent workflows.
+
+`database_url` must identify the same database used by FastAPI and the parent session factory. Optional serializable `engine_options` are passed to `create_engine()` in each child. SQLite must be file-backed. A handler that performs only external actions can still return `Finished()`, but external effects and independently committed transactions cannot be rolled back by the framework and must tolerate repetition.
 
 ## Application data and progress
 
@@ -98,7 +101,7 @@ Comparison eligibility requires a usable query and either ready unscored candida
 
 ## Claims and execution
 
-Supported PostgreSQL/MySQL/MariaDB versions use a source-row `FOR UPDATE SKIP LOCKED` while acquiring ownership. SQLite and other backends use a conditional update. A unique source key arbitrates simultaneous first work-row creation. Claims commit before handlers start. Every save verifies the claim token; a replaced owner cannot commit results. Expiry makes work reclaimable, and the current owner may still finish if no replacement has acquired it.
+Supported PostgreSQL/MySQL/MariaDB versions use a source-row `FOR UPDATE SKIP LOCKED` while acquiring ownership. SQLite and other backends use a conditional update. A unique source key arbitrates simultaneous first work-row creation. Claims commit before handlers start. The final transaction verifies the claim token; a replaced owner cannot commit results. Expiry makes work reclaimable, and the current owner may still finish if no replacement has acquired it.
 
 Polling adapts independently for each workflow. Successful claims fill available slots immediately, and job completion wakes the scheduler to refill capacity. An empty claim waits `poll_seconds` (default 0.25 seconds), then doubles the delay after each further empty claim: 0.5, 1, 2, 4, 8, up to `max_poll_seconds` (default 10 seconds). A successful claim resets the delay. Configure both values in `Settings` or the `Coordinator` constructor. New database entries are discovered at the next scheduled poll; lease renewal and shutdown do not wait for the backoff to expire.
 
@@ -111,7 +114,7 @@ Each registered workflow has one parent scheduling thread and a process pool siz
 From this directory:
 
 ```sh
-PYTHONPATH=src poetry run python -m unittest discover -s tests -v
+poetry run python -m unittest discover -s tests -v
 ```
 
 Tests cover file-backed SQLite claim races, lease reclamation, atomic result/ownership rollback, late candidates, top-K retention, application progress, generic noninteger source keys, child-process execution and reuse, failure rollback, shutdown lease renewal, and API behavior with real process pools. PostgreSQL/MySQL still require live integration testing.

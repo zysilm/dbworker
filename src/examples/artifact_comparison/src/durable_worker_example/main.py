@@ -8,7 +8,7 @@ from durable_worker_example.api.routes import router
 from durable_worker_example.config import settings
 from durable_worker_example.domain.workflows import create_workers
 from durable_worker_example.db.engine import Base, create_engine_and_session_factory
-from durable_worker_example.worker.runtime import Coordinator
+from dbworker import Coordinator
 
 
 @asynccontextmanager

@@ -13,19 +13,21 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from durable_worker_example.db.engine import Base
 from durable_worker_example.db.models import Document, FeatureArtifact, Workspace
-from durable_worker_example.worker.runtime import (
+from dbworker import (
     Coordinator, Finished, LostClaim, Worker, _WorkerDefinition,
-    _execute_in_process, _initialize_process, now,
+    _execute_in_process, _initialize_process, now, transactional,
 )
 
 
+@transactional
 def process_handler(
-    artifact: FeatureArtifact, session_factory: sessionmaker[Session], save_session: Callable[[], Session],
+    artifact: FeatureArtifact, session: Session,
     *, delay: float = 0, started_file: str | None = None, proceed_file: str | None = None,
     fail: bool = False,
 ) -> Finished:
-    with session_factory() as session:
-        assert session.get(Document, artifact.document_id) is not None
+    artifact_id = artifact.id
+    assert session.get(Document, artifact.document_id) is not None
+    session.rollback()
     if started_file:
         Path(started_file).write_text(str(os.getpid()))
     if proceed_file:
@@ -35,9 +37,7 @@ def process_handler(
                 raise TimeoutError('test release signal')
             time.sleep(.01)
     time.sleep(delay)
-    session = save_session()
-    assert session is save_session()
-    current = session.get(FeatureArtifact, artifact.id)
+    current = session.get(FeatureArtifact, artifact_id)
     assert current is not None
     current.feature_json = {'pid': os.getpid()}
     if fail:
@@ -162,7 +162,8 @@ class ProcessTest(unittest.TestCase):
         self.assertFalse(coordinator._running)
 
     def test_nested_handler_rejected_before_claiming(self) -> None:
-        def nested(source: FeatureArtifact, session_factory: sessionmaker[Session], save_session: Callable[[], Session]) -> Finished:
+        @transactional
+        def nested(source: FeatureArtifact, session: Session) -> Finished:
             return Finished()
         worker = Worker(name='nested_handler', source=FeatureArtifact, handler=nested)
         self.coordinator.register(worker)

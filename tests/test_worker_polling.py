@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from durable_worker_example.worker.runtime import Claim, Coordinator, Finished, Outcome, Worker
+from dbworker import Claim, Coordinator, Finished, Outcome, Worker
 
 
 class ClockEvent:
@@ -39,7 +39,7 @@ class PollingTest(unittest.TestCase):
         self.addCleanup(self.engine.dispose)
 
     def run_scheduler(self) -> None:
-        with patch('durable_worker_example.worker.runtime.time.monotonic', side_effect=lambda: self.clock.now):
+        with patch('dbworker.time.monotonic', side_effect=lambda: self.clock.now):
             self.coordinator._run(self.worker, self.handlers, self.clock)
 
     def test_empty_claims_back_off_to_cap_and_success_resets_delay(self) -> None:
