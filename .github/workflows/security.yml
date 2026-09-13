@@ -55,13 +55,13 @@ jobs:
         run: python -m pip install "poetry==2.4.0"
 
       - name: Install project dependencies
-        run: poetry install --with dev --no-interaction
+        run: poetry install --with dev --no-root --no-interaction
 
       - name: Install security tools
         run: poetry run python -m pip install pip-audit bandit
 
       - name: Audit installed dependencies
-        run: poetry run pip-audit --strict --skip-editable
+        run: poetry run pip-audit --strict
 
       - name: Scan Python security patterns
         run: poetry run bandit -r src examples benchmarks -q

@@ -5,7 +5,7 @@ Portable database-backed work coordination with SQLAlchemy and process workers. 
 Requires Python 3.12+. Install into your application:
 
 ```sh
-poetry add /path/to/dbworker
+poetry add dbworker
 ```
 
 ## Quick start
