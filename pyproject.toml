@@ -6,8 +6,11 @@ build-backend = "poetry.core.masonry.api"
 name = "dbworker"
 version = "0.1.0"
 description = "Database-backed coordination for process workers."
-authors = []
+authors = ["Ziyang Song"]
+license = "MIT"
 readme = "README.md"
+repository = "https://github.com/zysilm/dbworker"
+include = [{ path = "poetry.lock", format = "sdist" }]
 packages = [{ include = "dbworker.py", from = "src" }]
 
 [tool.poetry.dependencies]

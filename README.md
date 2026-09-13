@@ -199,3 +199,7 @@ For SQLite, use a file-backed database. Worker names must start with a lowercase
 - [Image deduplication](examples/imagededup_system_dbwork/README.md): independent FastAPI and worker services, artifact building, paged comparisons, and worker dependencies.
 - [Redis + Celery equivalent](examples/imagededup_system_redis_celery/README.md).
 - [Benchmarks](benchmarks/imagededup_benckmark/README.md) with structured JSON results.
+
+## License
+
+[MIT](LICENSE) © 2026 Ziyang Song.
