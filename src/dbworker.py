@@ -302,11 +302,18 @@ class Coordinator:
 
     def _candidate(self, worker: _Worker, timestamp: datetime) -> Select[tuple[Any]]:
         table = worker.table
+        # Keep availability separate from application eligibility. Joining work
+        # state onto the eligibility query can make SQLite evaluate expensive
+        # correlated predicates for every finished source before rejecting it.
+        available_ids = (
+            select(worker.source_key)
+            .outerjoin(table, table.c.source_id == worker.source_key)
+            .where(or_(table.c.source_id.is_(None), self._available(table, timestamp)))
+        )
         return (
             worker.eligible()
             .with_only_columns(worker.source_key, maintain_column_froms=True)
-            .outerjoin(table, table.c.source_id == worker.source_key)
-            .where(or_(table.c.source_id.is_(None), self._available(table, timestamp)))
+            .where(worker.source_key.in_(available_ids))
             .limit(1)
         )
 
