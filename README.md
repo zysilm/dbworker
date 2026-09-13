@@ -8,11 +8,11 @@ Database-backed work coordination using SQLAlchemy and child processes, without 
 pyproject.toml                 Framework Poetry project
 src/
     dbworker.py                Coordinator, worker execution and outcomes
-    examples/                  Independent applications, not a Python package
-        artifact_comparison/
-            pyproject.toml     Example dependencies and API command
-            src/durable_worker_example/
-            tests/             Application and worker integration tests
+examples/                      Independent applications, not a Python package
+    artifact_comparison/
+        pyproject.toml         Example dependencies and API command
+        src/durable_worker_example/
+        tests/                 Application and worker integration tests
 tests/                         Framework-only tests
 ```
 
@@ -29,12 +29,12 @@ poetry run mypy --strict src/dbworker.py
 ## Run the FastAPI example
 
 ```sh
-cd src/examples/artifact_comparison
+cd examples/artifact_comparison
 poetry install
 poetry run durable-worker-example-api
 ```
 
-The example serves `http://127.0.0.1:8001`. Its [README](src/examples/artifact_comparison/README.md) explains the API, application progress tables, claiming and execution behavior.
+The example serves `http://127.0.0.1:8001`. Its [README](examples/artifact_comparison/README.md) explains the API, application progress tables, claiming and execution behavior.
 
 ## Handler interface
 

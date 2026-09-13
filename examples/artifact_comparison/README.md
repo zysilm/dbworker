@@ -7,14 +7,14 @@ A small FastAPI application demonstrating database-owned CPU work without a brok
 From the repository root:
 
 ```sh
-cd src/examples/artifact_comparison
+cd examples/artifact_comparison
 poetry install
 poetry run durable-worker-example-api
 ```
 
 The API listens on `http://127.0.0.1:8001`. The default database is `example.db` in the current directory.
 
-The example is an independent Poetry project. Its editable `dbworker` dependency points to the repository root (`../../..`); framework edits are used directly. FastAPI, the application models and the scoring ledger belong to this example. The parent `examples` directory is not a package.
+The example is an independent Poetry project. Its editable `dbworker` dependency points to the repository root (`../..`); framework edits are used directly. FastAPI, the application models and the scoring ledger belong to this example. The parent `examples` directory is not a package.
 
 ## Registering a worker
 
