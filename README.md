@@ -7,7 +7,7 @@ Database-backed work coordination using SQLAlchemy and child processes, without 
 ```text
 pyproject.toml                 Framework Poetry project
 src/
-    dbworker.py                Coordinator, Worker, outcomes and execution
+    dbworker.py                Coordinator, worker execution and outcomes
     examples/                  Independent applications, not a Python package
         artifact_comparison/
             pyproject.toml     Example dependencies and API command
@@ -39,18 +39,35 @@ The example serves `http://127.0.0.1:8001`. Its [README](src/examples/artifact_c
 ## Handler interface
 
 ```python
-from dbworker import Finished, transactional
+from dbworker import Coordinator, Finished
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+coordinator = Coordinator(session_factory, database_url=database_url)
 
-@transactional
-def handler(source: object, session: Session) -> Finished:
+
+@coordinator.transactional_worker(
+    name="artifact_build",
+    source=FeatureArtifact,
+    eligible=lambda: select(FeatureArtifact)
+        .where(FeatureArtifact.feature_json.is_(None))
+        .order_by(FeatureArtifact.id),
+    concurrency=4,
+)
+def build_artifact(artifact: FeatureArtifact, session: Session) -> Finished:
     # Use ordinary SQLAlchemy operations. The runtime commits the final
     # transaction and task outcome together after this function returns.
+    ...
     return Finished()
 ```
 
-Pass the decorated function to `Worker(handler=handler, ...)`. The decorator preserves the ordinary function and its signature; its managed transaction contract applies when the worker executes it. Configured handlers can use `functools.partial`.
+The decorator creates and registers the worker internally; no separate `Worker(...)` or registration call is needed. It preserves the ordinary function and its signature. Registration starts no processing: create application and worker tables, then call `coordinator.start()` and eventually `coordinator.stop()`. Register all handlers before starting.
+
+The FastAPI example declares decorated, module-level handlers in `main.py`. Those handlers call the plain application functions in `domain/workflows.py`. The coordinator and decorators are constructed on import; database tables and processing start in FastAPI's lifespan. Importing handlers in child processes opens no coordinator connection.
+
+Handlers must remain importable for spawned child processes. `functools.partial` can bind serializable handler configuration when applying the decorator to an existing function.
+
+Worker state is accessible through `coordinator.workers["artifact_build"].state(session, source_id)`; failed work can be reset through that worker's `reset_failed(session, source_id)` method. The decorator's transaction contract applies only during worker execution; direct function calls remain ordinary calls.
 
 The handler receives a real SQLAlchemy `Session`, owned and closed by the runtime. Return `Finished()` or `Unfinished()`; do not commit or close this session. Early commits are rejected. The runtime verifies claim ownership and commits the final application writes and task outcome together; errors or a replaced claim roll back the transaction.
 

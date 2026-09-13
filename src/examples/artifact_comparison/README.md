@@ -21,7 +21,9 @@ The example is an independent Poetry project. Its editable `dbworker` dependency
 The runtime has no knowledge of artifacts or comparisons. An application registers one handler per workflow:
 
 ```python
-from dbworker import Coordinator, Worker
+from dbworker import Coordinator, Finished
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 coordinator = Coordinator(
     session_factory,
@@ -29,19 +31,25 @@ coordinator = Coordinator(
     poll_seconds=0.25,
     max_poll_seconds=10,
 )
-worker = Worker(
+
+
+@coordinator.transactional_worker(
     name="artifact_build",
     source=FeatureArtifact,
     eligible=lambda: select(FeatureArtifact)
         .where(FeatureArtifact.feature_json.is_(None))
         .order_by(FeatureArtifact.id),
-    handler=build_artifact,
     concurrency=2,
 )
-coordinator.register(worker)
-coordinator.create_worker_tables()
-coordinator.start()
+def build_artifact(artifact: FeatureArtifact, session: Session) -> Finished:
+    # Read inputs, compute features, and update the artifact using this session.
+    ...
+    return Finished()
 ```
+
+The decorator creates and registers the worker internally. Registration does not start processing. After registering handlers, create the application tables and call `coordinator.create_worker_tables()`. The application's lifespan calls `coordinator.start()` and `coordinator.stop()`.
+
+`main.py` declares its coordinator and directly decorates the two handlers. Each handler calls a plain function in `domain/workflows.py`; there is no registration helper. Importing the module creates configuration and worker metadata without opening database connections or starting processing. The FastAPI lifespan creates database tables and starts the coordinator. Access execution state with `coordinator.workers["artifact_build"]`.
 
 `source` is a SQLAlchemy mapped model with one primary-key column. The generated `<name>_work` table has a unique `source_id` foreign key with the same column type, plus status, claim token, lease expiry, and error. Stable workflow names identify tables across restarts. Eligibility returns a SQLAlchemy SELECT of the source model and may use joins, subqueries, and application-defined ordering. With no eligibility callback, all source records are considered.
 
@@ -50,12 +58,11 @@ A source with no work row has not been claimed; its API status is `null`. Work r
 ## One decorated handler, short transactions
 
 ```python
-from dbworker import Finished, transactional
+from dbworker import Finished
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 
-@transactional
 def build_artifact(artifact: FeatureArtifact, session: Session) -> Finished:
     artifact_id = artifact.id
     document = session.get(Document, artifact.document_id)
@@ -71,7 +78,7 @@ def build_artifact(artifact: FeatureArtifact, session: Session) -> Finished:
 
 ```
 
-The handler is a normal importable function. `@transactional` declares that Worker owns its session and final commit; register it with `Worker(handler=build_artifact, ...)`. The decorator does not wrap the function or change calls made directly outside a Worker. Use `functools.partial` to bind serializable configuration, as the comparison handler does for its page size.
+The handler is a normal importable function. Applying `coordinator.transactional_worker(...)` registers it and gives the runtime ownership of its session and final commit. The decorator does not wrap the function or change direct calls. The decorated comparison handler passes its configured page size to the plain comparison function.
 
 The entire handler runs in a child process: source loading, reads, JSON decoding, computation and writes. It receives `(source, session)`, with the source loaded into that session. The parent performs claiming, dispatch and lease renewal. Each child creates its engine and session factory once; sessions, connections, source objects and the parent Coordinator never cross process boundaries.
 

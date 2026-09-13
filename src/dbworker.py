@@ -12,8 +12,8 @@ import uuid
 from collections.abc import Callable, Iterable
 from concurrent.futures import Future, ProcessPoolExecutor
 from dataclasses import dataclass
+from functools import cached_property
 from datetime import datetime, timedelta, timezone
-from functools import partial
 from typing import Any, TypeAlias, TypeVar, cast
 from multiprocessing.util import Finalize
 
@@ -46,16 +46,6 @@ Handler: TypeAlias = Callable[[Any, Session], Outcome]
 _Function = TypeVar("_Function", bound=Callable[..., Any])
 
 
-def transactional(handler: _Function) -> _Function:
-    """Declare a worker handler whose session and final commit belong to the runtime.
-
-    The function stays importable and unchanged. The transaction contract applies
-    when a Worker executes it, not when application code calls it directly.
-    """
-    setattr(handler, "_dbworker_transactional", True)
-    return handler
-
-
 @dataclass(frozen=True)
 class Claim:
     source_id: object
@@ -66,7 +56,7 @@ class LostClaim(Exception):
     """The result belongs to an execution whose ownership has been replaced."""
 
 
-class Worker:
+class _Worker:
     def __init__(
         self,
         *,
@@ -80,11 +70,6 @@ class Worker:
             raise ValueError("Worker name must contain lowercase letters, digits, and underscores")
         if concurrency < 1:
             raise ValueError("Worker concurrency must be positive")
-        function = handler
-        while isinstance(function, partial):
-            function = function.func
-        if not getattr(function, "_dbworker_transactional", False):
-            raise ValueError("Worker handlers must be decorated with @transactional")
         self.name = name
         self.source = source
         self.handler = handler
@@ -133,7 +118,7 @@ class _WorkerDefinition:
     handler: Handler
 
 
-_process_worker: Worker | None = None
+_process_worker: _Worker | None = None
 _process_session_factory: sessionmaker[Session] | None = None
 
 
@@ -150,7 +135,7 @@ def _initialize_process(
     # Rebuild registered work-table metadata locally, including dependencies used
     # by application queries. Eligibility callbacks stay in the parent process.
     for definition in definitions:
-        worker = Worker(name=definition.name, source=definition.source, handler=definition.handler)
+        worker = _Worker(name=definition.name, source=definition.source, handler=definition.handler)
         if definition.name == worker_name:
             _process_worker = worker
 
@@ -161,7 +146,7 @@ def _execute_in_process(claim: Claim) -> Outcome:
     return _execute_claim(_process_worker, claim, _process_session_factory)
 
 
-def _execute_claim(worker: Worker, claim: Claim, session_factory: sessionmaker[Session]) -> Outcome:
+def _execute_claim(worker: _Worker, claim: Claim, session_factory: sessionmaker[Session]) -> Outcome:
     """Run a whole handler and atomically persist its writes and outcome."""
     with session_factory() as session:
         def prevent_handler_commit(session: Session) -> None:
@@ -221,26 +206,49 @@ class Coordinator:
         self.lease_seconds = lease_seconds
         self.poll_seconds = poll_seconds
         self.max_poll_seconds = max_poll_seconds
-        self.workers: dict[str, Worker] = {}
+        self.workers: dict[str, _Worker] = {}
         self._running: dict[str, tuple[threading.Thread, ProcessPoolExecutor]] = {}
         self._stop = threading.Event()
         self._wakeups: dict[str, threading.Event] = {}
-        with session_factory() as session:
+
+    @cached_property
+    def _supports_skip_locked(self) -> bool:
+        # Resolve on the first claim so importing decorated handlers in spawned
+        # processes does not open a parent-coordinator database connection.
+        with self.session_factory() as session:
             dialect = session.connection().dialect
             version = dialect.server_version_info or ()
-            self._supports_skip_locked = (
+            return (
                 dialect.name == "postgresql" and version >= (9, 5)
                 or dialect.name == "mysql" and not getattr(dialect, "is_mariadb", False) and version >= (8, 0, 1)
                 or dialect.name in ("mysql", "mariadb") and getattr(dialect, "is_mariadb", False) and version >= (10, 6)
             )
 
-    def register(self, worker: Worker) -> Worker:
-        if self._running:
-            raise RuntimeError("Register workers before starting the coordinator")
-        if worker.name in self.workers:
-            raise ValueError(f"Duplicate worker name: {worker.name}")
-        self.workers[worker.name] = worker
-        return worker
+    def transactional_worker(
+        self,
+        *,
+        name: str,
+        source: type[DeclarativeBase],
+        eligible: Callable[[], Select[tuple[Any]]] | None = None,
+        concurrency: int = 1,
+    ) -> Callable[[_Function], _Function]:
+        """Register a handler whose session and final commit belong to the runtime.
+
+        Registration creates worker metadata, but starts no processing. The
+        original function is returned unchanged; direct calls are not managed.
+        """
+        def decorate(handler: _Function) -> _Function:
+            if self._running:
+                raise RuntimeError("Register workers before starting the coordinator")
+            if name in self.workers:
+                raise ValueError(f"Duplicate worker name: {name}")
+            self.workers[name] = _Worker(
+                name=name, source=source, handler=handler,
+                eligible=eligible, concurrency=concurrency,
+            )
+            return handler
+
+        return decorate
 
     def create_worker_tables(self) -> None:
         with self.session_factory() as session:
@@ -253,7 +261,7 @@ class Coordinator:
             and_(table.c.status == "working", table.c.lease_expires_at < timestamp),
         )
 
-    def _candidate(self, worker: Worker, timestamp: datetime) -> Select[tuple[Any]]:
+    def _candidate(self, worker: _Worker, timestamp: datetime) -> Select[tuple[Any]]:
         table = worker.table
         return (
             worker.eligible()
@@ -264,7 +272,7 @@ class Coordinator:
         )
 
     def _record_claim(
-        self, session: Session, worker: Worker, source_id: object | None, timestamp: datetime,
+        self, session: Session, worker: _Worker, source_id: object | None, timestamp: datetime,
     ) -> Claim | None:
         if source_id is None:
             return None
@@ -294,7 +302,7 @@ class Coordinator:
                 return None
         return Claim(source_id, token)
 
-    def _claim_with_db_lock(self, worker: Worker) -> Claim | None:
+    def _claim_with_db_lock(self, worker: _Worker) -> Claim | None:
         timestamp = now()
         with self.session_factory.begin() as session:
             # Lock the source row, which exists even before the first work row.
@@ -303,18 +311,18 @@ class Coordinator:
             ))
             return self._record_claim(session, worker, source_id, timestamp)
 
-    def _claim_with_conditional_update(self, worker: Worker) -> Claim | None:
+    def _claim_with_conditional_update(self, worker: _Worker) -> Claim | None:
         timestamp = now()
         with self.session_factory.begin() as session:
             source_id = session.scalar(self._candidate(worker, timestamp))
             return self._record_claim(session, worker, source_id, timestamp)
 
-    def claim(self, worker: Worker) -> Claim | None:
+    def claim(self, worker: _Worker) -> Claim | None:
         if self._supports_skip_locked:
             return self._claim_with_db_lock(worker)
         return self._claim_with_conditional_update(worker)
 
-    def renew(self, worker: Worker, claims: Iterable[Claim]) -> None:
+    def renew(self, worker: _Worker, claims: Iterable[Claim]) -> None:
         table = worker.table
         with self.session_factory.begin() as session:
             for claim in claims:
@@ -323,7 +331,7 @@ class Coordinator:
                     table.c.claim_token == claim.token,
                 ).values(lease_expires_at=now() + timedelta(seconds=self.lease_seconds)))
 
-    def _fail(self, worker: Worker, claim: Claim, error: Exception) -> None:
+    def _fail(self, worker: _Worker, claim: Claim, error: Exception) -> None:
         table = worker.table
         with self.session_factory.begin() as session:
             session.execute(update(table).where(
@@ -332,7 +340,7 @@ class Coordinator:
             ).values(status="failed", error=str(error), claim_token=None, lease_expires_at=None))
 
     def _run(
-        self, worker: Worker, handlers: ProcessPoolExecutor,
+        self, worker: _Worker, handlers: ProcessPoolExecutor,
         wakeup: threading.Event,
     ) -> None:
         active: dict[Future[Outcome], Claim] = {}

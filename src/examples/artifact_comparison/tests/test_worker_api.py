@@ -8,6 +8,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from durable_worker_example import main
+from durable_worker_example.db.engine import create_engine_and_session_factory
 from durable_worker_example.api.routes import (
     ComparisonInput, ImportInput, WorkspaceInput, create_comparison,
     create_workspace, get_artifact, get_comparison, get_results, import_text_files,
@@ -18,7 +19,15 @@ class ApiTest(unittest.TestCase):
     def test_lifespan_runs_registered_handlers_in_process_pools(self) -> None:
         async def scenario(directory: str) -> None:
             settings = replace(main.settings, database_url=f"sqlite:///{directory}/app.db", poll_seconds=0.02)
-            with patch.object(main, "settings", settings):
+            engine, session_factory = create_engine_and_session_factory(settings.database_url)
+            self.addCleanup(engine.dispose)
+            with (
+                patch.object(main, "engine", engine),
+                patch.object(main, "session_factory", session_factory),
+                patch.object(main.coordinator, "session_factory", session_factory),
+                patch.object(main.coordinator, "database_url", settings.database_url),
+                patch.object(main.coordinator, "poll_seconds", settings.poll_seconds),
+            ):
                 app = main.create_app()
                 async with main.lifespan(app):
                     request = SimpleNamespace(app=app)

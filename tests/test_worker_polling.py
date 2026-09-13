@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from dbworker import Claim, Coordinator, Finished, Outcome, Worker
+from dbworker import Claim, Coordinator, Finished, Outcome, _Worker
 
 
 class ClockEvent:
@@ -33,7 +33,7 @@ class PollingTest(unittest.TestCase):
     def setUp(self) -> None:
         self.engine = create_engine('sqlite://')
         self.coordinator = Coordinator(sessionmaker(self.engine), database_url=self.engine.url)
-        self.worker = cast(Worker, Mock(name='worker', concurrency=1))
+        self.worker = cast(_Worker, Mock(name='worker', concurrency=1))
         self.clock = ClockEvent()
         self.handlers = Mock()
         self.addCleanup(self.engine.dispose)
@@ -48,7 +48,7 @@ class PollingTest(unittest.TestCase):
         completed.set_result(Finished())
         self.handlers.submit.return_value = completed
 
-        def claim(worker: Worker) -> Claim | None:
+        def claim(worker: _Worker) -> Claim | None:
             times.append(self.clock.now)
             if len(times) == 9:
                 return Claim(1, 'token')
@@ -67,7 +67,7 @@ class PollingTest(unittest.TestCase):
         completed.set_result(Finished())
         self.handlers.submit.return_value = completed
 
-        def claim(worker: Worker) -> Claim | None:
+        def claim(worker: _Worker) -> Claim | None:
             times.append(self.clock.now)
             if len(times) == 5:
                 self.coordinator._stop.set()
@@ -85,11 +85,11 @@ class PollingTest(unittest.TestCase):
         self.handlers.submit.return_value = pending
         renewals: list[float] = []
 
-        def claim(worker: Worker) -> Claim:
+        def claim(worker: _Worker) -> Claim:
             self.coordinator._stop.set()
             return Claim(1, 'token')
 
-        def renew(worker: Worker, claims: object) -> None:
+        def renew(worker: _Worker, claims: object) -> None:
             renewals.append(self.clock.now)
             if len(renewals) == 2:
                 pending.set_result(Finished())
@@ -107,7 +107,7 @@ class PollingTest(unittest.TestCase):
         times: list[float] = []
         renewals: list[float] = []
 
-        def claim(worker: Worker) -> Claim | None:
+        def claim(worker: _Worker) -> Claim | None:
             times.append(self.clock.now)
             if len(times) == 1:
                 return Claim(1, 'token')
@@ -116,7 +116,7 @@ class PollingTest(unittest.TestCase):
                 pending.set_result(Finished())
             return None
 
-        def renew(worker: Worker, claims: object) -> None:
+        def renew(worker: _Worker, claims: object) -> None:
             renewals.append(self.clock.now)
 
         with patch.object(self.coordinator, 'claim', side_effect=claim), patch.object(self.coordinator, 'renew', side_effect=renew):

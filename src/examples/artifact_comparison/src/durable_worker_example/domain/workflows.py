@@ -1,17 +1,13 @@
 """Application handlers and eligibility. The worker knows none of these tables."""
 
-from functools import partial
-
 from sqlalchemy import delete, exists, or_, select, update
 from sqlalchemy.orm import InstrumentedAttribute, Session
 from sqlalchemy.sql import Select
 from sqlalchemy.sql.selectable import Exists
 
-from durable_worker_example.config import Settings
-
 from durable_worker_example.db.models import ComparisonRequest, Document, FeatureArtifact, ScoredCandidate, TopComparison
 from durable_worker_example.domain.execution import build_features, score_feature_pairs
-from dbworker import Finished, Outcome, Unfinished, Worker, transactional
+from dbworker import Finished, Outcome, Unfinished
 
 
 def ready_candidates(request: ComparisonRequest) -> Select[tuple[FeatureArtifact]]:
@@ -27,7 +23,6 @@ def ready_candidates(request: ComparisonRequest) -> Select[tuple[FeatureArtifact
     ).order_by(FeatureArtifact.id)
 
 
-@transactional
 def build_artifact(artifact: FeatureArtifact, session: Session) -> Finished:
     artifact_id = artifact.id
     document = session.get(Document, artifact.document_id)
@@ -55,7 +50,6 @@ def unfinished_builds(workspace_id: int | InstrumentedAttribute[int]) -> Exists:
     )
 
 
-@transactional
 def compare_artifacts(
     request: ComparisonRequest, session: Session,
     *, page_size: int,
@@ -94,37 +88,24 @@ def compare_artifacts(
     return Unfinished() if remaining else Finished()
 
 
-def create_workers(settings: Settings) -> tuple[Worker, Worker]:
-    builds = Worker(
-        name="artifact_build", source=FeatureArtifact, handler=build_artifact,
-        eligible=lambda: select(FeatureArtifact).where(FeatureArtifact.feature_json.is_(None)).order_by(FeatureArtifact.id),
-        concurrency=settings.build_workers,
+def eligible_comparisons() -> Select[tuple[ComparisonRequest]]:
+    query = FeatureArtifact.__table__.alias("query_artifact")
+    candidate = FeatureArtifact.__table__.alias("candidate_artifact")
+    completed = exists().where(
+        ScoredCandidate.request_id == ComparisonRequest.id,
+        ScoredCandidate.candidate_artifact_id == candidate.c.id,
+    ).correlate(ComparisonRequest, candidate)
+    has_candidates = exists().where(
+        candidate.c.workspace_id == ComparisonRequest.workspace_id,
+        candidate.c.id != ComparisonRequest.query_artifact_id,
+        candidate.c.feature_json.is_not(None),
+        ~completed,
     )
-
-    def eligible_comparisons() -> Select[tuple[ComparisonRequest]]:
-        query = FeatureArtifact.__table__.alias("query_artifact")
-        candidate = FeatureArtifact.__table__.alias("candidate_artifact")
-        completed = exists().where(
-            ScoredCandidate.request_id == ComparisonRequest.id,
-            ScoredCandidate.candidate_artifact_id == candidate.c.id,
-        ).correlate(ComparisonRequest, candidate)
-        has_candidates = exists().where(
-            candidate.c.workspace_id == ComparisonRequest.workspace_id,
-            candidate.c.id != ComparisonRequest.query_artifact_id,
-            candidate.c.feature_json.is_not(None),
-            ~completed,
-        )
-        return (
-            select(ComparisonRequest)
-            .join(query, query.c.id == ComparisonRequest.query_artifact_id)
-            .where(query.c.feature_json.is_not(None), or_(
-                has_candidates, ~unfinished_builds(ComparisonRequest.workspace_id),
-            ))
-            .order_by(ComparisonRequest.id)
-        )
-
-    comparisons = Worker(
-        name="comparison", source=ComparisonRequest, eligible=eligible_comparisons,
-        handler=partial(compare_artifacts, page_size=settings.comparison_page_size), concurrency=settings.comparison_workers,
+    return (
+        select(ComparisonRequest)
+        .join(query, query.c.id == ComparisonRequest.query_artifact_id)
+        .where(query.c.feature_json.is_not(None), or_(
+            has_candidates, ~unfinished_builds(ComparisonRequest.workspace_id),
+        ))
+        .order_by(ComparisonRequest.id)
     )
-    return builds, comparisons

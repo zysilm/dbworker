@@ -2,7 +2,7 @@ import tempfile
 import unittest
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import replace
+from functools import partial
 from datetime import timedelta
 from threading import Barrier
 from unittest.mock import patch
@@ -10,11 +10,10 @@ from unittest.mock import patch
 from sqlalchemy import Connection, String, create_engine, event, select, update
 from sqlalchemy.orm import Mapped, Session, mapped_column, sessionmaker
 
-from durable_worker_example.config import Settings
 from durable_worker_example.db.engine import Base
 from durable_worker_example.db.models import Workspace, Document, FeatureArtifact, ComparisonRequest, ScoredCandidate, TopComparison
-from durable_worker_example.domain.workflows import create_workers
-from dbworker import Coordinator, Finished, Unfinished, Worker, Claim, LostClaim, Outcome, now, _execute_claim, transactional
+from durable_worker_example.domain import workflows
+from dbworker import Coordinator, Finished, Unfinished, _Worker, Claim, LostClaim, Outcome, now, _execute_claim
 
 
 class ExternalSource(Base):
@@ -22,7 +21,6 @@ class ExternalSource(Base):
     key: Mapped[str] = mapped_column(String(36), primary_key=True)
 
 
-@transactional
 def no_database_output(source: ExternalSource, session: Session) -> Finished:
     return Finished()
 
@@ -32,13 +30,19 @@ class ClaimsTest(unittest.TestCase):
         self.directory = tempfile.TemporaryDirectory()
         self.engine = create_engine(f"sqlite:///{self.directory.name}/test.db", connect_args={"check_same_thread": False})
         self.session_factory = sessionmaker(self.engine, expire_on_commit=False)
-        self.builds, self.comparisons = create_workers(replace(Settings(), comparison_page_size=1))
         Base.metadata.create_all(self.engine)
         self.coordinators = [Coordinator(self.session_factory, database_url=self.engine.url) for _ in range(2)]
         for coordinator in self.coordinators:
-            coordinator.register(self.builds)
-            coordinator.register(self.comparisons)
+            coordinator.transactional_worker(
+                name="artifact_build", source=FeatureArtifact,
+                eligible=lambda: select(FeatureArtifact).where(FeatureArtifact.feature_json.is_(None)).order_by(FeatureArtifact.id),
+            )(workflows.build_artifact)
+            coordinator.transactional_worker(
+                name="comparison", source=ComparisonRequest, eligible=workflows.eligible_comparisons,
+            )(partial(workflows.compare_artifacts, page_size=1))
             coordinator.create_worker_tables()
+        self.builds = self.coordinators[0].workers["artifact_build"]
+        self.comparisons = self.coordinators[0].workers["comparison"]
         with self.session_factory.begin() as session:
             session.add(Workspace(id=1, name="test"))
             for i in (1, 2):
@@ -51,13 +55,13 @@ class ClaimsTest(unittest.TestCase):
         self.engine.dispose()
         self.directory.cleanup()
 
-    def run_work(self, worker: Worker, coordinator: int = 0) -> Outcome:
+    def run_work(self, worker: _Worker, coordinator: int = 0) -> Outcome:
         runtime = self.coordinators[coordinator]
         claim = runtime.claim(worker)
         self.assertIsNotNone(claim)
         return _execute_claim(worker, claim, runtime.session_factory)
 
-    def expire(self, worker: Worker) -> None:
+    def expire(self, worker: _Worker) -> None:
         with self.session_factory.begin() as session:
             session.execute(update(worker.table).values(lease_expires_at=now() - timedelta(seconds=1)))
 
@@ -66,7 +70,7 @@ class ClaimsTest(unittest.TestCase):
         with self.session_factory.begin() as session:
             session.add(ComparisonRequest(id=1, workspace_id=1, query_artifact_id=1, retained_max_k=1))
 
-    def race(self, worker: Worker, statement_prefix: str) -> list[Claim | None]:
+    def race(self, worker: _Worker, statement_prefix: str) -> list[Claim | None]:
         barrier = Barrier(2)
         def before_write(conn: Connection, cursor: object, statement: str, parameters: object, context: object, executemany: bool) -> None:
             if statement.startswith(statement_prefix):
@@ -198,9 +202,9 @@ class ClaimsTest(unittest.TestCase):
             self.assertEqual(self.builds.state(session, 1)["status"], "finished")
 
     def test_noninteger_source_without_domain_result(self) -> None:
-        worker = Worker(name="external_task", source=ExternalSource, handler=no_database_output)
         coordinator = self.coordinators[0]
-        coordinator.register(worker)
+        coordinator.transactional_worker(name="external_task", source=ExternalSource)(no_database_output)
+        worker = coordinator.workers["external_task"]
         coordinator.create_worker_tables()
         key = str(uuid.uuid4())
         with self.session_factory.begin() as session:
@@ -210,12 +214,11 @@ class ClaimsTest(unittest.TestCase):
             self.assertEqual(worker.state(session, key)["status"], "finished")
 
     def test_invalid_handler_outcome_rolls_back(self) -> None:
-        @transactional
         def handler(source: FeatureArtifact, session: Session) -> None:
             source.feature_json = {"wrong": 1}
             return None
-        worker = Worker(name="invalid_result", source=FeatureArtifact, handler=handler)
-        self.coordinators[0].register(worker)
+        self.coordinators[0].transactional_worker(name="invalid_result", source=FeatureArtifact)(handler)
+        worker = self.coordinators[0].workers["invalid_result"]
         self.coordinators[0].create_worker_tables()
         with self.assertRaises(TypeError):
             self.run_work(worker)
@@ -227,7 +230,6 @@ class ClaimsTest(unittest.TestCase):
         barrier = Barrier(2)
         session_ids: dict[int, int] = {}
 
-        @transactional
         def handler(source: FeatureArtifact, session: Session) -> Finished:
             source_id = source.id
             value = abs(-source_id)
@@ -241,9 +243,9 @@ class ClaimsTest(unittest.TestCase):
                 raise ValueError("rollback this invocation only")
             return Finished()
 
-        worker = Worker(name="isolated_saves", source=FeatureArtifact, handler=handler,
-                        eligible=lambda: select(FeatureArtifact).order_by(FeatureArtifact.id))
-        coordinator.register(worker)
+        coordinator.transactional_worker(name="isolated_saves", source=FeatureArtifact,
+                        eligible=lambda: select(FeatureArtifact).order_by(FeatureArtifact.id))(handler)
+        worker = coordinator.workers["isolated_saves"]
         coordinator.create_worker_tables()
         first, second = coordinator.claim(worker), coordinator.claim(worker)
         assert first is not None and second is not None
@@ -262,15 +264,14 @@ class ClaimsTest(unittest.TestCase):
 
 
     def test_handler_cannot_commit_results_before_completion(self) -> None:
-        @transactional
         def handler(source: FeatureArtifact, session: Session) -> Finished:
             source.feature_json = {"premature": 1}
             session.flush()
             session.commit()
             return Finished()
 
-        worker = Worker(name="premature_commit", source=FeatureArtifact, handler=handler)
-        self.coordinators[0].register(worker)
+        self.coordinators[0].transactional_worker(name="premature_commit", source=FeatureArtifact)(handler)
+        worker = self.coordinators[0].workers["premature_commit"]
         self.coordinators[0].create_worker_tables()
         with self.assertRaisesRegex(RuntimeError, "worker commits"):
             self.run_work(worker)
@@ -279,15 +280,14 @@ class ClaimsTest(unittest.TestCase):
             self.assertEqual(worker.state(session, 1)["status"], "working")
 
     def test_stale_explicit_sql_is_rolled_back(self) -> None:
-        @transactional
         def handler(source: FeatureArtifact, session: Session) -> Finished:
             key = source.id
             session.rollback()
             session.execute(update(FeatureArtifact).where(FeatureArtifact.id == key).values(feature_json={"stale": 1}))
             return Finished()
 
-        worker = Worker(name="stale_sql", source=FeatureArtifact, handler=handler)
-        self.coordinators[0].register(worker)
+        self.coordinators[0].transactional_worker(name="stale_sql", source=FeatureArtifact)(handler)
+        worker = self.coordinators[0].workers["stale_sql"]
         self.coordinators[0].create_worker_tables()
         first = self.coordinators[0].claim(worker)
         self.expire(worker)
@@ -312,11 +312,6 @@ class ClaimsTest(unittest.TestCase):
         with patch("durable_worker_example.domain.workflows.score_feature_pairs", side_effect=score):
             self.assertIsInstance(self.run_work(self.comparisons), Finished)
 
-    def test_undecorated_handler_rejected(self) -> None:
-        def handler(source: FeatureArtifact, session: Session) -> Finished:
-            return Finished()
-        with self.assertRaisesRegex(ValueError, "@transactional"):
-            Worker(name="undecorated", source=FeatureArtifact, handler=handler)
 
 
 

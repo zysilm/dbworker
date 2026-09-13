@@ -14,12 +14,11 @@ from sqlalchemy.orm import Session, sessionmaker
 from durable_worker_example.db.engine import Base
 from durable_worker_example.db.models import Document, FeatureArtifact, Workspace
 from dbworker import (
-    Coordinator, Finished, LostClaim, Worker, _WorkerDefinition,
-    _execute_in_process, _initialize_process, now, transactional,
+    Coordinator, Finished, LostClaim, _Worker, _WorkerDefinition,
+    _execute_in_process, _initialize_process, now,
 )
 
 
-@transactional
 def process_handler(
     artifact: FeatureArtifact, session: Session,
     *, delay: float = 0, started_file: str | None = None, proceed_file: str | None = None,
@@ -65,10 +64,10 @@ class ProcessTest(unittest.TestCase):
         self.engine.dispose()
         self.directory.cleanup()
 
-    def worker(self, **kwargs: object) -> Worker:
-        worker = Worker(name='process_test', source=FeatureArtifact, handler=partial(process_handler, **kwargs),
-                        eligible=lambda: select(FeatureArtifact).where(FeatureArtifact.feature_json.is_(None)).order_by(FeatureArtifact.id))
-        self.coordinator.register(worker)
+    def worker(self, **kwargs: object) -> _Worker:
+        self.coordinator.transactional_worker(name='process_test', source=FeatureArtifact,
+                        eligible=lambda: select(FeatureArtifact).where(FeatureArtifact.feature_json.is_(None)).order_by(FeatureArtifact.id))(partial(process_handler, **kwargs))
+        worker = self.coordinator.workers['process_test']
         self.coordinator.create_worker_tables()
         return worker
 
@@ -162,11 +161,10 @@ class ProcessTest(unittest.TestCase):
         self.assertFalse(coordinator._running)
 
     def test_nested_handler_rejected_before_claiming(self) -> None:
-        @transactional
         def nested(source: FeatureArtifact, session: Session) -> Finished:
             return Finished()
-        worker = Worker(name='nested_handler', source=FeatureArtifact, handler=nested)
-        self.coordinator.register(worker)
+        self.coordinator.transactional_worker(name='nested_handler', source=FeatureArtifact)(nested)
+        worker = self.coordinator.workers['nested_handler']
         self.coordinator.create_worker_tables()
         with self.assertRaisesRegex(ValueError, 'importable'):
             self.coordinator.start()
