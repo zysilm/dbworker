@@ -1,16 +1,14 @@
 name: Publish to PyPI
 
 on:
-  pull_request:
+  push:
     branches: [main]
-    types: [closed]
 
 permissions:
   contents: read
 
 jobs:
   publish:
-    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -24,8 +22,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
-        with:
-          ref: main
 
       - uses: actions/setup-python@v6
         with:
@@ -40,5 +36,22 @@ jobs:
       - name: Build distributions
         run: poetry build
 
+      - name: Check whether this version is already published
+        id: release
+        env:
+          PACKAGE_NAME: dbworker
+        run: |
+          version="$(poetry version --short)"
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' "https://pypi.org/pypi/${PACKAGE_NAME}/${version}/json")"
+          if [ "$status" = "404" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          elif [ "$status" = "200" ]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Could not determine whether ${PACKAGE_NAME} ${version} is published (HTTP ${status})." >&2
+            exit 1
+          fi
+
       - name: Publish
+        if: steps.release.outputs.publish == 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
