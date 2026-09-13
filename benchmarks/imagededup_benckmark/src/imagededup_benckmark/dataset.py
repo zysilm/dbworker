@@ -12,7 +12,7 @@ from zipfile import ZipFile
 import httpx
 
 DATASET_URL = "https://press.liacs.nl/mirflickr/mirflickr25k.v3b/mirflickr25k.zip"
-DEFAULT_DIRECTORY = Path.home() / ".cache" / "dbworker" / "mirflickr25k"
+DEFAULT_DIRECTORY = Path(__file__).resolve().parents[2] / "data" / "mirflickr25k"
 
 
 class RemoteArchive(io.RawIOBase):

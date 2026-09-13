@@ -13,6 +13,12 @@ examples/                      Independent applications, not a Python package
         pyproject.toml         Example dependencies and API command
         src/imagededup_system_dbwork/
         tests/                 Application and worker integration tests
+    imagededup_system_redis_celery/
+        pyproject.toml         Independent Redis/Celery image example
+        src/imagededup_system_redis_celery/
+        tests/
+benchmarks/
+    imagededup_benckmark/       Dataset download, sequential API benchmarks, JSON results
 tests/                         Framework-only tests
 ```
 
@@ -32,11 +38,18 @@ poetry run mypy --strict src/dbworker.py
 cd examples/imagededup_system_dbwork
 poetry env use python3.12
 poetry install
-poetry run imagededup-system-dbwork-download --limit 100
 poetry run imagededup-system-dbwork-api
 ```
 
 The example serves `http://127.0.0.1:8001`. Its [README](examples/imagededup_system_dbwork/README.md) explains the API, application progress tables, claiming and execution behavior.
+
+## Redis and Celery comparison example
+
+The independent [Redis/Celery image example](examples/imagededup_system_redis_celery/README.md) provides the same image API on port 8002. It uses Celery prefork workers and Redis, with SQL results and a transactional publication outbox. It has its own Poetry project, takes existing image files, and does not depend on DBWorker or include dataset downloading.
+
+## Image benchmarks
+
+The [benchmark project](benchmarks/imagededup_benckmark/README.md) owns MIRFLICKR downloading and preparation. It runs the image APIs sequentially with four build workers and four comparison workers each, covering build-only, comparison-only and mixed workloads, and writes structured JSON results.
 
 ## Handler interface
 

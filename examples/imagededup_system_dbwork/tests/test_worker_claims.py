@@ -311,22 +311,21 @@ class ClaimsTest(unittest.TestCase):
     def test_example_releases_connection_during_cpu_work(self) -> None:
         from imagededup.methods import PHash
         encode_image = PHash.encode_image
-        hamming_distance = PHash.hamming_distance
 
         def encode(instance: object, **kwargs: object) -> str:
             self.assertEqual(self.engine.pool.checkedout(), 0)
             return encode_image(instance, **kwargs)
 
-        def distance(first: str, second: str) -> float:
-            self.assertEqual(self.engine.pool.checkedout(), 0)
-            return hamming_distance(first, second)
-
         with patch.object(PHash, "encode_image", autospec=True, side_effect=encode) as encoding:
             self.prepare_comparison()
             encoding.assert_called_once()
-        with patch.object(PHash, "hamming_distance", side_effect=distance) as distances:
+        def parse_hash(value: str, base: int) -> int:
+            self.assertEqual(self.engine.pool.checkedout(), 0)
+            return int(value, base)
+
+        with patch("imagededup_system_dbwork.domain.comparison.int", side_effect=parse_hash, create=True) as parsing:
             self.assertIsInstance(self.run_work(self.comparisons), Finished)
-            distances.assert_called_once()
+            self.assertEqual(parsing.call_count, 2)
 
     def test_failed_query_build_makes_comparison_claimable(self) -> None:
         with self.session_factory.begin() as session:

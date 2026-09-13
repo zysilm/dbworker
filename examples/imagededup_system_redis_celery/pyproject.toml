@@ -3,26 +3,25 @@ requires = ["poetry-core>=2.0,<3.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "imagededup-system-dbwork"
+name = "imagededup-system-redis-celery"
 version = "0.1.0"
+description = "FastAPI image deduplication with Redis and Celery."
 authors = []
-description = "Perceptual image deduplication with FastAPI, imagededup and DBWorker."
 readme = "README.md"
-packages = [{ include = "imagededup_system_dbwork", from = "src" }]
+packages = [{ include = "imagededup_system_redis_celery", from = "src" }]
 
 [tool.poetry.dependencies]
 python = ">=3.12,<3.13"
-dbworker = { path = "../..", develop = true }
 fastapi = ">=0.115,<1.0"
 uvicorn = { extras = ["standard"], version = ">=0.30,<1.0" }
 sqlalchemy = ">=2.0,<3.0"
 pydantic = ">=2.0,<3.0"
-
 imagededup = "==0.3.3.post2"
+celery = { extras = ["redis"], version = ">=5.6,<6.0" }
 
 [tool.poetry.group.dev.dependencies]
-httpx = ">=0.28,<1.0"
 mypy = ">=1.0,<3.0"
+httpx = ">=0.28,<1.0"
 
 [tool.poetry.scripts]
-imagededup-system-dbwork-api = "imagededup_system_dbwork.main:run"
+imagededup-system-redis-celery-api = "imagededup_system_redis_celery.main:run"

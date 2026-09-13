@@ -1,0 +1,20 @@
+[build-system]
+requires = ["poetry-core>=2.0,<3.0"]
+build-backend = "poetry.core.masonry.api"
+[tool.poetry]
+name = "imagededup-benckmark"
+version = "0.1.0"
+description = "Sequential API benchmarks for DBWorker and Redis/Celery image examples."
+authors = []
+readme = "README.md"
+packages = [{ include = "imagededup_benckmark", from = "src" }]
+[tool.poetry.dependencies]
+python = ">=3.12,<3.13"
+httpx = ">=0.28,<1.0"
+psutil = ">=7.0,<8.0"
+[tool.poetry.group.dev.dependencies]
+mypy = ">=1.0,<3.0"
+types-psutil = "*"
+[tool.poetry.scripts]
+imagededup-benchmark-download = "imagededup_benckmark.dataset:run"
+imagededup-benchmark = "imagededup_benckmark.run:main"

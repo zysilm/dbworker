@@ -7,7 +7,7 @@ from zipfile import ZipFile
 
 import httpx
 
-from imagededup_system_dbwork.dataset import RemoteArchive, download_dataset
+from imagededup_benckmark.dataset import RemoteArchive, download_dataset
 
 
 class DatasetTest(unittest.TestCase):
@@ -48,7 +48,7 @@ class DatasetTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory, "images")
             for attempt in range(2):
-                with patch("imagededup_system_dbwork.dataset.httpx.Client",
+                with patch("imagededup_benckmark.dataset.httpx.Client",
                            return_value=self.archive_client(buffer.getvalue())):
                     paths = download_dataset(target, limit=2)
                 self.assertEqual([path.name for path in paths], ["im1.jpg", "im2.jpg"])

@@ -51,9 +51,10 @@ def compare_artifacts(
             raise ValueError("A selected candidate has no perceptual hash")
         candidates.append((artifact.id, artifact.hash_value))
     session.rollback()
-    from imagededup.methods import PHash  # type: ignore[import-untyped]
-
-    scores = [(artifact_id, int(PHash.hamming_distance(query, hash_value)))
+    # Same 64-bit Hamming metric as imagededup, without loading its image
+    # stack into comparison processes or creating nested process pools.
+    query_number = int(query, 16)
+    scores = [(artifact_id, (query_number ^ int(hash_value, 16)).bit_count())
               for artifact_id, hash_value in candidates]
     current = session.get(ComparisonRequest, request_id)
     if current is None:

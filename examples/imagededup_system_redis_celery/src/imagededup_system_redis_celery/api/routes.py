@@ -1,5 +1,3 @@
-from dbworker import Coordinator, ExecutionStatus
-
 from pathlib import Path
 from typing import TypedDict, cast
 
@@ -9,7 +7,9 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from imagededup_system_dbwork.db.models import ComparisonRequest, ImageAsset, FeatureArtifact, TopComparison, Workspace
+from imagededup_system_redis_celery.db.models import ComparisonRequest, ExecutionStatus, ImageAsset, FeatureArtifact, TopComparison, Workspace
+
+from imagededup_system_redis_celery.outbox import enqueue, publish_pending
 
 router = APIRouter()
 
@@ -85,6 +85,7 @@ def import_images(workspace_id: int, body: ImportInput, request: Request) -> Imp
     files = sorted(file for file in directory.iterdir()
                    if file.is_file() and file.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff"})[:body.limit]
     artifact_ids: list[int] = []
+    outbox_ids: list[str] = []
     with _session_factory(request).begin() as session:
         if session.get(Workspace, workspace_id) is None:
             raise HTTPException(404, "workspace not found")
@@ -99,6 +100,8 @@ def import_images(workspace_id: int, body: ImportInput, request: Request) -> Imp
             session.add(artifact)
             session.flush()
             artifact_ids.append(artifact.id)
+            outbox_ids.append(enqueue(session, "images.build", artifact.id))
+    publish_pending(_session_factory(request), outbox_ids)
     return {"imported_images": len(artifact_ids), "artifact_ids": artifact_ids}
 
 
@@ -108,10 +111,11 @@ def list_artifacts(workspace_id: int, request: Request, after_id: int = 0,
     with _session_factory(request)() as session:
         if session.get(Workspace, workspace_id) is None:
             raise HTTPException(404, "workspace not found")
-        ids = list(session.scalars(select(FeatureArtifact.id).where(
+        artifacts = list(session.scalars(select(FeatureArtifact).where(
             FeatureArtifact.workspace_id == workspace_id, FeatureArtifact.id > after_id,
         ).order_by(FeatureArtifact.id).limit(limit)))
-    return [get_artifact(key, request) for key in ids]
+        return [{"id": artifact.id, "image_id": artifact.image_id,
+                 "execution_status": artifact.execution_status, "error": artifact.error} for artifact in artifacts]
 
 
 @router.get("/artifacts/{artifact_id}/image")
@@ -128,13 +132,19 @@ def get_image(artifact_id: int, request: Request) -> FileResponse:
 
 @router.post("/workspaces/{workspace_id}/build-all")
 def build_all(workspace_id: int, request: Request) -> BuildResponse:
-    """The coordinator already polls; this endpoint makes failed artifacts retryable."""
+    """Resubmit failed image builds through the same durable publication path."""
+    outbox_ids: list[str] = []
     with _session_factory(request).begin() as session:
         artifacts = list(session.scalars(select(FeatureArtifact).where(FeatureArtifact.workspace_id == workspace_id)))
         if not artifacts and session.get(Workspace, workspace_id) is None:
             raise HTTPException(404, "workspace not found")
         for artifact in artifacts:
-            request.app.state.build_worker.reset_failed(session, artifact.id)
+            if artifact.execution_status is ExecutionStatus.FAILED:
+                artifact.execution_status = ExecutionStatus.UNFINISHED
+                artifact.error = None
+                artifact.revision += 1
+                outbox_ids.append(enqueue(session, "images.build", artifact.id, artifact.revision))
+    publish_pending(_session_factory(request), outbox_ids)
     return {"artifacts_available_for_build": len(artifacts)}
 
 
@@ -144,11 +154,8 @@ def get_artifact(artifact_id: int, request: Request) -> ArtifactResponse:
         artifact = session.get(FeatureArtifact, artifact_id)
         if artifact is None:
             raise HTTPException(404, "artifact not found")
-        coordinator = cast(Coordinator, request.app.state.coordinator)
-        execution_status = coordinator.execution_status(session, worker="artifact_build", source_id=artifact_id)
-        state = coordinator.workers["artifact_build"].state(session, artifact_id) if execution_status is ExecutionStatus.FAILED else None
         return {"id": artifact.id, "image_id": artifact.image_id,
-                "execution_status": execution_status, "error": state["error"] if state else None}
+                "execution_status": artifact.execution_status, "error": artifact.error}
 
 
 @router.post("/comparisons/{query_artifact_id}")
@@ -160,22 +167,20 @@ def create_comparison(query_artifact_id: int, body: ComparisonInput, request: Re
         comparison = ComparisonRequest(workspace_id=artifact.workspace_id, query_artifact_id=artifact.id, retained_max_k=body.retained_max_k, max_distance=body.max_distance)
         session.add(comparison)
         session.flush()
-        return {"id": comparison.id, "execution_status": None}
+        outbox_id = enqueue(session, "images.compare", comparison.id)
+        result: ComparisonCreatedResponse = {"id": comparison.id, "execution_status": None}
+    publish_pending(_session_factory(request), [outbox_id])
+    return result
 
 
 @router.get("/comparisons/{request_id}")
 def get_comparison(request_id: int, request: Request) -> ComparisonResponse:
     with _session_factory(request)() as session:
-        coordinator = cast(Coordinator, request.app.state.coordinator)
-        execution_status = coordinator.execution_status(session, worker="comparison", source_id=request_id)
-        # Read progress after execution status: observing FINISHED must not be
-        # paired with a count loaded before the handler's atomic final commit.
         comparison = session.get(ComparisonRequest, request_id)
         if comparison is None:
             raise HTTPException(404, "comparison request not found")
-        state = coordinator.workers["comparison"].state(session, request_id) if execution_status is ExecutionStatus.FAILED else None
-        return {"id": comparison.id, "execution_status": execution_status,
-                "candidates_scored_count": comparison.candidates_scored_count, "error": state["error"] if state else None}
+        return {"id": comparison.id, "execution_status": comparison.execution_status,
+                "candidates_scored_count": comparison.candidates_scored_count, "error": comparison.error}
 
 
 @router.get("/comparisons/{request_id}/results")
