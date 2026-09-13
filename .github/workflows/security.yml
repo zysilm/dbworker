@@ -15,9 +15,14 @@ jobs:
   dependency-review:
     if: github.event_name == 'pull_request'
     continue-on-error: true
+    runs-on: ubuntu-latest
     permissions:
       contents: read
-    uses: actions/dependency-review-action@v4
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@v4
 
   codeql:
     continue-on-error: true
