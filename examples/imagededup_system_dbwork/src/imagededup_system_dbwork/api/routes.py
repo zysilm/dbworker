@@ -3,12 +3,13 @@ from dbworker import Coordinator, ExecutionStatus
 from pathlib import Path
 from typing import TypedDict, cast
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from durable_worker_example.db.models import ComparisonRequest, Document, FeatureArtifact, TopComparison, Workspace
+from imagededup_system_dbwork.db.models import ComparisonRequest, ImageAsset, FeatureArtifact, TopComparison, Workspace
 
 router = APIRouter()
 
@@ -19,9 +20,11 @@ class WorkspaceInput(BaseModel):
 
 class ImportInput(BaseModel):
     directory: str
+    limit: int = Field(default=25000, ge=1, le=25000)
 
 
 class ComparisonInput(BaseModel):
+    max_distance: int = Field(default=10, ge=0, le=64)
     retained_max_k: int = Field(default=10, ge=1, le=100)
 
 
@@ -31,7 +34,8 @@ class WorkspaceResponse(TypedDict):
 
 
 class ImportResponse(TypedDict):
-    imported_documents: int
+    imported_images: int
+    artifact_ids: list[int]
 
 
 class BuildResponse(TypedDict):
@@ -40,7 +44,7 @@ class BuildResponse(TypedDict):
 
 class ArtifactResponse(TypedDict):
     id: int
-    document_id: int
+    image_id: int
     execution_status: ExecutionStatus | None
     error: str | None
 
@@ -57,7 +61,7 @@ class ComparisonResponse(ComparisonCreatedResponse):
 
 class ComparisonResultResponse(TypedDict):
     candidate_artifact_id: int
-    score: float
+    distance: int
 
 
 def _session_factory(request: Request) -> sessionmaker[Session]:
@@ -74,20 +78,52 @@ def create_workspace(body: WorkspaceInput, request: Request) -> WorkspaceRespons
 
 
 @router.post("/workspaces/{workspace_id}/imports")
-def import_text_files(workspace_id: int, body: ImportInput, request: Request) -> ImportResponse:
-    directory = Path(body.directory)
+def import_images(workspace_id: int, body: ImportInput, request: Request) -> ImportResponse:
+    directory = Path(body.directory).expanduser().resolve()
     if not directory.is_dir():
-        raise HTTPException(400, "directory must be an existing directory")
-    files = sorted(directory.glob("*.txt"))
+        raise HTTPException(400, "directory must be an existing image directory; run the dataset download command first")
+    files = sorted(file for file in directory.iterdir()
+                   if file.is_file() and file.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff"})[:body.limit]
+    artifact_ids: list[int] = []
     with _session_factory(request).begin() as session:
         if session.get(Workspace, workspace_id) is None:
             raise HTTPException(404, "workspace not found")
+        existing = set(session.scalars(select(ImageAsset.file_path).where(ImageAsset.workspace_id == workspace_id)))
         for file in files:
-            document = Document(workspace_id=workspace_id, name=file.name, text=file.read_text(encoding="utf-8", errors="replace"))
-            session.add(document)
+            if str(file) in existing:
+                continue
+            image = ImageAsset(workspace_id=workspace_id, name=file.name, file_path=str(file))
+            session.add(image)
             session.flush()
-            session.add(FeatureArtifact(workspace_id=workspace_id, document_id=document.id))
-    return {"imported_documents": len(files)}
+            artifact = FeatureArtifact(workspace_id=workspace_id, image_id=image.id)
+            session.add(artifact)
+            session.flush()
+            artifact_ids.append(artifact.id)
+    return {"imported_images": len(artifact_ids), "artifact_ids": artifact_ids}
+
+
+@router.get("/workspaces/{workspace_id}/artifacts")
+def list_artifacts(workspace_id: int, request: Request, after_id: int = 0,
+                   limit: int = Query(default=100, ge=1, le=1000)) -> list[ArtifactResponse]:
+    with _session_factory(request)() as session:
+        if session.get(Workspace, workspace_id) is None:
+            raise HTTPException(404, "workspace not found")
+        ids = list(session.scalars(select(FeatureArtifact.id).where(
+            FeatureArtifact.workspace_id == workspace_id, FeatureArtifact.id > after_id,
+        ).order_by(FeatureArtifact.id).limit(limit)))
+    return [get_artifact(key, request) for key in ids]
+
+
+@router.get("/artifacts/{artifact_id}/image")
+def get_image(artifact_id: int, request: Request) -> FileResponse:
+    with _session_factory(request)() as session:
+        image = session.scalar(select(ImageAsset).join(FeatureArtifact).where(FeatureArtifact.id == artifact_id))
+        if image is None:
+            raise HTTPException(404, "artifact not found")
+        path = Path(image.file_path)
+        if not path.is_file():
+            raise HTTPException(404, "image file no longer exists")
+        return FileResponse(path)
 
 
 @router.post("/workspaces/{workspace_id}/build-all")
@@ -111,7 +147,7 @@ def get_artifact(artifact_id: int, request: Request) -> ArtifactResponse:
         coordinator = cast(Coordinator, request.app.state.coordinator)
         execution_status = coordinator.execution_status(session, worker="artifact_build", source_id=artifact_id)
         state = coordinator.workers["artifact_build"].state(session, artifact_id) if execution_status is ExecutionStatus.FAILED else None
-        return {"id": artifact.id, "document_id": artifact.document_id,
+        return {"id": artifact.id, "image_id": artifact.image_id,
                 "execution_status": execution_status, "error": state["error"] if state else None}
 
 
@@ -121,7 +157,7 @@ def create_comparison(query_artifact_id: int, body: ComparisonInput, request: Re
         artifact = session.get(FeatureArtifact, query_artifact_id)
         if artifact is None:
             raise HTTPException(404, "artifact not found")
-        comparison = ComparisonRequest(workspace_id=artifact.workspace_id, query_artifact_id=artifact.id, retained_max_k=body.retained_max_k)
+        comparison = ComparisonRequest(workspace_id=artifact.workspace_id, query_artifact_id=artifact.id, retained_max_k=body.retained_max_k, max_distance=body.max_distance)
         session.add(comparison)
         session.flush()
         return {"id": comparison.id, "execution_status": None}
@@ -147,5 +183,5 @@ def get_results(request_id: int, request: Request) -> list[ComparisonResultRespo
     with _session_factory(request)() as session:
         if session.get(ComparisonRequest, request_id) is None:
             raise HTTPException(404, "comparison request not found")
-        rows = list(session.scalars(select(TopComparison).where(TopComparison.request_id == request_id).order_by(TopComparison.score.desc())))
-        return [{"candidate_artifact_id": row.candidate_artifact_id, "score": row.score} for row in rows]
+        rows = list(session.scalars(select(TopComparison).where(TopComparison.request_id == request_id).order_by(TopComparison.distance.asc(), TopComparison.candidate_artifact_id.asc())))
+        return [{"candidate_artifact_id": row.candidate_artifact_id, "distance": row.distance} for row in rows]

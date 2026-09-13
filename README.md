@@ -9,9 +9,9 @@ pyproject.toml                 Framework Poetry project
 src/
     dbworker.py                Coordinator, worker execution and outcomes
 examples/                      Independent applications, not a Python package
-    artifact_comparison/
+    imagededup_system_dbwork/
         pyproject.toml         Example dependencies and API command
-        src/durable_worker_example/
+        src/imagededup_system_dbwork/
         tests/                 Application and worker integration tests
 tests/                         Framework-only tests
 ```
@@ -26,15 +26,17 @@ poetry run python -m unittest discover -s tests -v
 poetry run mypy --strict src/dbworker.py
 ```
 
-## Run the FastAPI example
+## Run the image deduplication example
 
 ```sh
-cd examples/artifact_comparison
+cd examples/imagededup_system_dbwork
+poetry env use python3.12
 poetry install
-poetry run durable-worker-example-api
+poetry run imagededup-system-dbwork-download --limit 100
+poetry run imagededup-system-dbwork-api
 ```
 
-The example serves `http://127.0.0.1:8001`. Its [README](examples/artifact_comparison/README.md) explains the API, application progress tables, claiming and execution behavior.
+The example serves `http://127.0.0.1:8001`. Its [README](examples/imagededup_system_dbwork/README.md) explains the API, application progress tables, claiming and execution behavior.
 
 ## Handler interface
 
@@ -50,7 +52,7 @@ coordinator = Coordinator(session_factory, database_url=database_url)
     name="artifact_build",
     source=FeatureArtifact,
     eligible=lambda: select(FeatureArtifact)
-        .where(FeatureArtifact.feature_json.is_(None))
+        .where(FeatureArtifact.hash_value.is_(None))
         .order_by(FeatureArtifact.id),
     concurrency=4,
 )

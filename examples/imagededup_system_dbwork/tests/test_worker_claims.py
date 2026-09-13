@@ -7,12 +7,15 @@ from datetime import timedelta
 from threading import Barrier
 from unittest.mock import patch
 
+from pathlib import Path
+from PIL import Image, ImageDraw
+
 from sqlalchemy import Connection, String, create_engine, event, select, update
 from sqlalchemy.orm import Mapped, Session, mapped_column, sessionmaker
 
-from durable_worker_example.db.engine import Base
-from durable_worker_example.db.models import Workspace, Document, FeatureArtifact, ComparisonRequest, ScoredCandidate, TopComparison
-from durable_worker_example.domain import artifact_build, comparison
+from imagededup_system_dbwork.db.engine import Base
+from imagededup_system_dbwork.db.models import Workspace, ImageAsset, FeatureArtifact, ComparisonRequest, ScoredCandidate, TopComparison
+from imagededup_system_dbwork.domain import artifact_build, comparison
 from dbworker import Coordinator, Finished, Unfinished, _Worker, Claim, LostClaim, Outcome, now, _execute_claim
 
 
@@ -28,6 +31,12 @@ def no_database_output(source: ExternalSource, session: Session) -> Finished:
 class ClaimsTest(unittest.TestCase):
     def setUp(self) -> None:
         self.directory = tempfile.TemporaryDirectory()
+        self.image_path = str(Path(self.directory.name, "black.png"))
+        self.other_path = str(Path(self.directory.name, "white.png"))
+        Image.new("RGB", (32, 32), "black").save(self.image_path)
+        other = Image.new("RGB", (32, 32), "black")
+        ImageDraw.Draw(other).rectangle((0, 0, 15, 15), fill="white")
+        other.save(self.other_path)
         self.engine = create_engine(f"sqlite:///{self.directory.name}/test.db", connect_args={"check_same_thread": False})
         self.session_factory = sessionmaker(self.engine, expire_on_commit=False)
         Base.metadata.create_all(self.engine)
@@ -35,7 +44,7 @@ class ClaimsTest(unittest.TestCase):
         for coordinator in self.coordinators:
             coordinator.transactional_worker(
                 name="artifact_build", source=FeatureArtifact,
-                eligible=lambda: select(FeatureArtifact).where(FeatureArtifact.feature_json.is_(None)).order_by(FeatureArtifact.id),
+                eligible=lambda: select(FeatureArtifact).where(FeatureArtifact.hash_value.is_(None)).order_by(FeatureArtifact.id),
             )(artifact_build.build_artifact)
             coordinator.transactional_worker(
                 name="comparison", source=ComparisonRequest,
@@ -47,8 +56,8 @@ class ClaimsTest(unittest.TestCase):
         with self.session_factory.begin() as session:
             session.add(Workspace(id=1, name="test"))
             for i in (1, 2):
-                session.add(Document(id=i, workspace_id=1, name=str(i), text="apple"))
-                session.add(FeatureArtifact(id=i, workspace_id=1, document_id=i, feature_json=None if i == 1 else {"apple": 1}))
+                session.add(ImageAsset(id=i, workspace_id=1, name=str(i), file_path=self.image_path))
+                session.add(FeatureArtifact(id=i, workspace_id=1, image_id=i, hash_value=None if i == 1 else "ffffffffffffffff"))
 
     def tearDown(self) -> None:
         for coordinator in self.coordinators:
@@ -101,7 +110,7 @@ class ClaimsTest(unittest.TestCase):
             _execute_claim(self.builds, first, self.coordinators[0].session_factory)
         self.coordinators[0].renew(self.builds, [first])
         with self.session_factory() as session:
-            self.assertIsNone(session.get(FeatureArtifact, 1).feature_json)
+            self.assertIsNone(session.get(FeatureArtifact, 1).hash_value)
             self.assertEqual(self.builds.state(session, 1)["claim_token"], second.token)
         _execute_claim(self.builds, second, self.coordinators[1].session_factory)
         self.assertIsNone(self.coordinators[0].claim(self.builds))
@@ -148,8 +157,8 @@ class ClaimsTest(unittest.TestCase):
     def test_late_lower_id_and_top_k_eviction(self) -> None:
         self.prepare_comparison()
         with self.session_factory.begin() as session:
-            session.add(Document(id=0, workspace_id=1, name="late", text="banana"))
-            session.add(FeatureArtifact(id=0, workspace_id=1, document_id=0))
+            session.add(ImageAsset(id=0, workspace_id=1, name="late", file_path=self.other_path))
+            session.add(FeatureArtifact(id=0, workspace_id=1, image_id=0))
         self.assertIsInstance(self.run_work(self.comparisons), Unfinished)
         self.assertIsNone(self.coordinators[0].claim(self.comparisons))
         self.run_work(self.builds)
@@ -175,8 +184,8 @@ class ClaimsTest(unittest.TestCase):
     def test_failed_remaining_build_allows_finalization(self) -> None:
         self.prepare_comparison()
         with self.session_factory.begin() as session:
-            session.add(Document(id=3, workspace_id=1, name="bad", text="bad"))
-            session.add(FeatureArtifact(id=3, workspace_id=1, document_id=3))
+            session.add(ImageAsset(id=3, workspace_id=1, name="bad", file_path="missing.jpg"))
+            session.add(FeatureArtifact(id=3, workspace_id=1, image_id=3))
         self.assertIsInstance(self.run_work(self.comparisons), Unfinished)
         claim = self.coordinators[0].claim(self.builds)
         self.coordinators[0]._fail(self.builds, claim, ValueError("bad input"))
@@ -186,8 +195,8 @@ class ClaimsTest(unittest.TestCase):
         with self.session_factory.begin() as session:
             session.add(ComparisonRequest(id=1, workspace_id=1, query_artifact_id=1))
             session.add(ComparisonRequest(id=2, workspace_id=1, query_artifact_id=2))
-            session.add(Document(id=3, workspace_id=1, name="ready", text="apple"))
-            session.add(FeatureArtifact(id=3, workspace_id=1, document_id=3, feature_json={"apple": 1}))
+            session.add(ImageAsset(id=3, workspace_id=1, name="ready", file_path=self.image_path))
+            session.add(FeatureArtifact(id=3, workspace_id=1, image_id=3, hash_value="ffffffffffffffff"))
         claim = self.coordinators[0].claim(self.comparisons)
         self.assertEqual(claim.source_id, 2)
 
@@ -216,7 +225,7 @@ class ClaimsTest(unittest.TestCase):
 
     def test_invalid_handler_outcome_rolls_back(self) -> None:
         def handler(source: FeatureArtifact, session: Session) -> None:
-            source.feature_json = {"wrong": 1}
+            source.hash_value = "wrong"
             return None
         self.coordinators[0].transactional_worker(name="invalid_result", source=FeatureArtifact)(handler)
         worker = self.coordinators[0].workers["invalid_result"]
@@ -224,7 +233,7 @@ class ClaimsTest(unittest.TestCase):
         with self.assertRaises(TypeError):
             self.run_work(worker)
         with self.session_factory() as session:
-            self.assertIsNone(session.get(FeatureArtifact, 1).feature_json)
+            self.assertIsNone(session.get(FeatureArtifact, 1).hash_value)
 
     def test_concurrent_invocations_have_independent_save_transactions(self) -> None:
         coordinator = self.coordinators[0]
@@ -239,7 +248,7 @@ class ClaimsTest(unittest.TestCase):
             session_ids[source_id] = id(session)
             artifact = session.get(FeatureArtifact, source_id)
             assert artifact is not None
-            artifact.feature_json = {"new": value}
+            artifact.hash_value = str(value)
             if source_id == 2:
                 raise ValueError("rollback this invocation only")
             return Finished()
@@ -258,15 +267,15 @@ class ClaimsTest(unittest.TestCase):
                 failed.result(timeout=10)
         self.assertNotEqual(session_ids[1], session_ids[2])
         with self.session_factory() as session:
-            self.assertEqual(session.get(FeatureArtifact, 1).feature_json, {"new": 1})
-            self.assertEqual(session.get(FeatureArtifact, 2).feature_json, {"apple": 1})
+            self.assertEqual(session.get(FeatureArtifact, 1).hash_value, "1")
+            self.assertEqual(session.get(FeatureArtifact, 2).hash_value, "ffffffffffffffff")
             self.assertEqual(worker.state(session, 1)["execution_status"], "finished")
             self.assertEqual(worker.state(session, 2)["claim_token"], second.token)
 
 
     def test_handler_cannot_commit_results_before_completion(self) -> None:
         def handler(source: FeatureArtifact, session: Session) -> Finished:
-            source.feature_json = {"premature": 1}
+            source.hash_value = "premature"
             session.flush()
             session.commit()
             return Finished()
@@ -277,14 +286,14 @@ class ClaimsTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "worker commits"):
             self.run_work(worker)
         with self.session_factory() as session:
-            self.assertIsNone(session.get(FeatureArtifact, 1).feature_json)
+            self.assertIsNone(session.get(FeatureArtifact, 1).hash_value)
             self.assertEqual(worker.state(session, 1)["execution_status"], "working")
 
     def test_stale_explicit_sql_is_rolled_back(self) -> None:
         def handler(source: FeatureArtifact, session: Session) -> Finished:
             key = source.id
             session.rollback()
-            session.execute(update(FeatureArtifact).where(FeatureArtifact.id == key).values(feature_json={"stale": 1}))
+            session.execute(update(FeatureArtifact).where(FeatureArtifact.id == key).values(hash_value="stale"))
             return Finished()
 
         self.coordinators[0].transactional_worker(name="stale_sql", source=FeatureArtifact)(handler)
@@ -296,27 +305,46 @@ class ClaimsTest(unittest.TestCase):
         with self.assertRaises(LostClaim):
             _execute_claim(worker, first, self.session_factory)
         with self.session_factory() as session:
-            self.assertIsNone(session.get(FeatureArtifact, 1).feature_json)
+            self.assertIsNone(session.get(FeatureArtifact, 1).hash_value)
             self.assertEqual(worker.state(session, 1)["claim_token"], replacement.token)
 
     def test_example_releases_connection_during_cpu_work(self) -> None:
-        findall = artifact_build.re.findall
-        sqrt = comparison.math.sqrt
+        from imagededup.methods import PHash
+        encode_image = PHash.encode_image
+        hamming_distance = PHash.hamming_distance
 
-        def tokenize(pattern: str, text: str) -> list[str]:
+        def encode(instance: object, **kwargs: object) -> str:
             self.assertEqual(self.engine.pool.checkedout(), 0)
-            return findall(pattern, text)
+            return encode_image(instance, **kwargs)
 
-        def norm(value: float) -> float:
+        def distance(first: str, second: str) -> float:
             self.assertEqual(self.engine.pool.checkedout(), 0)
-            return sqrt(value)
+            return hamming_distance(first, second)
 
-        with patch("durable_worker_example.domain.artifact_build.re.findall", side_effect=tokenize) as tokenization:
+        with patch.object(PHash, "encode_image", autospec=True, side_effect=encode) as encoding:
             self.prepare_comparison()
-            tokenization.assert_called_once()
-        with patch("durable_worker_example.domain.comparison.math.sqrt", side_effect=norm) as norms:
+            encoding.assert_called_once()
+        with patch.object(PHash, "hamming_distance", side_effect=distance) as distances:
             self.assertIsInstance(self.run_work(self.comparisons), Finished)
-            self.assertGreater(norms.call_count, 0)
+            distances.assert_called_once()
+
+    def test_failed_query_build_makes_comparison_claimable(self) -> None:
+        with self.session_factory.begin() as session:
+            session.add(ComparisonRequest(id=1, workspace_id=1, query_artifact_id=1))
+        claim = self.coordinators[0].claim(self.builds)
+        self.coordinators[0]._fail(self.builds, claim, ValueError("broken image"))
+        with self.assertRaisesRegex(ValueError, "no perceptual hash"):
+            self.run_work(self.comparisons)
+
+    def test_nonmatches_are_recorded_without_retaining_results(self) -> None:
+        self.prepare_comparison()
+        with self.session_factory.begin() as session:
+            session.get(FeatureArtifact, 2).hash_value = "0000000000000000"
+        self.assertIsInstance(self.run_work(self.comparisons), Finished)
+        with self.session_factory() as session:
+            self.assertEqual(session.get(ComparisonRequest, 1).candidates_scored_count, 1)
+            self.assertEqual(len(list(session.scalars(select(ScoredCandidate)))), 1)
+            self.assertEqual(list(session.scalars(select(TopComparison))), [])
 
 
 if __name__ == "__main__":

@@ -11,8 +11,8 @@ from pathlib import Path
 from sqlalchemy import create_engine, select, update
 from sqlalchemy.orm import Session, sessionmaker
 
-from durable_worker_example.db.engine import Base
-from durable_worker_example.db.models import Document, FeatureArtifact, Workspace
+from imagededup_system_dbwork.db.engine import Base
+from imagededup_system_dbwork.db.models import ImageAsset, FeatureArtifact, Workspace
 from dbworker import (
     Coordinator, Finished, LostClaim, _Worker, _WorkerDefinition,
     _execute_in_process, _initialize_process, now,
@@ -25,7 +25,7 @@ def process_handler(
     fail: bool = False,
 ) -> Finished:
     artifact_id = artifact.id
-    assert session.get(Document, artifact.document_id) is not None
+    assert session.get(ImageAsset, artifact.image_id) is not None
     session.rollback()
     if started_file:
         Path(started_file).write_text(str(os.getpid()))
@@ -38,7 +38,7 @@ def process_handler(
     time.sleep(delay)
     current = session.get(FeatureArtifact, artifact_id)
     assert current is not None
-    current.feature_json = {'pid': os.getpid()}
+    current.hash_value = str(os.getpid())
     if fail:
         session.flush()
         raise ValueError('child save failure')
@@ -55,8 +55,8 @@ class ProcessTest(unittest.TestCase):
         with self.session_factory.begin() as session:
             session.add(Workspace(id=1, name='process'))
             for key in (1, 2):
-                session.add(Document(id=key, workspace_id=1, name=str(key), text='real source'))
-                session.add(FeatureArtifact(id=key, workspace_id=1, document_id=key))
+                session.add(ImageAsset(id=key, workspace_id=1, name=str(key), file_path='unused.jpg'))
+                session.add(FeatureArtifact(id=key, workspace_id=1, image_id=key))
         self.coordinator = Coordinator(self.session_factory, database_url=self.url, lease_seconds=1, poll_seconds=.01)
 
     def tearDown(self) -> None:
@@ -66,7 +66,7 @@ class ProcessTest(unittest.TestCase):
 
     def worker(self, **kwargs: object) -> _Worker:
         self.coordinator.transactional_worker(name='process_test', source=FeatureArtifact,
-                        eligible=lambda: select(FeatureArtifact).where(FeatureArtifact.feature_json.is_(None)).order_by(FeatureArtifact.id))(partial(process_handler, **kwargs))
+                        eligible=lambda: select(FeatureArtifact).where(FeatureArtifact.hash_value.is_(None)).order_by(FeatureArtifact.id))(partial(process_handler, **kwargs))
         worker = self.coordinator.workers['process_test']
         self.coordinator.create_worker_tables()
         return worker
@@ -88,9 +88,9 @@ class ProcessTest(unittest.TestCase):
         self.wait_for(completed)
         self.coordinator.stop()
         with self.session_factory() as session:
-            features = [session.get(FeatureArtifact, key).feature_json for key in (1, 2)]
-        self.assertNotEqual(features[0]['pid'], os.getpid())
-        self.assertEqual(features[0]['pid'], features[1]['pid'])
+            features = [session.get(FeatureArtifact, key).hash_value for key in (1, 2)]
+        self.assertNotEqual(int(features[0]), os.getpid())
+        self.assertEqual(int(features[0]), int(features[1]))
 
     def test_shutdown_drains_child_and_renews_lease(self) -> None:
         started = Path(self.directory.name, 'started')
@@ -129,7 +129,7 @@ class ProcessTest(unittest.TestCase):
         self.coordinator.stop()
         with self.session_factory() as session:
             for key in (1, 2):
-                self.assertIsNone(session.get(FeatureArtifact, key).feature_json)
+                self.assertIsNone(session.get(FeatureArtifact, key).hash_value)
                 self.assertEqual(worker.state(session, key)['error'], 'child save failure')
 
     def test_replaced_claim_cannot_save_from_child(self) -> None:
@@ -151,7 +151,7 @@ class ProcessTest(unittest.TestCase):
             with self.assertRaises(LostClaim):
                 future.result(timeout=15)
         with self.session_factory() as session:
-            self.assertIsNone(session.get(FeatureArtifact, 1).feature_json)
+            self.assertIsNone(session.get(FeatureArtifact, 1).hash_value)
             self.assertEqual(worker.state(session, 1)['claim_token'], 'replacement')
 
     def test_in_memory_database_rejected_before_start(self) -> None:

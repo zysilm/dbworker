@@ -6,11 +6,11 @@ from fastapi import FastAPI
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from durable_worker_example.api.routes import router
-from durable_worker_example.config import settings
-from durable_worker_example.domain import artifact_build, comparison
-from durable_worker_example.db.models import ComparisonRequest, FeatureArtifact
-from durable_worker_example.db.engine import Base, create_engine_and_session_factory
+from imagededup_system_dbwork.api.routes import router
+from imagededup_system_dbwork.config import settings
+from imagededup_system_dbwork.domain import artifact_build, comparison
+from imagededup_system_dbwork.db.models import ComparisonRequest, FeatureArtifact
+from imagededup_system_dbwork.db.engine import Base, create_engine_and_session_factory
 from dbworker import Coordinator, Finished, Outcome
 
 
@@ -23,7 +23,7 @@ coordinator = Coordinator(
 
 @coordinator.transactional_worker(
     name="artifact_build", source=FeatureArtifact,
-    eligible=lambda: select(FeatureArtifact).where(FeatureArtifact.feature_json.is_(None)).order_by(FeatureArtifact.id),
+    eligible=lambda: select(FeatureArtifact).where(FeatureArtifact.hash_value.is_(None)).order_by(FeatureArtifact.id),
     concurrency=settings.build_workers,
 )
 def build_artifact(artifact: FeatureArtifact, session: Session) -> Finished:
@@ -60,7 +60,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Durable worker example", lifespan=lifespan)
+    app = FastAPI(title="imagededup_system_dbwork", lifespan=lifespan)
     app.include_router(router)
     return app
 
@@ -69,4 +69,4 @@ app = create_app()
 
 
 def run() -> None:
-    uvicorn.run("durable_worker_example.main:app", host="127.0.0.1", port=8001, reload=False)
+    uvicorn.run("imagededup_system_dbwork.main:app", host="127.0.0.1", port=8001, reload=False)

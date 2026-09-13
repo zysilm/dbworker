@@ -7,15 +7,16 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from durable_worker_example import main
-from durable_worker_example.db.engine import Base, create_engine_and_session_factory
-from durable_worker_example.db.models import ComparisonRequest, Document, FeatureArtifact, Workspace
+from imagededup_system_dbwork import main
+from imagededup_system_dbwork.db.engine import Base, create_engine_and_session_factory
+from imagededup_system_dbwork.db.models import ComparisonRequest, ImageAsset, FeatureArtifact, Workspace
 from dbworker import ExecutionStatus
 from sqlalchemy import update
+from PIL import Image
 from sqlalchemy.orm import Session
-from durable_worker_example.api.routes import (
+from imagededup_system_dbwork.api.routes import (
     ComparisonInput, ImportInput, WorkspaceInput, create_comparison,
-    create_workspace, get_artifact, get_comparison, get_results, import_text_files,
+    create_workspace, get_artifact, get_comparison, get_results, import_images,
 )
 
 
@@ -27,8 +28,8 @@ class ApiTest(unittest.TestCase):
                 Base.metadata.create_all(engine)
                 with session_factory.begin() as session:
                     session.add(Workspace(id=1, name="test"))
-                    session.add(Document(id=1, workspace_id=1, name="query", text="apple"))
-                    session.add(FeatureArtifact(id=1, workspace_id=1, document_id=1))
+                    session.add(ImageAsset(id=1, workspace_id=1, name="query", file_path="unused.jpg"))
+                    session.add(FeatureArtifact(id=1, workspace_id=1, image_id=1))
                     session.add(ComparisonRequest(id=1, workspace_id=1, query_artifact_id=1))
                 request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(
                     session_factory=session_factory, coordinator=main.coordinator,
@@ -63,13 +64,15 @@ class ApiTest(unittest.TestCase):
                 async with main.lifespan(app):
                     request = SimpleNamespace(app=app)
                     workspace = create_workspace(WorkspaceInput(name="smoke"), request)
-                    Path(directory, "a.txt").write_text("apple apple banana")
-                    Path(directory, "b.txt").write_text("apple banana")
-                    imported = import_text_files(workspace["id"], ImportInput(directory=directory), request)
-                    self.assertEqual(imported["imported_documents"], 2)
+                    Image.new("RGB", (32, 32), "black").save(Path(directory, "a.png"))
+                    Image.new("RGB", (32, 32), "black").save(Path(directory, "b.png"))
+                    imported = import_images(workspace["id"], ImportInput(directory=directory), request)
+                    self.assertEqual(imported["imported_images"], 2)
+                    repeated = import_images(workspace["id"], ImportInput(directory=directory), request)
+                    self.assertEqual(repeated["imported_images"], 0)
                     comparison = create_comparison(1, ComparisonInput(retained_max_k=1), request)
                     self.assertIsNone(comparison["execution_status"])
-                    deadline = time.monotonic() + 20
+                    deadline = time.monotonic() + 90
                     while time.monotonic() < deadline:
                         status = get_comparison(comparison["id"], request)
                         if status["execution_status"] == "finished":
@@ -81,7 +84,7 @@ class ApiTest(unittest.TestCase):
                     self.assertEqual(get_artifact(2, request)["execution_status"], "finished")
                     results = get_results(comparison["id"], request)
                     self.assertEqual(results[0]["candidate_artifact_id"], 2)
-                    self.assertGreater(results[0]["score"], 0.9)
+                    self.assertEqual(results[0]["distance"], 0)
                 self.assertFalse(app.state.coordinator._running)
         with tempfile.TemporaryDirectory() as directory:
             asyncio.run(scenario(directory))
