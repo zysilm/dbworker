@@ -17,15 +17,19 @@ jobs:
         include:
           - project: .
             paths: src tests
+            test_paths: tests
             artifact: true
           - project: examples/imagededup_system_dbwork
             paths: src tests
+            test_paths: tests
             artifact: false
           - project: examples/imagededup_system_redis_celery
             paths: src tests
+            test_paths: tests
             artifact: false
           - project: benchmarks/imagededup_benckmark
             paths: src tests
+            test_paths: tests
             artifact: false
 
     steps:
@@ -48,7 +52,7 @@ jobs:
 
       - name: Run tests
         working-directory: ${{ matrix.project }}
-        run: poetry run pytest
+        run: poetry run pytest ${{ matrix.test_paths }}
 
       - name: Check types
         working-directory: ${{ matrix.project }}
