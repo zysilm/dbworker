@@ -12,7 +12,7 @@ from sqlalchemy.orm import Mapped, Session, mapped_column, sessionmaker
 
 from durable_worker_example.db.engine import Base
 from durable_worker_example.db.models import Workspace, Document, FeatureArtifact, ComparisonRequest, ScoredCandidate, TopComparison
-from durable_worker_example.domain import workflows
+from durable_worker_example.domain import artifact_build, comparison
 from dbworker import Coordinator, Finished, Unfinished, _Worker, Claim, LostClaim, Outcome, now, _execute_claim
 
 
@@ -36,10 +36,11 @@ class ClaimsTest(unittest.TestCase):
             coordinator.transactional_worker(
                 name="artifact_build", source=FeatureArtifact,
                 eligible=lambda: select(FeatureArtifact).where(FeatureArtifact.feature_json.is_(None)).order_by(FeatureArtifact.id),
-            )(workflows.build_artifact)
+            )(artifact_build.build_artifact)
             coordinator.transactional_worker(
-                name="comparison", source=ComparisonRequest, eligible=workflows.eligible_comparisons,
-            )(partial(workflows.compare_artifacts, page_size=1))
+                name="comparison", source=ComparisonRequest,
+                eligible=partial(comparison.eligible_comparisons, coordinator),
+            )(partial(comparison.compare_artifacts, page_size=1, coordinator=coordinator))
             coordinator.create_worker_tables()
         self.builds = self.coordinators[0].workers["artifact_build"]
         self.comparisons = self.coordinators[0].workers["comparison"]
@@ -195,11 +196,11 @@ class ClaimsTest(unittest.TestCase):
         self.coordinators[0]._fail(self.builds, claim, ValueError("bad"))
         self.assertIsNone(self.coordinators[0].claim(self.builds))
         with self.session_factory.begin() as session:
-            self.assertEqual(self.builds.state(session, 1)["status"], "failed")
+            self.assertEqual(self.builds.state(session, 1)["execution_status"], "failed")
             self.assertTrue(self.builds.reset_failed(session, 1))
         self.run_work(self.builds)
         with self.session_factory() as session:
-            self.assertEqual(self.builds.state(session, 1)["status"], "finished")
+            self.assertEqual(self.builds.state(session, 1)["execution_status"], "finished")
 
     def test_noninteger_source_without_domain_result(self) -> None:
         coordinator = self.coordinators[0]
@@ -211,7 +212,7 @@ class ClaimsTest(unittest.TestCase):
             session.add(ExternalSource(key=key))
         self.assertIsInstance(self.run_work(worker), Finished)
         with self.session_factory() as session:
-            self.assertEqual(worker.state(session, key)["status"], "finished")
+            self.assertEqual(worker.state(session, key)["execution_status"], "finished")
 
     def test_invalid_handler_outcome_rolls_back(self) -> None:
         def handler(source: FeatureArtifact, session: Session) -> None:
@@ -259,7 +260,7 @@ class ClaimsTest(unittest.TestCase):
         with self.session_factory() as session:
             self.assertEqual(session.get(FeatureArtifact, 1).feature_json, {"new": 1})
             self.assertEqual(session.get(FeatureArtifact, 2).feature_json, {"apple": 1})
-            self.assertEqual(worker.state(session, 1)["status"], "finished")
+            self.assertEqual(worker.state(session, 1)["execution_status"], "finished")
             self.assertEqual(worker.state(session, 2)["claim_token"], second.token)
 
 
@@ -277,7 +278,7 @@ class ClaimsTest(unittest.TestCase):
             self.run_work(worker)
         with self.session_factory() as session:
             self.assertIsNone(session.get(FeatureArtifact, 1).feature_json)
-            self.assertEqual(worker.state(session, 1)["status"], "working")
+            self.assertEqual(worker.state(session, 1)["execution_status"], "working")
 
     def test_stale_explicit_sql_is_rolled_back(self) -> None:
         def handler(source: FeatureArtifact, session: Session) -> Finished:
@@ -299,20 +300,23 @@ class ClaimsTest(unittest.TestCase):
             self.assertEqual(worker.state(session, 1)["claim_token"], replacement.token)
 
     def test_example_releases_connection_during_cpu_work(self) -> None:
-        def build(text: str) -> dict[str, int]:
-            self.assertEqual(self.engine.pool.checkedout(), 0)
-            return {"apple": 1}
+        findall = artifact_build.re.findall
+        sqrt = comparison.math.sqrt
 
-        def score(query: dict[str, int], candidates: list[tuple[int, dict[str, int]]]) -> list[tuple[int, float]]:
+        def tokenize(pattern: str, text: str) -> list[str]:
             self.assertEqual(self.engine.pool.checkedout(), 0)
-            return [(key, 1.0) for key, _ in candidates]
+            return findall(pattern, text)
 
-        with patch("durable_worker_example.domain.workflows.build_features", side_effect=build):
+        def norm(value: float) -> float:
+            self.assertEqual(self.engine.pool.checkedout(), 0)
+            return sqrt(value)
+
+        with patch("durable_worker_example.domain.artifact_build.re.findall", side_effect=tokenize) as tokenization:
             self.prepare_comparison()
-        with patch("durable_worker_example.domain.workflows.score_feature_pairs", side_effect=score):
+            tokenization.assert_called_once()
+        with patch("durable_worker_example.domain.comparison.math.sqrt", side_effect=norm) as norms:
             self.assertIsInstance(self.run_work(self.comparisons), Finished)
-
-
+            self.assertGreater(norms.call_count, 0)
 
 
 if __name__ == "__main__":

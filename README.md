@@ -63,14 +63,37 @@ def build_artifact(artifact: FeatureArtifact, session: Session) -> Finished:
 
 The decorator creates and registers the worker internally; no separate `Worker(...)` or registration call is needed. It preserves the ordinary function and its signature. Registration starts no processing: create application and worker tables, then call `coordinator.start()` and eventually `coordinator.stop()`. Register all handlers before starting.
 
-The FastAPI example declares decorated, module-level handlers in `main.py`. Those handlers call the plain application functions in `domain/workflows.py`. The coordinator and decorators are constructed on import; database tables and processing start in FastAPI's lifespan. Importing handlers in child processes opens no coordinator connection.
+The FastAPI example declares decorated, module-level handlers in `main.py`. Those handlers call the plain application functions in `domain/artifact_build.py` and `domain/comparison.py`. The coordinator and decorators are constructed on import; database tables and processing start in FastAPI's lifespan. Importing handlers in child processes opens no coordinator connection.
 
 Handlers must remain importable for spawned child processes. `functools.partial` can bind serializable handler configuration when applying the decorator to an existing function.
 
-Worker state is accessible through `coordinator.workers["artifact_build"].state(session, source_id)`; failed work can be reset through that worker's `reset_failed(session, source_id)` method. The decorator's transaction contract applies only during worker execution; direct function calls remain ordinary calls.
+Execution status is accessible through `coordinator.execution_status(session, worker="artifact_build", source_id=artifact_id)`. Failed work can be reset through `coordinator.workers["artifact_build"].reset_failed(session, artifact_id)`. The decorator's transaction contract applies only during worker execution; direct function calls remain ordinary calls.
 
 The handler receives a real SQLAlchemy `Session`, owned and closed by the runtime. Return `Finished()` or `Unfinished()`; do not commit or close this session. Early commits are rejected. The runtime verifies claim ownership and commits the final application writes and task outcome together; errors or a replaced claim roll back the transaction.
 
 After read-only work, copy the values needed for computation and call `session.rollback()` to release the connection. Compute using those copied values; the next SQL operation starts the final transaction. Rollback expires ORM objects and discards any pending writes, so do not use it after work you intend to persist. Accessing expired ORM attributes during computation would perform another database read.
 
 This is not one transaction spanning all reads and computation: only the final transaction is committed with completion. External effects and writes through independent connections are outside that guarantee. See the example for a complete CPU handler and application-owned progress tracking.
+
+## Querying execution status and dependencies
+
+```python
+from dbworker import ExecutionStatus
+
+execution_status = coordinator.execution_status(
+    session, worker="artifact_build", source_id=artifact_id,
+)
+if execution_status is ExecutionStatus.FINISHED:
+    ...
+
+build_finished_or_failed = coordinator.has_execution_status(
+    worker="artifact_build", source_id=FeatureArtifact.id,
+    statuses=(ExecutionStatus.FINISHED, ExecutionStatus.FAILED),
+)
+```
+
+`ExecutionStatus` is a `StrEnum` with `WORKING`, `UNFINISHED`, `FINISHED`, and `FAILED`. SQLAlchemy stores their lowercase values and reads enum members. A source with no execution record returns `None`; an unknown worker name raises `KeyError`. An expired lease remains `WORKING` until a subsequent transition.
+
+`has_execution_status()` constructs a SQLAlchemy `EXISTS` expression without querying the database. Its source ID may be a literal, mapped attribute, or aliased SQL column. Use it in eligibility queries or application functions. The example passes its coordinator to the comparison functions, which construct their build-status predicate internally. Unclaimed sources match none of the statuses, so negating a terminal-status predicate includes them. An empty status collection matches nothing. Register the referenced worker before constructing its predicate.
+
+Generated work-table names are an implementation detail. The example uses this public method for parent-process eligibility and child-process completion decisions, while retaining its application-owned `ScoredCandidate` ledger.

@@ -49,15 +49,18 @@ def build_artifact(artifact: FeatureArtifact, session: Session) -> Finished:
 
 The decorator creates and registers the worker internally. Registration does not start processing. After registering handlers, create the application tables and call `coordinator.create_worker_tables()`. The application's lifespan calls `coordinator.start()` and `coordinator.stop()`.
 
-`main.py` declares its coordinator and directly decorates the two handlers. Each handler calls a plain function in `domain/workflows.py`; there is no registration helper. Importing the module creates configuration and worker metadata without opening database connections or starting processing. The FastAPI lifespan creates database tables and starts the coordinator. Access execution state with `coordinator.workers["artifact_build"]`.
+`main.py` declares its coordinator and directly decorates the two handlers. Each handler calls a plain function in `domain/artifact_build.py` and `domain/comparison.py`; there is no registration helper. Importing the module creates configuration and worker metadata without opening database connections or starting processing. The FastAPI lifespan creates database tables and starts the coordinator. Access execution state with `coordinator.workers["artifact_build"]`.
 
-`source` is a SQLAlchemy mapped model with one primary-key column. The generated `<name>_work` table has a unique `source_id` foreign key with the same column type, plus status, claim token, lease expiry, and error. Stable workflow names identify tables across restarts. Eligibility returns a SQLAlchemy SELECT of the source model and may use joins, subqueries, and application-defined ordering. With no eligibility callback, all source records are considered.
+`source` is a SQLAlchemy mapped model with one primary-key column. The generated `<name>_work` table has a unique `source_id` foreign key with the same column type, plus execution status, claim token, lease expiry, and error. Stable workflow names identify tables across restarts. Eligibility returns a SQLAlchemy SELECT of the source model and may use joins, subqueries, and application-defined ordering. With no eligibility callback, all source records are considered.
 
-A source with no work row has not been claimed; its API status is `null`. Work rows and API responses use `working`, `unfinished`, `finished`, and `failed` directly. `Finished()` prevents further claims; `Unfinished()` releases ownership for a later eligible invocation. Failed work requires an explicit `worker.reset_failed(session, source_id)`; there are no automatic claim or task retry loops.
+A source with no work row has not been claimed; its API `execution_status` is `null`. Work rows use `ExecutionStatus` enum members; API responses serialize their values as `working`, `unfinished`, `finished`, and `failed` under `execution_status`. `Finished()` prevents further claims; `Unfinished()` releases ownership for a later eligible invocation. Failed work requires an explicit `worker.reset_failed(session, source_id)`; there are no automatic claim or task retry loops.
 
 ## One decorated handler, short transactions
 
 ```python
+import re
+from collections import Counter
+
 from dbworker import Finished
 from sqlalchemy import update
 from sqlalchemy.orm import Session
@@ -72,7 +75,7 @@ def build_artifact(artifact: FeatureArtifact, session: Session) -> Finished:
     # Copy values before rollback expires ORM objects. No connection is held
     # while computing; the next SQL statement starts the final transaction.
     session.rollback()
-    features = build_features(text)
+    features = dict(Counter(re.findall(r"[a-z0-9]+", text.lower())))
     session.execute(update(FeatureArtifact).where(FeatureArtifact.id == artifact_id).values(feature_json=features))
     return Finished()
 
@@ -100,7 +103,9 @@ Handlers and mapped source classes must be importable. Eligibility callbacks exe
 - `ScoredCandidate` records every completed request/candidate pair, including candidates discarded from the top-K.
 - `artifact_build_work` and `comparison_work` contain execution ownership and state.
 
-`domain/workflows.py` owns candidate selection, result aggregation, and completion tracking. The framework has no collection ledger or progress backend. Applications whose result tables already identify completed items can use those results directly.
+`main.py` passes its coordinator to the plain comparison and eligibility functions. Their `unfinished_builds()` helper checks the build worker through `coordinator.has_execution_status(worker="artifact_build", source_id=FeatureArtifact.id, statuses=(ExecutionStatus.FINISHED, ExecutionStatus.FAILED))`. They do not look up framework tables. Inside the child handler, this is the coordinator constructed locally when `main.py` is imported; the parent coordinator is not serialized or sent to the child.
+
+`domain/comparison.py` owns candidate selection, result aggregation, and completion tracking. The framework has no collection ledger or progress backend. Applications whose result tables already identify completed items can use those results directly.
 
 A comparison claims one request, selects at most 50 ready unscored candidates, calculates a page, and saves the top-K, completion records, count, and outcome in one transaction. IDs order currently ready candidates but do not act as a cursor. A lower-ID artifact that becomes ready later will still be included.
 

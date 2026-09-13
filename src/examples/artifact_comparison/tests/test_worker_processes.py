@@ -84,7 +84,7 @@ class ProcessTest(unittest.TestCase):
         def completed() -> bool:
             with self.session_factory() as session:
                 state = worker.state(session, 2)
-                return state is not None and state['status'] == 'finished'
+                return state is not None and state['execution_status'] == 'finished'
         self.wait_for(completed)
         self.coordinator.stop()
         with self.session_factory() as session:
@@ -100,7 +100,7 @@ class ProcessTest(unittest.TestCase):
         # Stop immediately after the first invocation starts; it exceeds its lease.
         self.coordinator.stop()
         with self.session_factory() as session:
-            self.assertEqual(worker.state(session, 1)['status'], 'finished')
+            self.assertEqual(worker.state(session, 1)['execution_status'], 'finished')
             self.assertIsNone(worker.state(session, 2))
         self.assertFalse(self.coordinator._running)
 
@@ -124,7 +124,7 @@ class ProcessTest(unittest.TestCase):
         def failed() -> bool:
             with self.session_factory() as session:
                 state = worker.state(session, 2)
-                return state is not None and state['status'] == 'failed'
+                return state is not None and state['execution_status'] == 'failed'
         self.wait_for(failed)
         self.coordinator.stop()
         with self.session_factory() as session:

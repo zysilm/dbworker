@@ -1,13 +1,14 @@
-"""Application handlers and eligibility. The worker knows none of these tables."""
+"""Comparison eligibility, paged scoring, and application-owned progress."""
 
-from sqlalchemy import delete, exists, or_, select, update
+import math
+
+from sqlalchemy import delete, exists, or_, select
 from sqlalchemy.orm import InstrumentedAttribute, Session
 from sqlalchemy.sql import Select
 from sqlalchemy.sql.selectable import Exists
 
-from durable_worker_example.db.models import ComparisonRequest, Document, FeatureArtifact, ScoredCandidate, TopComparison
-from durable_worker_example.domain.execution import build_features, score_feature_pairs
-from dbworker import Finished, Outcome, Unfinished
+from durable_worker_example.db.models import ComparisonRequest, FeatureArtifact, ScoredCandidate, TopComparison
+from dbworker import Coordinator, ExecutionStatus, Finished, Outcome, Unfinished
 
 
 def ready_candidates(request: ComparisonRequest) -> Select[tuple[FeatureArtifact]]:
@@ -23,36 +24,22 @@ def ready_candidates(request: ComparisonRequest) -> Select[tuple[FeatureArtifact
     ).order_by(FeatureArtifact.id)
 
 
-def build_artifact(artifact: FeatureArtifact, session: Session) -> Finished:
-    artifact_id = artifact.id
-    document = session.get(Document, artifact.document_id)
-    if document is None:
-        raise ValueError("Artifact document no longer exists")
-    text = document.text
-    # Copy values before rollback expires ORM objects. No connection is held
-    # while computing; the next SQL statement starts the final transaction.
-    session.rollback()
-    features = build_features(text)
-    session.execute(update(FeatureArtifact).where(FeatureArtifact.id == artifact_id).values(feature_json=features))
-    return Finished()
-
-
-def unfinished_builds(workspace_id: int | InstrumentedAttribute[int]) -> Exists:
-    build_table = FeatureArtifact.metadata.tables["artifact_build_work"]
-    terminal_build = exists().where(
-        build_table.c.source_id == FeatureArtifact.id,
-        build_table.c.status.in_(["finished", "failed"]),
-    )
+def unfinished_builds(
+    workspace_id: int | InstrumentedAttribute[int], coordinator: Coordinator,
+) -> Exists:
     return exists().where(
         FeatureArtifact.workspace_id == workspace_id,
         FeatureArtifact.feature_json.is_(None),
-        ~terminal_build,
+        ~coordinator.has_execution_status(
+            worker="artifact_build", source_id=FeatureArtifact.id,
+            statuses=(ExecutionStatus.FINISHED, ExecutionStatus.FAILED),
+        ),
     )
 
 
 def compare_artifacts(
     request: ComparisonRequest, session: Session,
-    *, page_size: int,
+    *, page_size: int, coordinator: Coordinator,
 ) -> Outcome:
     request_id = request.id
     query_artifact = session.get(FeatureArtifact, request.query_artifact_id)
@@ -65,7 +52,13 @@ def compare_artifacts(
             raise ValueError("A selected candidate has no features")
         candidates.append((artifact.id, artifact.feature_json))
     session.rollback()
-    scores = score_feature_pairs(query, candidates) if candidates else []
+    scores: list[tuple[int, float]] = []
+    query_norm = math.sqrt(sum(value * value for value in query.values()))
+    for artifact_id, features in candidates:
+        numerator = sum(value * features.get(key, 0) for key, value in query.items())
+        candidate_norm = math.sqrt(sum(value * value for value in features.values()))
+        score = numerator / (query_norm * candidate_norm) if query_norm and candidate_norm else 0.0
+        scores.append((artifact_id, score))
     current = session.get(ComparisonRequest, request_id)
     if current is None:
         raise ValueError("Comparison request no longer exists")
@@ -83,12 +76,12 @@ def compare_artifacts(
     # finishing between separate queries must not make the request look done.
     remaining = session.scalar(select(or_(
         ready_candidates(current).order_by(None).exists(),
-        unfinished_builds(current.workspace_id),
+        unfinished_builds(current.workspace_id, coordinator),
     )))
     return Unfinished() if remaining else Finished()
 
 
-def eligible_comparisons() -> Select[tuple[ComparisonRequest]]:
+def eligible_comparisons(coordinator: Coordinator) -> Select[tuple[ComparisonRequest]]:
     query = FeatureArtifact.__table__.alias("query_artifact")
     candidate = FeatureArtifact.__table__.alias("candidate_artifact")
     completed = exists().where(
@@ -105,7 +98,7 @@ def eligible_comparisons() -> Select[tuple[ComparisonRequest]]:
         select(ComparisonRequest)
         .join(query, query.c.id == ComparisonRequest.query_artifact_id)
         .where(query.c.feature_json.is_not(None), or_(
-            has_candidates, ~unfinished_builds(ComparisonRequest.workspace_id),
+            has_candidates, ~unfinished_builds(ComparisonRequest.workspace_id, coordinator),
         ))
         .order_by(ComparisonRequest.id)
     )

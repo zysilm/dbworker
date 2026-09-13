@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from durable_worker_example.api.routes import router
 from durable_worker_example.config import settings
-from durable_worker_example.domain import workflows
+from durable_worker_example.domain import artifact_build, comparison
 from durable_worker_example.db.models import ComparisonRequest, FeatureArtifact
 from durable_worker_example.db.engine import Base, create_engine_and_session_factory
 from dbworker import Coordinator, Finished, Outcome
@@ -27,16 +27,19 @@ coordinator = Coordinator(
     concurrency=settings.build_workers,
 )
 def build_artifact(artifact: FeatureArtifact, session: Session) -> Finished:
-    return workflows.build_artifact(artifact, session)
+    return artifact_build.build_artifact(artifact, session)
 
 
 @coordinator.transactional_worker(
     name="comparison", source=ComparisonRequest,
-    eligible=workflows.eligible_comparisons,
+    eligible=lambda: comparison.eligible_comparisons(coordinator),
     concurrency=settings.comparison_workers,
 )
 def compare_artifacts(request: ComparisonRequest, session: Session) -> Outcome:
-    return workflows.compare_artifacts(request, session, page_size=settings.comparison_page_size)
+    return comparison.compare_artifacts(
+        request, session, page_size=settings.comparison_page_size,
+        coordinator=coordinator,
+    )
 
 
 @asynccontextmanager

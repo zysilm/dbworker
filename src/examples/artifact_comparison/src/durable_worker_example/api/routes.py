@@ -1,3 +1,5 @@
+from dbworker import Coordinator, ExecutionStatus
+
 from pathlib import Path
 from typing import TypedDict, cast
 
@@ -39,13 +41,13 @@ class BuildResponse(TypedDict):
 class ArtifactResponse(TypedDict):
     id: int
     document_id: int
-    status: str | None
+    execution_status: ExecutionStatus | None
     error: str | None
 
 
 class ComparisonCreatedResponse(TypedDict):
     id: int
-    status: str | None
+    execution_status: ExecutionStatus | None
 
 
 class ComparisonResponse(ComparisonCreatedResponse):
@@ -103,16 +105,14 @@ def build_all(workspace_id: int, request: Request) -> BuildResponse:
 @router.get("/artifacts/{artifact_id}")
 def get_artifact(artifact_id: int, request: Request) -> ArtifactResponse:
     with _session_factory(request)() as session:
-        work = request.app.state.build_worker.table
-        row = session.execute(
-            select(FeatureArtifact, work.c.status, work.c.error)
-            .outerjoin(work, work.c.source_id == FeatureArtifact.id)
-            .where(FeatureArtifact.id == artifact_id)
-        ).first()
-        if row is None:
+        artifact = session.get(FeatureArtifact, artifact_id)
+        if artifact is None:
             raise HTTPException(404, "artifact not found")
-        artifact, status, error = row
-        return {"id": artifact.id, "document_id": artifact.document_id, "status": status, "error": error}
+        coordinator = cast(Coordinator, request.app.state.coordinator)
+        execution_status = coordinator.execution_status(session, worker="artifact_build", source_id=artifact_id)
+        state = coordinator.workers["artifact_build"].state(session, artifact_id) if execution_status is ExecutionStatus.FAILED else None
+        return {"id": artifact.id, "document_id": artifact.document_id,
+                "execution_status": execution_status, "error": state["error"] if state else None}
 
 
 @router.post("/comparisons/{query_artifact_id}")
@@ -124,22 +124,22 @@ def create_comparison(query_artifact_id: int, body: ComparisonInput, request: Re
         comparison = ComparisonRequest(workspace_id=artifact.workspace_id, query_artifact_id=artifact.id, retained_max_k=body.retained_max_k)
         session.add(comparison)
         session.flush()
-        return {"id": comparison.id, "status": None}
+        return {"id": comparison.id, "execution_status": None}
 
 
 @router.get("/comparisons/{request_id}")
 def get_comparison(request_id: int, request: Request) -> ComparisonResponse:
     with _session_factory(request)() as session:
-        work = request.app.state.comparison_worker.table
-        row = session.execute(
-            select(ComparisonRequest, work.c.status, work.c.error)
-            .outerjoin(work, work.c.source_id == ComparisonRequest.id)
-            .where(ComparisonRequest.id == request_id)
-        ).first()
-        if row is None:
+        coordinator = cast(Coordinator, request.app.state.coordinator)
+        execution_status = coordinator.execution_status(session, worker="comparison", source_id=request_id)
+        # Read progress after execution status: observing FINISHED must not be
+        # paired with a count loaded before the handler's atomic final commit.
+        comparison = session.get(ComparisonRequest, request_id)
+        if comparison is None:
             raise HTTPException(404, "comparison request not found")
-        comparison, status, error = row
-        return {"id": comparison.id, "status": status, "candidates_scored_count": comparison.candidates_scored_count, "error": error}
+        state = coordinator.workers["comparison"].state(session, request_id) if execution_status is ExecutionStatus.FAILED else None
+        return {"id": comparison.id, "execution_status": execution_status,
+                "candidates_scored_count": comparison.candidates_scored_count, "error": state["error"] if state else None}
 
 
 @router.get("/comparisons/{request_id}/results")

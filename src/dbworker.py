@@ -13,15 +13,17 @@ from collections.abc import Callable, Iterable
 from concurrent.futures import Future, ProcessPoolExecutor
 from dataclasses import dataclass
 from functools import cached_property
+from enum import StrEnum
 from datetime import datetime, timedelta, timezone
 from typing import Any, TypeAlias, TypeVar, cast
 from multiprocessing.util import Finalize
 
-from sqlalchemy import Column, DateTime, ForeignKey, String, Table, Text, and_, create_engine, event, inspect, insert, or_, select, update
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, String, Table, Text, and_, create_engine, event, exists, inspect, insert, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine import CursorResult, RowMapping, URL, make_url
 from sqlalchemy.orm import DeclarativeBase, Mapper, Session, sessionmaker
 from sqlalchemy.sql import ColumnElement, Select
+from sqlalchemy.sql.selectable import Exists
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +31,13 @@ logger = logging.getLogger(__name__)
 def now() -> datetime:
     # Database columns use naive UTC on every supported backend.
     return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+class ExecutionStatus(StrEnum):
+    WORKING = "working"
+    UNFINISHED = "unfinished"
+    FINISHED = "finished"
+    FAILED = "failed"
 
 
 @dataclass(frozen=True)
@@ -91,7 +100,11 @@ class _Worker:
             self.table = Table(
                 table_name, metadata,
                 Column("source_id", self.source_key.type.copy(), ForeignKey(self.source_key), primary_key=True),
-                Column("status", String(20), nullable=False),
+                Column("execution_status", Enum(
+                    ExecutionStatus, native_enum=False,
+                    values_callable=lambda enum: [member.value for member in enum],
+                    validate_strings=True,
+                ), nullable=False),
                 Column("claim_token", String(36)),
                 Column("lease_expires_at", DateTime, index=True),
                 Column("error", Text),
@@ -103,8 +116,8 @@ class _Worker:
     def reset_failed(self, session: Session, source_id: object) -> bool:
         result = cast(CursorResult[Any], session.execute(
             update(self.table)
-            .where(self.table.c.source_id == source_id, self.table.c.status == "failed")
-            .values(status="unfinished", error=None, claim_token=None, lease_expires_at=None)
+            .where(self.table.c.source_id == source_id, self.table.c.execution_status == ExecutionStatus.FAILED)
+            .values(execution_status=ExecutionStatus.UNFINISHED, error=None, claim_token=None, lease_expires_at=None)
         ))
         return result.rowcount == 1
 
@@ -166,9 +179,9 @@ def _execute_claim(worker: _Worker, claim: Claim, session_factory: sessionmaker[
                 result = cast(CursorResult[Any], session.execute(
                     update(worker.table).where(
                         worker.table.c.source_id == claim.source_id,
-                        worker.table.c.status == "working",
+                        worker.table.c.execution_status == ExecutionStatus.WORKING,
                         worker.table.c.claim_token == claim.token,
-                    ).values(status="finished" if isinstance(outcome, Finished) else "unfinished",
+                    ).values(execution_status=ExecutionStatus.FINISHED if isinstance(outcome, Finished) else ExecutionStatus.UNFINISHED,
                              claim_token=None, lease_expires_at=None, error=None)
                 ))
             if result.rowcount != 1:
@@ -250,6 +263,32 @@ class Coordinator:
 
         return decorate
 
+    def execution_status(
+        self, session: Session, *, worker: str, source_id: object,
+    ) -> ExecutionStatus | None:
+        """Return the recorded execution status, or None if never claimed.
+
+        Lease expiry does not change the recorded status. Unknown worker names
+        raise KeyError, rather than being confused with an unclaimed source.
+        """
+        table = self.workers[worker].table
+        value = session.scalar(select(table.c.execution_status).where(table.c.source_id == source_id))
+        return ExecutionStatus(value) if value is not None else None
+
+    def has_execution_status(
+        self, *, worker: str, source_id: object, statuses: Iterable[ExecutionStatus],
+    ) -> Exists:
+        """Build a SQL predicate for a source ID or SQLAlchemy source-ID expression.
+
+        An unclaimed source matches no status; an empty status set matches none.
+        This only constructs SQL and does not open a database connection.
+        """
+        table = self.workers[worker].table
+        return exists().where(
+            table.c.source_id == source_id,
+            table.c.execution_status.in_(tuple(statuses)),
+        ).correlate_except(table)
+
     def create_worker_tables(self) -> None:
         with self.session_factory() as session:
             for worker in self.workers.values():
@@ -257,8 +296,8 @@ class Coordinator:
 
     def _available(self, table: Table, timestamp: datetime) -> ColumnElement[bool]:
         return or_(
-            table.c.status == "unfinished",
-            and_(table.c.status == "working", table.c.lease_expires_at < timestamp),
+            table.c.execution_status == ExecutionStatus.UNFINISHED,
+            and_(table.c.execution_status == ExecutionStatus.WORKING, table.c.lease_expires_at < timestamp),
         )
 
     def _candidate(self, worker: _Worker, timestamp: datetime) -> Select[tuple[Any]]:
@@ -278,7 +317,7 @@ class Coordinator:
             return None
         table = worker.table
         token = str(uuid.uuid4())
-        values: dict[str, object] = dict(status="working", claim_token=token,
+        values: dict[str, object] = dict(execution_status=ExecutionStatus.WORKING, claim_token=token,
                       lease_expires_at=now() + timedelta(seconds=self.lease_seconds), error=None)
         existing = session.scalar(select(table.c.source_id).where(table.c.source_id == source_id))
         if existing is None:
@@ -327,7 +366,7 @@ class Coordinator:
         with self.session_factory.begin() as session:
             for claim in claims:
                 session.execute(update(table).where(
-                    table.c.source_id == claim.source_id, table.c.status == "working",
+                    table.c.source_id == claim.source_id, table.c.execution_status == ExecutionStatus.WORKING,
                     table.c.claim_token == claim.token,
                 ).values(lease_expires_at=now() + timedelta(seconds=self.lease_seconds)))
 
@@ -335,9 +374,9 @@ class Coordinator:
         table = worker.table
         with self.session_factory.begin() as session:
             session.execute(update(table).where(
-                table.c.source_id == claim.source_id, table.c.status == "working",
+                table.c.source_id == claim.source_id, table.c.execution_status == ExecutionStatus.WORKING,
                 table.c.claim_token == claim.token,
-            ).values(status="failed", error=str(error), claim_token=None, lease_expires_at=None))
+            ).values(execution_status=ExecutionStatus.FAILED, error=str(error), claim_token=None, lease_expires_at=None))
 
     def _run(
         self, worker: _Worker, handlers: ProcessPoolExecutor,
