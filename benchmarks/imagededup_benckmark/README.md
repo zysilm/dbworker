@@ -22,7 +22,7 @@ The runner selects precisely `im1.jpg` through `imN.jpg`, creates a deterministi
 
 ## Workloads
 
-Each stack has **four build workers and four comparison workers**. The Redis/Celery comparison pool also handles the application's lightweight outbox-dispatch task. Both apps use imagededup PHash for builds and integer XOR/popcount for Hamming distance. Scientific libraries are limited to one thread per process, avoiding nested CPU parallelism.
+Each stack has **four build workers and four comparison workers**. DBWorker starts its API and worker service as independent sibling processes; monitoring includes both roots and all handler children, and shutdown stops both services. The Redis/Celery comparison pool also handles the application's lightweight outbox-dispatch task. Both apps use imagededup PHash for builds and integer XOR/popcount for Hamming distance. Scientific libraries are limited to one thread per process, avoiding nested CPU parallelism.
 
 For each backend and repetition:
 
@@ -66,6 +66,7 @@ Other options:
 
 | Option | Default / meaning |
 |---|---|
+| `--backend` | `both`; select `dbwork` or `redis_celery` to run only one application |
 | `--images` | 100; range 2–25,000 |
 | `--repetitions` | 3 |
 | `--warmup-images` | 8; use 0 for a cold-process run |
@@ -93,4 +94,10 @@ The `historical/` report documents an earlier exploratory smoke test and is not 
 ```sh
 poetry run python -m unittest discover -s tests -v
 poetry run mypy --strict src
+```
+
+Run the separated DBWorker services without starting Celery or Redis:
+
+```sh
+poetry run imagededup-benchmark --backend dbwork --images 1000 --repetitions 1 --output results/separated_dbworker_1000.json
 ```

@@ -102,9 +102,13 @@ print(json.dumps(result))
                 env.update(IMAGE_DATABASE_URL=f"sqlite:///{self.database}",
                            IMAGE_BROKER_URL=f"redis://127.0.0.1:{redis_port}/0",
                            IMAGE_COMPARISON_PAGE_SIZE=str(self.page_size), IMAGE_DEPENDENCY_WAIT_SECONDS="1")
-            self.start_process("api", [str(self.python), "-m", "uvicorn", f"imagededup_system_{self.backend}.main:app",
+            api_module = "main_fastapi" if self.backend == "dbwork" else "main"
+            self.start_process("api", [str(self.python), "-m", "uvicorn", f"imagededup_system_{self.backend}.{api_module}:app",
                                "--host", "127.0.0.1", "--port", str(self.api_port), "--no-access-log"], env)
             self.wait_for_http()
+            if self.backend == "dbwork":
+                self.start_process("worker_service", [str(self.python), "-m",
+                                   "imagededup_system_dbwork.main_worker_service"], env)
             if self.backend == "redis_celery":
                 celery = [str(self.python), "-m", "celery", "-A", "imagededup_system_redis_celery.celery_app:app"]
                 for role, queue in (("build_worker", "image_build"), ("comparison_worker", "image_compare,image_control")):

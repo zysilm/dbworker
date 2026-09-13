@@ -25,4 +25,5 @@ httpx = ">=0.28,<1.0"
 mypy = ">=1.0,<3.0"
 
 [tool.poetry.scripts]
-imagededup-system-dbwork-api = "imagededup_system_dbwork.main:run"
+imagededup-system-dbwork-api = "imagededup_system_dbwork.main_fastapi:run"
+imagededup-system-dbwork-workers = "imagededup_system_dbwork.main_worker_service:run"

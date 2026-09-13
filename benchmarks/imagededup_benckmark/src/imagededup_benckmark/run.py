@@ -151,6 +151,7 @@ def write_results(path: Path, report: dict[str, Any]) -> None:
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--backend", choices=("both", "dbwork", "redis_celery"), default="both")
     parser.add_argument("--images", type=int, default=100)
     parser.add_argument("--repetitions", type=int, default=3)
     parser.add_argument("--warmup-images", type=int, default=8)
@@ -180,6 +181,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
+    backends = ("dbwork", "redis_celery") if args.backend == "both" else (args.backend,)
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
     output = (args.output or PROJECT / "results" / f"{stamp}.json").resolve()
     work_dir = args.work_dir.resolve() if args.work_dir else Path(tempfile.mkdtemp(prefix="imagededup-benchmark-"))
@@ -199,7 +201,7 @@ def main(argv: list[str] | None = None) -> None:
         "host": {"platform": platform.platform(), "machine": platform.machine(), "python": platform.python_version(),
                  "logical_cpus": psutil.cpu_count(), "physical_cpus": psutil.cpu_count(logical=False),
                  "memory_bytes": psutil.virtual_memory().total, "sqlite_version": sqlite3.sqlite_version},
-        "configuration": {"images": args.images, "repetitions": args.repetitions, "warmup_images": args.warmup_images,
+        "configuration": {"backends": list(backends), "dbworker_process_layout": "separate_api_and_worker_service", "images": args.images, "repetitions": args.repetitions, "warmup_images": args.warmup_images,
                           "build_workers": WORKERS, "comparison_workers": WORKERS, "page_size": args.page_size,
                           "top_k": args.top_k, "max_distance": args.max_distance, "poll_interval": args.poll_interval,
                           "timeout_seconds": args.timeout_seconds, "sqlite_journal_mode": "delete",
@@ -212,6 +214,7 @@ def main(argv: list[str] | None = None) -> None:
             "Timed work includes API submissions, SQL and broker overhead, and completion observation latency.",
             "Progress uses read-only aggregate queries against common SQL data tables; API probes request one artifact.",
             "RSS is summed across all processes and can double-count shared pages; CPU is summed across process trees.",
+            "DBWorker includes independent API and worker-service process trees, including handler children.",
             "Redis/Celery includes Redis, worker parents, children, API and Beat; no existing Redis instance is touched.",
             "SQLite durability is the same for both apps; Redis AOF everysec is an additional, different durability boundary.",
             "Mixed overlap is observed, not forced: small workloads may finish builds before scoring starts.",
@@ -222,7 +225,7 @@ def main(argv: list[str] | None = None) -> None:
     write_results(output, report)
     try:
         for repetition in range(args.repetitions):
-            order = ("dbwork", "redis_celery") if repetition % 2 == 0 else ("redis_celery", "dbwork")
+            order = backends if repetition % 2 == 0 else tuple(reversed(backends))
             for backend in order:
                 print(f"[{repetition + 1}/{args.repetitions}] {backend}: starting isolated stack", flush=True)
                 python = args.dbwork_python if backend == "dbwork" else args.celery_python
@@ -255,7 +258,7 @@ def main(argv: list[str] | None = None) -> None:
         report["summary"] = {
             kind: {backend: distribution([row["metrics"]["wall_seconds"] for row in report["runs"]
                                          if row["backend"] == backend and row["scenario"] == kind])
-                   for backend in ("dbwork", "redis_celery")}
+                   for backend in backends}
             for kind in ("build", "comparison", "mixed")
         }
     except BaseException as exc:

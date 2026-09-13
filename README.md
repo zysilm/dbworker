@@ -39,6 +39,8 @@ cd examples/imagededup_system_dbwork
 poetry env use python3.12
 poetry install
 poetry run imagededup-system-dbwork-api
+# In a second terminal in the same project directory:
+poetry run imagededup-system-dbwork-workers
 ```
 
 The example serves `http://127.0.0.1:8001`. Its [README](examples/imagededup_system_dbwork/README.md) explains the API, application progress tables, claiming and execution behavior.
@@ -78,7 +80,7 @@ def build_artifact(artifact: FeatureArtifact, session: Session) -> Finished:
 
 The decorator creates and registers the worker internally; no separate `Worker(...)` or registration call is needed. It preserves the ordinary function and its signature. Registration starts no processing: create application and worker tables, then call `coordinator.start()` and eventually `coordinator.stop()`. Register all handlers before starting.
 
-The FastAPI example declares decorated, module-level handlers in `main.py`. Those handlers call the plain application functions in `domain/artifact_build.py` and `domain/comparison.py`. The coordinator and decorators are constructed on import; database tables and processing start in FastAPI's lifespan. Importing handlers in child processes opens no coordinator connection.
+The FastAPI example declares decorated handlers in `workers.py`, calling plain application functions in `domain/artifact_build.py` and `domain/comparison.py`. Run `imagededup-system-dbwork-api` and `imagededup-system-dbwork-workers` in separate terminals with the same database URL. Only the worker service starts the coordinator; the API uses registered definitions to read status. Importing handlers starts no processing. See the example README for shared database and image paths.
 
 Handlers must remain importable for spawned child processes. `functools.partial` can bind serializable handler configuration when applying the decorator to an existing function.
 

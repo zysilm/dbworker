@@ -12,8 +12,20 @@ Use Python 3.12, which has a prebuilt wheel for imagededup 0.3.3.post2. Its depe
 cd examples/imagededup_system_dbwork
 poetry env use python3.12
 poetry install
+export DBWORKER_DATABASE_URL="sqlite:////absolute/path/to/example.db"
 poetry run imagededup-system-dbwork-api
 ```
+
+In a second terminal, use the same project directory and database URL:
+
+```sh
+export DBWORKER_DATABASE_URL="sqlite:////absolute/path/to/example.db"
+poetry run imagededup-system-dbwork-workers
+```
+
+The API and worker service are independent processes. The API performs CRUD and reads status; the worker service runs the coordinator and its handler child processes. Importing worker definitions starts no processing. Requests remain pending when the worker service is stopped and can be discovered after it starts. Ctrl+C or SIGTERM stops the worker service gracefully, draining active handlers and renewing their leases during shutdown.
+
+For a new local database, start the API first so schema creation completes before starting workers. Each process has its own engine/session factory. Use the same absolute SQLite path even if the processes run from different directories. Both services must also access images at the stored absolute paths. These two commands can be assigned to separate containers later with a shared database and accessible image storage; no Docker setup is required for this example.
 
 Swagger UI: http://127.0.0.1:8001/docs
 
@@ -55,7 +67,7 @@ Hamming distance ranges from 0 to 64; lower is closer. Zero means identical hash
 
 ## Worker behavior
 
-`main.py` declares two ordinary decorated handlers. Their application logic lives in `domain/artifact_build.py` and `domain/comparison.py`.
+`workers.py` declares two ordinary decorated handlers. `main_fastapi.py` serves the API; `main_worker_service.py` starts and stops the coordinator. Their application logic lives in `domain/artifact_build.py` and `domain/comparison.py`.
 
 1. The build worker copies the image path, releases the read transaction, computes `PHash.encode_image()` in a child process, then commits the hash and `Finished()` outcome together.
 2. The comparison worker copies a page of ready, unscored hashes and releases its read transaction. It computes integer XOR/popcount, the same 64-bit Hamming metric used by imagededup and the Redis/Celery example. Comparison processes do not load the image/ML stack.
@@ -68,7 +80,7 @@ New images are considered while a request remains unfinished. A finished request
 
 ## Configuration and tests
 
-Set environment variables before starting the API:
+Set the shared database URL in both commands; worker counts and page size configure the worker service:
 
 | Variable | Default |
 |---|---|

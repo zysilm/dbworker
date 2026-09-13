@@ -52,6 +52,14 @@ class RunnerTest(unittest.TestCase):
                     stack.__enter__()
             self.assertTrue(stack.client.is_closed)
 
+    def test_dbworker_starts_api_and_worker_service_independently(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            stack = Stack("dbwork", Path(directory, "stack"), page_size=250, python=Path(sys.executable))
+            with patch.object(stack, "start_process") as start, patch.object(stack, "wait_for_http"):
+                with stack:
+                    self.assertEqual([call.args[0] for call in start.call_args_list], ["api", "worker_service"])
+                    self.assertIn("imagededup_system_dbwork.main_worker_service", start.call_args_list[1].args[1])
+
     def test_stacks_and_scenarios_are_sequential_and_order_alternates(self) -> None:
         active: list[str] = []
         entered: list[str] = []
@@ -93,6 +101,26 @@ class RunnerTest(unittest.TestCase):
             self.assertEqual(report["configuration"]["build_workers"], 4)
             self.assertEqual(report["configuration"]["comparison_workers"], 4)
             self.assertFalse(output.with_suffix(".json.part").exists())
+
+    def test_single_backend_skips_other_services(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for number in (1, 2):
+                (root / f"im{number}.jpg").write_bytes(bytes([number]))
+            with patch.object(run, "Stack") as stack, patch.object(run, "scenario") as scenario:
+                stack.return_value.__enter__.return_value.startup_seconds = 0.0
+                stack.return_value.__enter__.return_value.directory = root
+                stack.return_value.__enter__.return_value.versions = {}
+                scenario.side_effect = [({"backend": "dbwork", "scenario": kind,
+                    "validation": {"passed": True}, "metrics": {"wall_seconds": 1.0}}, (1, [1, 2]))
+                    for kind in ("build", "comparison", "mixed")]
+                output = root / "result.json"
+                run.main(["--backend", "dbwork", "--images", "2", "--warmup-images", "0",
+                          "--repetitions", "1", "--dataset-dir", str(root), "--output", str(output)])
+                self.assertEqual(stack.call_count, 1)
+                self.assertEqual(stack.call_args.args[0], "dbwork")
+                report = json.loads(output.read_text())
+                self.assertEqual(set(report["summary"]["comparison"]), {"dbwork"})
 
     def test_latency_distribution(self) -> None:
         self.assertEqual(distribution([])["median"], None)

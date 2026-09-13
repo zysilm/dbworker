@@ -1,13 +1,15 @@
 import asyncio
+import os
+import subprocess
+import sys
 import tempfile
 import time
 import unittest
-from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from imagededup_system_dbwork import main
+from imagededup_system_dbwork import main_fastapi
 from imagededup_system_dbwork.db.engine import Base, create_engine_and_session_factory
 from imagededup_system_dbwork.db.models import ComparisonRequest, ImageAsset, FeatureArtifact, Workspace
 from dbworker import ExecutionStatus
@@ -32,7 +34,7 @@ class ApiTest(unittest.TestCase):
                     session.add(FeatureArtifact(id=1, workspace_id=1, image_id=1))
                     session.add(ComparisonRequest(id=1, workspace_id=1, query_artifact_id=1))
                 request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(
-                    session_factory=session_factory, coordinator=main.coordinator,
+                    session_factory=session_factory, coordinator=main_fastapi.coordinator,
                 )))
 
                 def finish_before_status_read(session: Session, *, worker: str, source_id: object) -> ExecutionStatus:
@@ -41,27 +43,25 @@ class ApiTest(unittest.TestCase):
                                        .values(candidates_scored_count=1))
                     return ExecutionStatus.FINISHED
 
-                with patch.object(main.coordinator, "execution_status", side_effect=finish_before_status_read):
+                with patch.object(main_fastapi.coordinator, "execution_status", side_effect=finish_before_status_read):
                     response = get_comparison(1, request)
                 self.assertIs(response["execution_status"], ExecutionStatus.FINISHED)
                 self.assertEqual(response["candidates_scored_count"], 1)
             finally:
                 engine.dispose()
 
-    def test_lifespan_runs_registered_handlers_in_process_pools(self) -> None:
+    def test_api_waits_for_independent_worker_service(self) -> None:
         async def scenario(directory: str) -> None:
-            settings = replace(main.settings, database_url=f"sqlite:///{directory}/app.db", poll_seconds=0.02)
-            engine, session_factory = create_engine_and_session_factory(settings.database_url)
+            database_url = f"sqlite:///{directory}/app.db"
+            engine, session_factory = create_engine_and_session_factory(database_url)
             self.addCleanup(engine.dispose)
             with (
-                patch.object(main, "engine", engine),
-                patch.object(main, "session_factory", session_factory),
-                patch.object(main.coordinator, "session_factory", session_factory),
-                patch.object(main.coordinator, "database_url", settings.database_url),
-                patch.object(main.coordinator, "poll_seconds", settings.poll_seconds),
+                patch.object(main_fastapi, "engine", engine),
+                patch.object(main_fastapi, "session_factory", session_factory),
+                patch.object(main_fastapi.coordinator, "session_factory", session_factory),
             ):
-                app = main.create_app()
-                async with main.lifespan(app):
+                app = main_fastapi.create_app()
+                async with main_fastapi.lifespan(app):
                     request = SimpleNamespace(app=app)
                     workspace = create_workspace(WorkspaceInput(name="smoke"), request)
                     Image.new("RGB", (32, 32), "black").save(Path(directory, "a.png"))
@@ -72,19 +72,36 @@ class ApiTest(unittest.TestCase):
                     self.assertEqual(repeated["imported_images"], 0)
                     comparison = create_comparison(1, ComparisonInput(retained_max_k=1), request)
                     self.assertIsNone(comparison["execution_status"])
-                    deadline = time.monotonic() + 90
-                    while time.monotonic() < deadline:
-                        status = get_comparison(comparison["id"], request)
-                        if status["execution_status"] == "finished":
-                            break
-                        await asyncio.sleep(0.02)
-                    self.assertEqual(status["execution_status"], "finished", status)
-                    self.assertEqual(status["candidates_scored_count"], 1)
-                    self.assertEqual(get_artifact(1, request)["execution_status"], "finished")
-                    self.assertEqual(get_artifact(2, request)["execution_status"], "finished")
-                    results = get_results(comparison["id"], request)
-                    self.assertEqual(results[0]["candidate_artifact_id"], 2)
-                    self.assertEqual(results[0]["distance"], 0)
+                    self.assertFalse(app.state.coordinator._running)
+                    env = dict(os.environ, DBWORKER_DATABASE_URL=database_url,
+                               DBWORKER_BUILD_WORKERS="2", DBWORKER_COMPARISON_WORKERS="2")
+                    with Path(directory, "worker.log").open("w") as log:
+                        service = subprocess.Popen(
+                            [sys.executable, "-m", "imagededup_system_dbwork.main_worker_service"],
+                            env=env, stdout=log, stderr=subprocess.STDOUT,
+                        )
+                        try:
+                            deadline = time.monotonic() + 90
+                            while time.monotonic() < deadline:
+                                status = get_comparison(comparison["id"], request)
+                                if status["execution_status"] == "finished":
+                                    break
+                                await asyncio.sleep(0.02)
+                            self.assertEqual(status["execution_status"], "finished", status)
+                            self.assertEqual(status["candidates_scored_count"], 1)
+                            self.assertEqual(get_artifact(1, request)["execution_status"], "finished")
+                            self.assertEqual(get_artifact(2, request)["execution_status"], "finished")
+                            results = get_results(comparison["id"], request)
+                            self.assertEqual(results[0]["candidate_artifact_id"], 2)
+                            self.assertEqual(results[0]["distance"], 0)
+                        finally:
+                            service.terminate()
+                            try:
+                                service.wait(timeout=30)
+                            except subprocess.TimeoutExpired:
+                                service.kill()
+                                service.wait(timeout=10)
+                        self.assertEqual(service.returncode, 0, Path(directory, "worker.log").read_text())
                 self.assertFalse(app.state.coordinator._running)
         with tempfile.TemporaryDirectory() as directory:
             asyncio.run(scenario(directory))
