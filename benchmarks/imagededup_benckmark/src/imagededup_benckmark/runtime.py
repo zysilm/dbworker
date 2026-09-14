@@ -5,7 +5,7 @@ import json
 import shutil
 import signal
 import socket
-import subprocess
+import subprocess  # nosec B404 -- commands are fixed argument lists and always run with shell=False.
 import time
 from contextlib import AbstractContextManager
 from pathlib import Path
@@ -43,8 +43,9 @@ class Stack(AbstractContextManager["Stack"]):
     def start_process(self, role: str, command: list[str], env: dict[str, str]) -> None:
         log = (self.directory / f"{role}.log").open("wb")
         self.logs.append(log)
-        self.processes[role] = subprocess.Popen(command, env=env, cwd=self.directory,
-                                                stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+        self.processes[role] = subprocess.Popen(  # nosec B603 -- command is assembled by this benchmark, never shell input.
+            command, env=env, cwd=self.directory, stdout=log, stderr=subprocess.STDOUT, start_new_session=True,
+        )
 
     def check_alive(self) -> None:
         for role, process in self.processes.items():
@@ -85,7 +86,9 @@ for package in ['sqlalchemy', 'fastapi', 'imagededup', 'numpy', 'celery', 'redis
     except m.PackageNotFoundError: result[package] = None
 print(json.dumps(result))
 """
-            self.versions = json.loads(subprocess.check_output([str(self.python), "-c", code], text=True))
+            self.versions = json.loads(subprocess.check_output(  # nosec B603 -- interpreter path and code are fixed locally.
+                [str(self.python), "-c", code], text=True,
+            ))
             if self.backend == "dbwork":
                 env.update(DBWORKER_DATABASE_URL=f"sqlite:///{self.database}", DBWORKER_BUILD_WORKERS="4",
                            DBWORKER_COMPARISON_WORKERS="4", DBWORKER_COMPARISON_PAGE_SIZE=str(self.page_size))

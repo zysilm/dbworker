@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import multiprocessing
-import pickle
+import pickle  # nosec B403 -- used only for local pre-flight serialization; this module never deserializes pickle data.
 import re
 import threading
 import time

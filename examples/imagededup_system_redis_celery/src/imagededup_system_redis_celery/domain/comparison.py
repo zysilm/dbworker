@@ -61,7 +61,8 @@ def compare_page(request_id: int, revision: int, session_factory: sessionmaker[S
         if changed.rowcount != 1:  # type: ignore[attr-defined]
             return None  # Duplicate/stale delivery: no writes and no continuation.
         current = session.get(ComparisonRequest, request_id)
-        assert current is not None
+        if current is None:
+            raise RuntimeError("Comparison request disappeared after its revision was claimed")
         if distances:
             previous = session.scalars(select(TopComparison).where(TopComparison.request_id == request_id))
             combined = {row.candidate_artifact_id: row.distance for row in previous}

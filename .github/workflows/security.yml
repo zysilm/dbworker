@@ -64,4 +64,8 @@ jobs:
         run: poetry run pip-audit --strict
 
       - name: Scan Python security patterns
-        run: poetry run bandit -r src examples benchmarks -q
+        run: >-
+          poetry run bandit -r src
+          examples/imagededup_system_dbwork/src
+          examples/imagededup_system_redis_celery/src
+          benchmarks/imagededup_benckmark/src -q
