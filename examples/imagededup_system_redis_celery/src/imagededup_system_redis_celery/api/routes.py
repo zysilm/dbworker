@@ -1,3 +1,4 @@
+import os.path
 from pathlib import Path
 from typing import TypedDict, cast
 
@@ -69,14 +70,14 @@ def _session_factory(request: Request) -> sessionmaker[Session]:
 
 
 def _import_directory(directory_input: str, request: Request) -> Path:
-    import_root = cast(Path, request.app.state.import_root).resolve()
-    requested = Path(directory_input).expanduser()
-    directory = (requested if requested.is_absolute() else import_root / requested).resolve()
-    if not directory.is_relative_to(import_root):
+    import_root = os.path.realpath(cast(Path, request.app.state.import_root))
+    directory = os.path.realpath(os.path.join(import_root, directory_input))
+    import_root_prefix = import_root if import_root.endswith(os.sep) else f"{import_root}{os.sep}"
+    if directory != import_root and not directory.startswith(import_root_prefix):
         raise HTTPException(400, "directory must be within the configured import root")
-    if not directory.is_dir():
+    if not os.path.isdir(directory):
         raise HTTPException(400, "directory must be an existing image directory")
-    return directory
+    return Path(directory)
 
 
 @router.post("/workspaces")
