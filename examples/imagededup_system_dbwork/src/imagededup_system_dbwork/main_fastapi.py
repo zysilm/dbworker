@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
 from imagededup_system_dbwork.api.routes import router
+from imagededup_system_dbwork.config import settings
 from imagededup_system_dbwork.db.engine import Base
 from imagededup_system_dbwork.workers import coordinator, engine, session_factory
 
@@ -17,6 +18,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.engine = engine
     app.state.session_factory = session_factory
     app.state.coordinator = coordinator
+    app.state.import_root = settings.import_root
     try:
         yield
     finally:

@@ -230,7 +230,7 @@ def main(argv: list[str] | None = None) -> None:
                 print(f"[{repetition + 1}/{args.repetitions}] {backend}: starting isolated stack", flush=True)
                 python = args.dbwork_python if backend == "dbwork" else args.celery_python
                 with Stack(backend, work_dir / f"{repetition + 1}-{backend}", page_size=args.page_size,
-                           python=python, redis_server=args.redis_server) as stack:
+                           python=python, redis_server=args.redis_server, import_root=dataset_dir) as stack:
                     report["stacks"].append({"repetition": repetition + 1, "backend": backend,
                                              "startup_seconds": stack.startup_seconds, "logs": str(stack.directory), "versions": stack.versions})
                     common = dict(page_size=args.page_size, top_k=args.top_k, max_distance=args.max_distance,

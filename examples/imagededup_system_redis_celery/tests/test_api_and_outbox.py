@@ -32,6 +32,7 @@ class ApiAndOutboxTest(unittest.TestCase):
         self.session_factory = sessionmaker(self.engine, expire_on_commit=False)
         app = FastAPI()
         app.state.session_factory = self.session_factory
+        app.state.import_root = self.path
         app.include_router(router)
         self.client = TestClient(app)
         self.addCleanup(self.client.close)
@@ -66,6 +67,10 @@ class ApiAndOutboxTest(unittest.TestCase):
             self.assertEqual(len(artifact.hash_value), 16)
             message = session.scalar(select(OutboxMessage))
             self.assertEqual((message.task_name, message.source_id, message.source_revision), ("images.build", key, 0))
+
+    def test_import_rejects_directory_outside_configured_root(self) -> None:
+        response = self.client.post(f"/workspaces/{self.workspace}/imports", json={"directory": ".."})
+        self.assertEqual(response.status_code, 400)
 
     def test_comparison_submission_and_validation(self) -> None:
         key = self.import_image()

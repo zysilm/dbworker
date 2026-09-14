@@ -6,6 +6,7 @@ from pathlib import Path
 @dataclass(frozen=True)
 class Settings:
     database_url: str = os.environ.get("IMAGE_DATABASE_URL", f"sqlite:///{Path.cwd() / 'example.db'}")
+    import_root: Path = Path(os.environ.get("IMAGE_IMPORT_ROOT", Path.cwd())).expanduser().resolve()
     broker_url: str = os.environ.get("IMAGE_BROKER_URL", "redis://127.0.0.1:6379/0")
     comparison_page_size: int = int(os.environ.get("IMAGE_COMPARISON_PAGE_SIZE", "250"))
     dependency_wait_seconds: float = float(os.environ.get("IMAGE_DEPENDENCY_WAIT_SECONDS", "1"))

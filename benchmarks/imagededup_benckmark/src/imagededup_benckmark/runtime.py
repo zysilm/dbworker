@@ -25,11 +25,12 @@ def free_port() -> int:
 
 class Stack(AbstractContextManager["Stack"]):
     def __init__(self, backend: str, directory: Path, *, page_size: int,
-                 python: Path | None = None, redis_server: str = "redis-server") -> None:
+                 python: Path | None = None, redis_server: str = "redis-server", import_root: Path | None = None) -> None:
         self.backend = backend
         self.directory = directory
         self.database = directory / "application.db"
         self.page_size = page_size
+        self.import_root = (import_root or directory).resolve()
         self.python = python or REPOSITORY / "examples" / f"imagededup_system_{backend}" / ".venv/bin/python"
         self.redis_server = redis_server
         self.api_port = free_port()
@@ -91,7 +92,8 @@ print(json.dumps(result))
             ))
             if self.backend == "dbwork":
                 env.update(DBWORKER_DATABASE_URL=f"sqlite:///{self.database}", DBWORKER_BUILD_WORKERS="4",
-                           DBWORKER_COMPARISON_WORKERS="4", DBWORKER_COMPARISON_PAGE_SIZE=str(self.page_size))
+                           DBWORKER_COMPARISON_WORKERS="4", DBWORKER_COMPARISON_PAGE_SIZE=str(self.page_size),
+                           DBWORKER_IMPORT_ROOT=str(self.import_root))
             else:
                 redis_binary = shutil.which(self.redis_server)
                 if redis_binary is None:
@@ -104,7 +106,8 @@ print(json.dumps(result))
                                    "--appendfsync", "everysec"], env)
                 env.update(IMAGE_DATABASE_URL=f"sqlite:///{self.database}",
                            IMAGE_BROKER_URL=f"redis://127.0.0.1:{redis_port}/0",
-                           IMAGE_COMPARISON_PAGE_SIZE=str(self.page_size), IMAGE_DEPENDENCY_WAIT_SECONDS="1")
+                           IMAGE_COMPARISON_PAGE_SIZE=str(self.page_size), IMAGE_DEPENDENCY_WAIT_SECONDS="1",
+                           IMAGE_IMPORT_ROOT=str(self.import_root))
             api_module = "main_fastapi" if self.backend == "dbwork" else "main"
             self.start_process("api", [str(self.python), "-m", "uvicorn", f"imagededup_system_{self.backend}.{api_module}:app",
                                "--host", "127.0.0.1", "--port", str(self.api_port), "--no-access-log"], env)

@@ -9,6 +9,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from fastapi import HTTPException
 from imagededup_system_dbwork import main_fastapi
 from imagededup_system_dbwork.db.engine import Base, create_engine_and_session_factory
 from imagededup_system_dbwork.db.models import ComparisonRequest, ImageAsset, FeatureArtifact, Workspace
@@ -62,6 +63,7 @@ class ApiTest(unittest.TestCase):
             ):
                 app = main_fastapi.create_app()
                 async with main_fastapi.lifespan(app):
+                    app.state.import_root = Path(directory)
                     request = SimpleNamespace(app=app)
                     workspace = create_workspace(WorkspaceInput(name="smoke"), request)
                     Image.new("RGB", (32, 32), "black").save(Path(directory, "a.png"))
@@ -70,6 +72,8 @@ class ApiTest(unittest.TestCase):
                     self.assertEqual(imported["imported_images"], 2)
                     repeated = import_images(workspace["id"], ImportInput(directory=directory), request)
                     self.assertEqual(repeated["imported_images"], 0)
+                    with self.assertRaisesRegex(HTTPException, "configured import root"):
+                        import_images(workspace["id"], ImportInput(directory=".."), request)
                     comparison = create_comparison(1, ComparisonInput(retained_max_k=1), request)
                     self.assertIsNone(comparison["execution_status"])
                     self.assertFalse(app.state.coordinator._running)

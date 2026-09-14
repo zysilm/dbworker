@@ -5,6 +5,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from imagededup_system_redis_celery.api.routes import router
+from imagededup_system_redis_celery.config import settings
 from imagededup_system_redis_celery.db.engine import Base, dispose_engine, get_engine, get_session_factory
 
 
@@ -12,6 +13,7 @@ from imagededup_system_redis_celery.db.engine import Base, dispose_engine, get_e
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     Base.metadata.create_all(get_engine())
     app.state.session_factory = get_session_factory()
+    app.state.import_root = settings.import_root
     try:
         yield
     finally:

@@ -68,6 +68,17 @@ def _session_factory(request: Request) -> sessionmaker[Session]:
     return cast(sessionmaker[Session], request.app.state.session_factory)
 
 
+def _import_directory(directory_input: str, request: Request) -> Path:
+    import_root = cast(Path, request.app.state.import_root).resolve()
+    requested = Path(directory_input).expanduser()
+    directory = (requested if requested.is_absolute() else import_root / requested).resolve()
+    if not directory.is_relative_to(import_root):
+        raise HTTPException(400, "directory must be within the configured import root")
+    if not directory.is_dir():
+        raise HTTPException(400, "directory must be an existing image directory")
+    return directory
+
+
 @router.post("/workspaces")
 def create_workspace(body: WorkspaceInput, request: Request) -> WorkspaceResponse:
     with _session_factory(request).begin() as session:
@@ -79,9 +90,7 @@ def create_workspace(body: WorkspaceInput, request: Request) -> WorkspaceRespons
 
 @router.post("/workspaces/{workspace_id}/imports")
 def import_images(workspace_id: int, body: ImportInput, request: Request) -> ImportResponse:
-    directory = Path(body.directory).expanduser().resolve()
-    if not directory.is_dir():
-        raise HTTPException(400, "directory must be an existing image directory")
+    directory = _import_directory(body.directory, request)
     files = sorted(file for file in directory.iterdir()
                    if file.is_file() and file.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff"})[:body.limit]
     artifact_ids: list[int] = []
