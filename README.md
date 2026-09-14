@@ -1,6 +1,16 @@
 # dbworker
 
-Portable database-backed work coordination with SQLAlchemy and process workers. A single-script Redis + Celery alternative that uses your existing database.
+**Your database rows are already the queue.**
+
+A portable, single-script background worker for SQLAlchemy. No broker, no enqueue, no duplicate job model.
+
+```text
+Celery / Huey / Graphile Worker:
+    event → job → worker
+
+dbworker:
+    row → worker
+```
 
 Requires Python 3.12+. Install into your application:
 
