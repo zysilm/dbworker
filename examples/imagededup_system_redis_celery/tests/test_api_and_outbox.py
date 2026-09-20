@@ -32,7 +32,7 @@ class ApiAndOutboxTest(unittest.TestCase):
         self.session_factory = sessionmaker(self.engine, expire_on_commit=False)
         app = FastAPI()
         app.state.session_factory = self.session_factory
-        app.state.import_root = self.path
+        app.state.import_root = self.path.parent
         app.include_router(router)
         self.client = TestClient(app)
         self.addCleanup(self.client.close)

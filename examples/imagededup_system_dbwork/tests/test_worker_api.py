@@ -63,7 +63,7 @@ class ApiTest(unittest.TestCase):
             ):
                 app = main_fastapi.create_app()
                 async with main_fastapi.lifespan(app):
-                    app.state.import_root = Path(directory)
+                    app.state.import_root = Path(directory).parent
                     request = SimpleNamespace(app=app)
                     workspace = create_workspace(WorkspaceInput(name="smoke"), request)
                     Image.new("RGB", (32, 32), "black").save(Path(directory, "a.png"))

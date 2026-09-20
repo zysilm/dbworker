@@ -70,10 +70,9 @@ def _session_factory(request: Request) -> sessionmaker[Session]:
 
 
 def _import_directory(directory_input: str, request: Request) -> Path:
-    import_root = os.path.realpath(cast(Path, request.app.state.import_root))
+    import_root = os.path.realpath(cast(Path, request.app.state.import_root)).rstrip(os.sep) + os.sep
     directory = os.path.realpath(os.path.join(import_root, directory_input))
-    import_root_prefix = import_root if import_root.endswith(os.sep) else f"{import_root}{os.sep}"
-    if directory != import_root and not directory.startswith(import_root_prefix):
+    if not directory.startswith(import_root):
         raise HTTPException(400, "directory must be within the configured import root")
     if not os.path.isdir(directory):
         raise HTTPException(400, "directory must be an existing image directory")
