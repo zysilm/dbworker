@@ -217,7 +217,19 @@ For SQLite, use a file-backed database. Worker names must start with a lowercase
 <!-- benchmark-results:start -->
 ## Benchmark Results
 
-Full application benchmark results will appear here after the first successful
-GitHub-hosted run on `main`. Each experiment uses its own fresh VM and Docker
-container. [Benchmark workloads and methodology](benchmarks/README.md).
+Median wall time in seconds; **bold** marks the faster backend. Each experiment runs in a fresh Docker container on its own GitHub-hosted Ubuntu VM.
+
+| Experiment | Scenario | Celery (s) | DBWorker (s) | Celery / DBWorker |
+|---|---|---:|---:|---:|
+| imagededup | build | **4.885** | 5.939 | 0.82 |
+| imagededup | comparison | 78.031 | **74.414** | 1.05 |
+| imagededup | mixed | **85.559** | 86.142 | 0.99 |
+| superset | sql_lab_group_by | **2.045** | 2.070 | 0.99 |
+| saleor | product_csv_export | **1.912** | 2.272 | 0.84 |
+| paperless_ngx | scanned_image_ingestion | 40.368 | **40.143** | 1.01 |
+| posthog | pre_rendered_notification_smtp | 2.006 | **1.511** | 1.33 |
+| sentry | historical_smtp_email | 157.003 | **150.927** | 1.04 |
+
+Run: `github-37351143262-1`. [Details and scope](doc/benchmark-results.md) · [JSON results](benchmarks/results/latest/index.json).
+Scoped application workloads; Sentry uses historical 24.1.0. Ratios above 1 favor DBWorker; no cross-project average is computed.
 <!-- benchmark-results:end -->

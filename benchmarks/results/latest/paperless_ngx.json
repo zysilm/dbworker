@@ -1,0 +1,1085 @@
+{
+  "artifacts": {
+    "provision_log": "paperless_ngx.provision.log",
+    "samples": [
+      "paperless_ngx-1-celery/sample.json",
+      "paperless_ngx-1-dbworker/sample.json",
+      "paperless_ngx-2-dbworker/sample.json",
+      "paperless_ngx-2-celery/sample.json",
+      "paperless_ngx-3-celery/sample.json",
+      "paperless_ngx-3-dbworker/sample.json",
+      "paperless_ngx-4-dbworker/sample.json",
+      "paperless_ngx-4-celery/sample.json",
+      "paperless_ngx-5-celery/sample.json",
+      "paperless_ngx-5-dbworker/sample.json"
+    ],
+    "suite_log": "paperless_ngx.log"
+  },
+  "capabilities": {
+    "scope": "Paired durable requests running the unchanged upstream ingestion body; auxiliary Redis progress is shared infrastructure",
+    "untested": [
+      "crash_recovery",
+      "postgresql",
+      "classification_training",
+      "barcode_split",
+      "workflow_continuations",
+      "AI"
+    ],
+    "verified": [
+      "unchanged_consume_file_plugin_pipeline",
+      "real_tesseract_ocr",
+      "durable_document_rows",
+      "original_file_sha256",
+      "real_thumbnails",
+      "tantivy_content_search",
+      "dbworker_ledger"
+    ]
+  },
+  "configuration": {
+    "backend_order": "alternating across repetitions",
+    "backends": {
+      "celery": {
+        "application_database": "sqlite",
+        "celery_pool": "prefork",
+        "comparison_mode": "paired_durable_request",
+        "concurrency": 2,
+        "dbworker_pool": "spawn processes",
+        "ocr_clean": "none",
+        "ocr_deskew": false,
+        "ocr_language": "eng",
+        "ocr_mode": "force",
+        "ocr_output_type": "pdf",
+        "ocr_rotate_pages": false,
+        "platform_pool_limitation": null,
+        "profile": {
+          "repetitions": 5,
+          "requests": 100
+        },
+        "redis_aof": "everysec",
+        "redis_auxiliary_progress_both_backends": true,
+        "request_database": "sqlite",
+        "retry": "none",
+        "warmup_documents": 2
+      },
+      "dbworker": {
+        "application_database": "sqlite",
+        "celery_pool": "prefork",
+        "comparison_mode": "paired_durable_request",
+        "concurrency": 2,
+        "dbworker_pool": "spawn processes",
+        "ocr_clean": "none",
+        "ocr_deskew": false,
+        "ocr_language": "eng",
+        "ocr_mode": "force",
+        "ocr_output_type": "pdf",
+        "ocr_rotate_pages": false,
+        "platform_pool_limitation": null,
+        "profile": {
+          "repetitions": 5,
+          "requests": 100
+        },
+        "redis_aof": "everysec",
+        "redis_auxiliary_progress_both_backends": true,
+        "request_database": "sqlite",
+        "retry": "none",
+        "warmup_documents": 2
+      }
+    },
+    "profile": {
+      "repetitions": 5,
+      "requests": 100
+    },
+    "sequential": true
+  },
+  "created_at": "2026-10-05T17:49:09.503903+00:00",
+  "dataset": {
+    "documents": 100,
+    "dpi": 200,
+    "format": "raster-only PNG",
+    "generation": "Pillow raster drawing using ReportLab Vera.ttf",
+    "independent_oracle": "expected markers and original SHA256",
+    "size": [
+      1800,
+      700
+    ],
+    "text": "INVOICE <five-digit-number>; Benchmark orchard payment received"
+  },
+  "environment": {
+    "backends": {
+      "celery": {
+        "interpreter": "/workspace/benchmarks/environments/paperless_ngx/celery/.venv/bin/python",
+        "packages": {
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "django": "5.2.17",
+          "ocrmypdf": "17.12.1",
+          "sqlalchemy": "2.0.54",
+          "tantivy": "0.26.2"
+        },
+        "python": "3.12.3",
+        "tesseract": "tesseract 5.3.4"
+      },
+      "dbworker": {
+        "interpreter": "/workspace/benchmarks/environments/paperless_ngx/dbworker/.venv/bin/python",
+        "packages": {
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "django": "5.2.17",
+          "ocrmypdf": "17.12.1",
+          "sqlalchemy": "2.0.54",
+          "tantivy": "0.26.2"
+        },
+        "python": "3.12.3",
+        "tesseract": "tesseract 5.3.4"
+      }
+    },
+    "interpreters": {
+      "benchmark_python": "/workspace/benchmarks/environments/paperless_ngx/benchmark/.venv/bin/python",
+      "celery_python": "/workspace/benchmarks/environments/paperless_ngx/celery/.venv/bin/python",
+      "dbworker_python": "/workspace/benchmarks/environments/paperless_ngx/dbworker/.venv/bin/python"
+    },
+    "orchestrator_python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+    "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+    "runner_class": "github-hosted-docker"
+  },
+  "errors": [],
+  "finished_at": "2026-10-05T17:58:47.570196+00:00",
+  "profile": "full",
+  "run_id": "github-37351143262-1",
+  "runs": [
+    {
+      "backend": "celery",
+      "capabilities": {
+        "scope": "Paired durable requests running the unchanged upstream ingestion body; auxiliary Redis progress is shared infrastructure",
+        "untested": [
+          "crash_recovery",
+          "postgresql",
+          "classification_training",
+          "barcode_split",
+          "workflow_continuations",
+          "AI"
+        ],
+        "verified": [
+          "unchanged_consume_file_plugin_pipeline",
+          "real_tesseract_ocr",
+          "durable_document_rows",
+          "original_file_sha256",
+          "real_thumbnails",
+          "tantivy_content_search",
+          "dbworker_ledger"
+        ]
+      },
+      "comparison_mode": "paired_durable_request",
+      "configuration": {
+        "application_database": "sqlite",
+        "celery_pool": "prefork",
+        "comparison_mode": "paired_durable_request",
+        "concurrency": 2,
+        "dbworker_pool": "spawn processes",
+        "ocr_clean": "none",
+        "ocr_deskew": false,
+        "ocr_language": "eng",
+        "ocr_mode": "force",
+        "ocr_output_type": "pdf",
+        "ocr_rotate_pages": false,
+        "platform_pool_limitation": null,
+        "profile": {
+          "repetitions": 5,
+          "requests": 100
+        },
+        "redis_aof": "everysec",
+        "redis_auxiliary_progress_both_backends": true,
+        "request_database": "sqlite",
+        "retry": "none",
+        "warmup_documents": 2
+      },
+      "dataset": {
+        "documents": 100,
+        "dpi": 200,
+        "format": "raster-only PNG",
+        "generation": "Pillow raster drawing using ReportLab Vera.ttf",
+        "independent_oracle": "expected markers and original SHA256",
+        "size": [
+          1800,
+          700
+        ],
+        "text": "INVOICE <five-digit-number>; Benchmark orchard payment received"
+      },
+      "environment": {
+        "interpreter": "/workspace/benchmarks/environments/paperless_ngx/celery/.venv/bin/python",
+        "packages": {
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "django": "5.2.17",
+          "ocrmypdf": "17.12.1",
+          "sqlalchemy": "2.0.54",
+          "tantivy": "0.26.2"
+        },
+        "python": "3.12.3",
+        "tesseract": "tesseract 5.3.4"
+      },
+      "metrics": {
+        "documents_per_second": 2.6490879789206314,
+        "wall_seconds": 37.748840656
+      },
+      "repetition": 1,
+      "scenario": "scanned_image_ingestion",
+      "status": "passed",
+      "validation": {
+        "documents": 100,
+        "original_files": true,
+        "output_digest": "b409f93cfdeb5049aa44555d2d0299932248a183084f9978690f06783e680b8f",
+        "passed": true,
+        "raster_only_ocr": true,
+        "tantivy_search": true,
+        "thumbnails": true
+      }
+    },
+    {
+      "backend": "dbworker",
+      "capabilities": {
+        "scope": "Paired durable requests running the unchanged upstream ingestion body; auxiliary Redis progress is shared infrastructure",
+        "untested": [
+          "crash_recovery",
+          "postgresql",
+          "classification_training",
+          "barcode_split",
+          "workflow_continuations",
+          "AI"
+        ],
+        "verified": [
+          "unchanged_consume_file_plugin_pipeline",
+          "real_tesseract_ocr",
+          "durable_document_rows",
+          "original_file_sha256",
+          "real_thumbnails",
+          "tantivy_content_search",
+          "dbworker_ledger"
+        ]
+      },
+      "comparison_mode": "paired_durable_request",
+      "configuration": {
+        "application_database": "sqlite",
+        "celery_pool": "prefork",
+        "comparison_mode": "paired_durable_request",
+        "concurrency": 2,
+        "dbworker_pool": "spawn processes",
+        "ocr_clean": "none",
+        "ocr_deskew": false,
+        "ocr_language": "eng",
+        "ocr_mode": "force",
+        "ocr_output_type": "pdf",
+        "ocr_rotate_pages": false,
+        "platform_pool_limitation": null,
+        "profile": {
+          "repetitions": 5,
+          "requests": 100
+        },
+        "redis_aof": "everysec",
+        "redis_auxiliary_progress_both_backends": true,
+        "request_database": "sqlite",
+        "retry": "none",
+        "warmup_documents": 2
+      },
+      "dataset": {
+        "documents": 100,
+        "dpi": 200,
+        "format": "raster-only PNG",
+        "generation": "Pillow raster drawing using ReportLab Vera.ttf",
+        "independent_oracle": "expected markers and original SHA256",
+        "size": [
+          1800,
+          700
+        ],
+        "text": "INVOICE <five-digit-number>; Benchmark orchard payment received"
+      },
+      "environment": {
+        "interpreter": "/workspace/benchmarks/environments/paperless_ngx/dbworker/.venv/bin/python",
+        "packages": {
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "django": "5.2.17",
+          "ocrmypdf": "17.12.1",
+          "sqlalchemy": "2.0.54",
+          "tantivy": "0.26.2"
+        },
+        "python": "3.12.3",
+        "tesseract": "tesseract 5.3.4"
+      },
+      "metrics": {
+        "documents_per_second": 2.6067782585721,
+        "wall_seconds": 38.36152909100002
+      },
+      "repetition": 1,
+      "scenario": "scanned_image_ingestion",
+      "status": "passed",
+      "validation": {
+        "documents": 100,
+        "original_files": true,
+        "output_digest": "b409f93cfdeb5049aa44555d2d0299932248a183084f9978690f06783e680b8f",
+        "passed": true,
+        "raster_only_ocr": true,
+        "tantivy_search": true,
+        "thumbnails": true
+      }
+    },
+    {
+      "backend": "dbworker",
+      "capabilities": {
+        "scope": "Paired durable requests running the unchanged upstream ingestion body; auxiliary Redis progress is shared infrastructure",
+        "untested": [
+          "crash_recovery",
+          "postgresql",
+          "classification_training",
+          "barcode_split",
+          "workflow_continuations",
+          "AI"
+        ],
+        "verified": [
+          "unchanged_consume_file_plugin_pipeline",
+          "real_tesseract_ocr",
+          "durable_document_rows",
+          "original_file_sha256",
+          "real_thumbnails",
+          "tantivy_content_search",
+          "dbworker_ledger"
+        ]
+      },
+      "comparison_mode": "paired_durable_request",
+      "configuration": {
+        "application_database": "sqlite",
+        "celery_pool": "prefork",
+        "comparison_mode": "paired_durable_request",
+        "concurrency": 2,
+        "dbworker_pool": "spawn processes",
+        "ocr_clean": "none",
+        "ocr_deskew": false,
+        "ocr_language": "eng",
+        "ocr_mode": "force",
+        "ocr_output_type": "pdf",
+        "ocr_rotate_pages": false,
+        "platform_pool_limitation": null,
+        "profile": {
+          "repetitions": 5,
+          "requests": 100
+        },
+        "redis_aof": "everysec",
+        "redis_auxiliary_progress_both_backends": true,
+        "request_database": "sqlite",
+        "retry": "none",
+        "warmup_documents": 2
+      },
+      "dataset": {
+        "documents": 100,
+        "dpi": 200,
+        "format": "raster-only PNG",
+        "generation": "Pillow raster drawing using ReportLab Vera.ttf",
+        "independent_oracle": "expected markers and original SHA256",
+        "size": [
+          1800,
+          700
+        ],
+        "text": "INVOICE <five-digit-number>; Benchmark orchard payment received"
+      },
+      "environment": {
+        "interpreter": "/workspace/benchmarks/environments/paperless_ngx/dbworker/.venv/bin/python",
+        "packages": {
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "django": "5.2.17",
+          "ocrmypdf": "17.12.1",
+          "sqlalchemy": "2.0.54",
+          "tantivy": "0.26.2"
+        },
+        "python": "3.12.3",
+        "tesseract": "tesseract 5.3.4"
+      },
+      "metrics": {
+        "documents_per_second": 2.5782997986689686,
+        "wall_seconds": 38.785249120999964
+      },
+      "repetition": 2,
+      "scenario": "scanned_image_ingestion",
+      "status": "passed",
+      "validation": {
+        "documents": 100,
+        "original_files": true,
+        "output_digest": "b409f93cfdeb5049aa44555d2d0299932248a183084f9978690f06783e680b8f",
+        "passed": true,
+        "raster_only_ocr": true,
+        "tantivy_search": true,
+        "thumbnails": true
+      }
+    },
+    {
+      "backend": "celery",
+      "capabilities": {
+        "scope": "Paired durable requests running the unchanged upstream ingestion body; auxiliary Redis progress is shared infrastructure",
+        "untested": [
+          "crash_recovery",
+          "postgresql",
+          "classification_training",
+          "barcode_split",
+          "workflow_continuations",
+          "AI"
+        ],
+        "verified": [
+          "unchanged_consume_file_plugin_pipeline",
+          "real_tesseract_ocr",
+          "durable_document_rows",
+          "original_file_sha256",
+          "real_thumbnails",
+          "tantivy_content_search",
+          "dbworker_ledger"
+        ]
+      },
+      "comparison_mode": "paired_durable_request",
+      "configuration": {
+        "application_database": "sqlite",
+        "celery_pool": "prefork",
+        "comparison_mode": "paired_durable_request",
+        "concurrency": 2,
+        "dbworker_pool": "spawn processes",
+        "ocr_clean": "none",
+        "ocr_deskew": false,
+        "ocr_language": "eng",
+        "ocr_mode": "force",
+        "ocr_output_type": "pdf",
+        "ocr_rotate_pages": false,
+        "platform_pool_limitation": null,
+        "profile": {
+          "repetitions": 5,
+          "requests": 100
+        },
+        "redis_aof": "everysec",
+        "redis_auxiliary_progress_both_backends": true,
+        "request_database": "sqlite",
+        "retry": "none",
+        "warmup_documents": 2
+      },
+      "dataset": {
+        "documents": 100,
+        "dpi": 200,
+        "format": "raster-only PNG",
+        "generation": "Pillow raster drawing using ReportLab Vera.ttf",
+        "independent_oracle": "expected markers and original SHA256",
+        "size": [
+          1800,
+          700
+        ],
+        "text": "INVOICE <five-digit-number>; Benchmark orchard payment received"
+      },
+      "environment": {
+        "interpreter": "/workspace/benchmarks/environments/paperless_ngx/celery/.venv/bin/python",
+        "packages": {
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "django": "5.2.17",
+          "ocrmypdf": "17.12.1",
+          "sqlalchemy": "2.0.54",
+          "tantivy": "0.26.2"
+        },
+        "python": "3.12.3",
+        "tesseract": "tesseract 5.3.4"
+      },
+      "metrics": {
+        "documents_per_second": 2.4884730406324307,
+        "wall_seconds": 40.18528566200001
+      },
+      "repetition": 2,
+      "scenario": "scanned_image_ingestion",
+      "status": "passed",
+      "validation": {
+        "documents": 100,
+        "original_files": true,
+        "output_digest": "b409f93cfdeb5049aa44555d2d0299932248a183084f9978690f06783e680b8f",
+        "passed": true,
+        "raster_only_ocr": true,
+        "tantivy_search": true,
+        "thumbnails": true
+      }
+    },
+    {
+      "backend": "celery",
+      "capabilities": {
+        "scope": "Paired durable requests running the unchanged upstream ingestion body; auxiliary Redis progress is shared infrastructure",
+        "untested": [
+          "crash_recovery",
+          "postgresql",
+          "classification_training",
+          "barcode_split",
+          "workflow_continuations",
+          "AI"
+        ],
+        "verified": [
+          "unchanged_consume_file_plugin_pipeline",
+          "real_tesseract_ocr",
+          "durable_document_rows",
+          "original_file_sha256",
+          "real_thumbnails",
+          "tantivy_content_search",
+          "dbworker_ledger"
+        ]
+      },
+      "comparison_mode": "paired_durable_request",
+      "configuration": {
+        "application_database": "sqlite",
+        "celery_pool": "prefork",
+        "comparison_mode": "paired_durable_request",
+        "concurrency": 2,
+        "dbworker_pool": "spawn processes",
+        "ocr_clean": "none",
+        "ocr_deskew": false,
+        "ocr_language": "eng",
+        "ocr_mode": "force",
+        "ocr_output_type": "pdf",
+        "ocr_rotate_pages": false,
+        "platform_pool_limitation": null,
+        "profile": {
+          "repetitions": 5,
+          "requests": 100
+        },
+        "redis_aof": "everysec",
+        "redis_auxiliary_progress_both_backends": true,
+        "request_database": "sqlite",
+        "retry": "none",
+        "warmup_documents": 2
+      },
+      "dataset": {
+        "documents": 100,
+        "dpi": 200,
+        "format": "raster-only PNG",
+        "generation": "Pillow raster drawing using ReportLab Vera.ttf",
+        "independent_oracle": "expected markers and original SHA256",
+        "size": [
+          1800,
+          700
+        ],
+        "text": "INVOICE <five-digit-number>; Benchmark orchard payment received"
+      },
+      "environment": {
+        "interpreter": "/workspace/benchmarks/environments/paperless_ngx/celery/.venv/bin/python",
+        "packages": {
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "django": "5.2.17",
+          "ocrmypdf": "17.12.1",
+          "sqlalchemy": "2.0.54",
+          "tantivy": "0.26.2"
+        },
+        "python": "3.12.3",
+        "tesseract": "tesseract 5.3.4"
+      },
+      "metrics": {
+        "documents_per_second": 2.4772276442434267,
+        "wall_seconds": 40.36770711499997
+      },
+      "repetition": 3,
+      "scenario": "scanned_image_ingestion",
+      "status": "passed",
+      "validation": {
+        "documents": 100,
+        "original_files": true,
+        "output_digest": "b409f93cfdeb5049aa44555d2d0299932248a183084f9978690f06783e680b8f",
+        "passed": true,
+        "raster_only_ocr": true,
+        "tantivy_search": true,
+        "thumbnails": true
+      }
+    },
+    {
+      "backend": "dbworker",
+      "capabilities": {
+        "scope": "Paired durable requests running the unchanged upstream ingestion body; auxiliary Redis progress is shared infrastructure",
+        "untested": [
+          "crash_recovery",
+          "postgresql",
+          "classification_training",
+          "barcode_split",
+          "workflow_continuations",
+          "AI"
+        ],
+        "verified": [
+          "unchanged_consume_file_plugin_pipeline",
+          "real_tesseract_ocr",
+          "durable_document_rows",
+          "original_file_sha256",
+          "real_thumbnails",
+          "tantivy_content_search",
+          "dbworker_ledger"
+        ]
+      },
+      "comparison_mode": "paired_durable_request",
+      "configuration": {
+        "application_database": "sqlite",
+        "celery_pool": "prefork",
+        "comparison_mode": "paired_durable_request",
+        "concurrency": 2,
+        "dbworker_pool": "spawn processes",
+        "ocr_clean": "none",
+        "ocr_deskew": false,
+        "ocr_language": "eng",
+        "ocr_mode": "force",
+        "ocr_output_type": "pdf",
+        "ocr_rotate_pages": false,
+        "platform_pool_limitation": null,
+        "profile": {
+          "repetitions": 5,
+          "requests": 100
+        },
+        "redis_aof": "everysec",
+        "redis_auxiliary_progress_both_backends": true,
+        "request_database": "sqlite",
+        "retry": "none",
+        "warmup_documents": 2
+      },
+      "dataset": {
+        "documents": 100,
+        "dpi": 200,
+        "format": "raster-only PNG",
+        "generation": "Pillow raster drawing using ReportLab Vera.ttf",
+        "independent_oracle": "expected markers and original SHA256",
+        "size": [
+          1800,
+          700
+        ],
+        "text": "INVOICE <five-digit-number>; Benchmark orchard payment received"
+      },
+      "environment": {
+        "interpreter": "/workspace/benchmarks/environments/paperless_ngx/dbworker/.venv/bin/python",
+        "packages": {
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "django": "5.2.17",
+          "ocrmypdf": "17.12.1",
+          "sqlalchemy": "2.0.54",
+          "tantivy": "0.26.2"
+        },
+        "python": "3.12.3",
+        "tesseract": "tesseract 5.3.4"
+      },
+      "metrics": {
+        "documents_per_second": 2.4911097841373957,
+        "wall_seconds": 40.142751089
+      },
+      "repetition": 3,
+      "scenario": "scanned_image_ingestion",
+      "status": "passed",
+      "validation": {
+        "documents": 100,
+        "original_files": true,
+        "output_digest": "b409f93cfdeb5049aa44555d2d0299932248a183084f9978690f06783e680b8f",
+        "passed": true,
+        "raster_only_ocr": true,
+        "tantivy_search": true,
+        "thumbnails": true
+      }
+    },
+    {
+      "backend": "dbworker",
+      "capabilities": {
+        "scope": "Paired durable requests running the unchanged upstream ingestion body; auxiliary Redis progress is shared infrastructure",
+        "untested": [
+          "crash_recovery",
+          "postgresql",
+          "classification_training",
+          "barcode_split",
+          "workflow_continuations",
+          "AI"
+        ],
+        "verified": [
+          "unchanged_consume_file_plugin_pipeline",
+          "real_tesseract_ocr",
+          "durable_document_rows",
+          "original_file_sha256",
+          "real_thumbnails",
+          "tantivy_content_search",
+          "dbworker_ledger"
+        ]
+      },
+      "comparison_mode": "paired_durable_request",
+      "configuration": {
+        "application_database": "sqlite",
+        "celery_pool": "prefork",
+        "comparison_mode": "paired_durable_request",
+        "concurrency": 2,
+        "dbworker_pool": "spawn processes",
+        "ocr_clean": "none",
+        "ocr_deskew": false,
+        "ocr_language": "eng",
+        "ocr_mode": "force",
+        "ocr_output_type": "pdf",
+        "ocr_rotate_pages": false,
+        "platform_pool_limitation": null,
+        "profile": {
+          "repetitions": 5,
+          "requests": 100
+        },
+        "redis_aof": "everysec",
+        "redis_auxiliary_progress_both_backends": true,
+        "request_database": "sqlite",
+        "retry": "none",
+        "warmup_documents": 2
+      },
+      "dataset": {
+        "documents": 100,
+        "dpi": 200,
+        "format": "raster-only PNG",
+        "generation": "Pillow raster drawing using ReportLab Vera.ttf",
+        "independent_oracle": "expected markers and original SHA256",
+        "size": [
+          1800,
+          700
+        ],
+        "text": "INVOICE <five-digit-number>; Benchmark orchard payment received"
+      },
+      "environment": {
+        "interpreter": "/workspace/benchmarks/environments/paperless_ngx/dbworker/.venv/bin/python",
+        "packages": {
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "django": "5.2.17",
+          "ocrmypdf": "17.12.1",
+          "sqlalchemy": "2.0.54",
+          "tantivy": "0.26.2"
+        },
+        "python": "3.12.3",
+        "tesseract": "tesseract 5.3.4"
+      },
+      "metrics": {
+        "documents_per_second": 2.4335897034756178,
+        "wall_seconds": 41.091561103000004
+      },
+      "repetition": 4,
+      "scenario": "scanned_image_ingestion",
+      "status": "passed",
+      "validation": {
+        "documents": 100,
+        "original_files": true,
+        "output_digest": "b409f93cfdeb5049aa44555d2d0299932248a183084f9978690f06783e680b8f",
+        "passed": true,
+        "raster_only_ocr": true,
+        "tantivy_search": true,
+        "thumbnails": true
+      }
+    },
+    {
+      "backend": "celery",
+      "capabilities": {
+        "scope": "Paired durable requests running the unchanged upstream ingestion body; auxiliary Redis progress is shared infrastructure",
+        "untested": [
+          "crash_recovery",
+          "postgresql",
+          "classification_training",
+          "barcode_split",
+          "workflow_continuations",
+          "AI"
+        ],
+        "verified": [
+          "unchanged_consume_file_plugin_pipeline",
+          "real_tesseract_ocr",
+          "durable_document_rows",
+          "original_file_sha256",
+          "real_thumbnails",
+          "tantivy_content_search",
+          "dbworker_ledger"
+        ]
+      },
+      "comparison_mode": "paired_durable_request",
+      "configuration": {
+        "application_database": "sqlite",
+        "celery_pool": "prefork",
+        "comparison_mode": "paired_durable_request",
+        "concurrency": 2,
+        "dbworker_pool": "spawn processes",
+        "ocr_clean": "none",
+        "ocr_deskew": false,
+        "ocr_language": "eng",
+        "ocr_mode": "force",
+        "ocr_output_type": "pdf",
+        "ocr_rotate_pages": false,
+        "platform_pool_limitation": null,
+        "profile": {
+          "repetitions": 5,
+          "requests": 100
+        },
+        "redis_aof": "everysec",
+        "redis_auxiliary_progress_both_backends": true,
+        "request_database": "sqlite",
+        "retry": "none",
+        "warmup_documents": 2
+      },
+      "dataset": {
+        "documents": 100,
+        "dpi": 200,
+        "format": "raster-only PNG",
+        "generation": "Pillow raster drawing using ReportLab Vera.ttf",
+        "independent_oracle": "expected markers and original SHA256",
+        "size": [
+          1800,
+          700
+        ],
+        "text": "INVOICE <five-digit-number>; Benchmark orchard payment received"
+      },
+      "environment": {
+        "interpreter": "/workspace/benchmarks/environments/paperless_ngx/celery/.venv/bin/python",
+        "packages": {
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "django": "5.2.17",
+          "ocrmypdf": "17.12.1",
+          "sqlalchemy": "2.0.54",
+          "tantivy": "0.26.2"
+        },
+        "python": "3.12.3",
+        "tesseract": "tesseract 5.3.4"
+      },
+      "metrics": {
+        "documents_per_second": 2.452556680511496,
+        "wall_seconds": 40.773777337999945
+      },
+      "repetition": 4,
+      "scenario": "scanned_image_ingestion",
+      "status": "passed",
+      "validation": {
+        "documents": 100,
+        "original_files": true,
+        "output_digest": "b409f93cfdeb5049aa44555d2d0299932248a183084f9978690f06783e680b8f",
+        "passed": true,
+        "raster_only_ocr": true,
+        "tantivy_search": true,
+        "thumbnails": true
+      }
+    },
+    {
+      "backend": "celery",
+      "capabilities": {
+        "scope": "Paired durable requests running the unchanged upstream ingestion body; auxiliary Redis progress is shared infrastructure",
+        "untested": [
+          "crash_recovery",
+          "postgresql",
+          "classification_training",
+          "barcode_split",
+          "workflow_continuations",
+          "AI"
+        ],
+        "verified": [
+          "unchanged_consume_file_plugin_pipeline",
+          "real_tesseract_ocr",
+          "durable_document_rows",
+          "original_file_sha256",
+          "real_thumbnails",
+          "tantivy_content_search",
+          "dbworker_ledger"
+        ]
+      },
+      "comparison_mode": "paired_durable_request",
+      "configuration": {
+        "application_database": "sqlite",
+        "celery_pool": "prefork",
+        "comparison_mode": "paired_durable_request",
+        "concurrency": 2,
+        "dbworker_pool": "spawn processes",
+        "ocr_clean": "none",
+        "ocr_deskew": false,
+        "ocr_language": "eng",
+        "ocr_mode": "force",
+        "ocr_output_type": "pdf",
+        "ocr_rotate_pages": false,
+        "platform_pool_limitation": null,
+        "profile": {
+          "repetitions": 5,
+          "requests": 100
+        },
+        "redis_aof": "everysec",
+        "redis_auxiliary_progress_both_backends": true,
+        "request_database": "sqlite",
+        "retry": "none",
+        "warmup_documents": 2
+      },
+      "dataset": {
+        "documents": 100,
+        "dpi": 200,
+        "format": "raster-only PNG",
+        "generation": "Pillow raster drawing using ReportLab Vera.ttf",
+        "independent_oracle": "expected markers and original SHA256",
+        "size": [
+          1800,
+          700
+        ],
+        "text": "INVOICE <five-digit-number>; Benchmark orchard payment received"
+      },
+      "environment": {
+        "interpreter": "/workspace/benchmarks/environments/paperless_ngx/celery/.venv/bin/python",
+        "packages": {
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "django": "5.2.17",
+          "ocrmypdf": "17.12.1",
+          "sqlalchemy": "2.0.54",
+          "tantivy": "0.26.2"
+        },
+        "python": "3.12.3",
+        "tesseract": "tesseract 5.3.4"
+      },
+      "metrics": {
+        "documents_per_second": 2.4365007575450606,
+        "wall_seconds": 41.04246620499998
+      },
+      "repetition": 5,
+      "scenario": "scanned_image_ingestion",
+      "status": "passed",
+      "validation": {
+        "documents": 100,
+        "original_files": true,
+        "output_digest": "b409f93cfdeb5049aa44555d2d0299932248a183084f9978690f06783e680b8f",
+        "passed": true,
+        "raster_only_ocr": true,
+        "tantivy_search": true,
+        "thumbnails": true
+      }
+    },
+    {
+      "backend": "dbworker",
+      "capabilities": {
+        "scope": "Paired durable requests running the unchanged upstream ingestion body; auxiliary Redis progress is shared infrastructure",
+        "untested": [
+          "crash_recovery",
+          "postgresql",
+          "classification_training",
+          "barcode_split",
+          "workflow_continuations",
+          "AI"
+        ],
+        "verified": [
+          "unchanged_consume_file_plugin_pipeline",
+          "real_tesseract_ocr",
+          "durable_document_rows",
+          "original_file_sha256",
+          "real_thumbnails",
+          "tantivy_content_search",
+          "dbworker_ledger"
+        ]
+      },
+      "comparison_mode": "paired_durable_request",
+      "configuration": {
+        "application_database": "sqlite",
+        "celery_pool": "prefork",
+        "comparison_mode": "paired_durable_request",
+        "concurrency": 2,
+        "dbworker_pool": "spawn processes",
+        "ocr_clean": "none",
+        "ocr_deskew": false,
+        "ocr_language": "eng",
+        "ocr_mode": "force",
+        "ocr_output_type": "pdf",
+        "ocr_rotate_pages": false,
+        "platform_pool_limitation": null,
+        "profile": {
+          "repetitions": 5,
+          "requests": 100
+        },
+        "redis_aof": "everysec",
+        "redis_auxiliary_progress_both_backends": true,
+        "request_database": "sqlite",
+        "retry": "none",
+        "warmup_documents": 2
+      },
+      "dataset": {
+        "documents": 100,
+        "dpi": 200,
+        "format": "raster-only PNG",
+        "generation": "Pillow raster drawing using ReportLab Vera.ttf",
+        "independent_oracle": "expected markers and original SHA256",
+        "size": [
+          1800,
+          700
+        ],
+        "text": "INVOICE <five-digit-number>; Benchmark orchard payment received"
+      },
+      "environment": {
+        "interpreter": "/workspace/benchmarks/environments/paperless_ngx/dbworker/.venv/bin/python",
+        "packages": {
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "django": "5.2.17",
+          "ocrmypdf": "17.12.1",
+          "sqlalchemy": "2.0.54",
+          "tantivy": "0.26.2"
+        },
+        "python": "3.12.3",
+        "tesseract": "tesseract 5.3.4"
+      },
+      "metrics": {
+        "documents_per_second": 2.4115711960317814,
+        "wall_seconds": 41.46674175099997
+      },
+      "repetition": 5,
+      "scenario": "scanned_image_ingestion",
+      "status": "passed",
+      "validation": {
+        "documents": 100,
+        "original_files": true,
+        "output_digest": "b409f93cfdeb5049aa44555d2d0299932248a183084f9978690f06783e680b8f",
+        "passed": true,
+        "raster_only_ocr": true,
+        "tantivy_search": true,
+        "thumbnails": true
+      }
+    }
+  ],
+  "schema_version": 1,
+  "source": {
+    "commit": "8adbff1423af58575bc5a08eee7a6d833fd95651",
+    "dirty": false,
+    "expected_commit": "8adbff1423af58575bc5a08eee7a6d833fd95651",
+    "historical": false,
+    "implementation_sha256": {
+      "benchmarks/common/__init__.py": "bb0609faf6962672e71a7f7c3a2fc365a274e9cd8eaf92ec8a548b88b4c7a2ec",
+      "benchmarks/common/processes.py": "9c5cd3b0c68de327dcdac9087afed540af34a98d721af0297a162221e1928986",
+      "benchmarks/common/reporting.py": "fd60945dca0dab53ec0a7cdfb58ec6bc368fedefbe8ae0cef0f3491a33aeadd6",
+      "benchmarks/locks/paperless_ngx.txt": "affb9b5fa033cb7dbcb8cb5b01c46266350d5f0d79e71d4bc18e715e264f92a3",
+      "benchmarks/registry.json": "d02f9804d02cc309414dc511b63b325515c2b2d0714d15be2aab4cb7a8801284",
+      "benchmarks/run_all.py": "670b6f13a93ca5bcc3563d44cb1895ee6ea383b622cede222ed3cc972862e351",
+      "benchmarks/upstream/__init__.py": "7c7d8a2dfdd9ec5e8abdce344b92e304feb675736a0423397975b3f8d7f18926",
+      "benchmarks/upstream/celery_app.py": "9db5934ae0c51987ae9c445cf1a3e8565159f0e543be238cb30d6cb3d23cf366",
+      "benchmarks/upstream/paperless_ngx_backend.py": "f9b74b5e022f2ae877e84203793db5c4115a5c05e5713a7ffa9e12bc0915d838",
+      "benchmarks/upstream/posthog_backend.py": "f62ce446356ea166b5fbde5167cc7750d3b3cdd13c903544255af616daa4d4c8",
+      "benchmarks/upstream/saleor_backend.py": "c9283444d8cbb49c519666c1f26579afaebdb725cd540a540a8b36e9e5269231",
+      "benchmarks/upstream/sentry_backend.py": "640a6c947ef9233b4c46344a2c85531b07cccafcc429af47d85413d6c05559f0",
+      "benchmarks/upstream/sentry_provision.py": "6d21b7c072fa1b3a7f53fdb503dbedc1fa4a9b2ddbef7dc357b0dca46f3cb3a4",
+      "benchmarks/upstream/suite.py": "116dba6685fb11a9f2627d597b2e6e9d50586fb48c95c3e98f52455949a29d4b",
+      "benchmarks/upstream/superset_backend.py": "f3b0cb6caa624a24fabe70d5ad00e71dbbec9e87c2950b764261eb4174e9fd34",
+      "examples/dbworker_integration/__init__.py": "0ebfeefbbeea1f0514103c27d8514e230fd1a827c38ff1f14eeda119a6dfccb7",
+      "examples/dbworker_integration/runtime.py": "4b6add8ca1ff07f92cd2da45038cf8cfcd3326871151bb662011659828ade57c",
+      "examples/paperless_ngx_dbworker/__init__.py": "f879e78500a9546b6ca81ee28457739fa9a32e5f79d3831d5d0791c0925551c3",
+      "examples/paperless_ngx_dbworker/adapter.py": "0de68ab02da9bc19464d5b51c954981a3ffca79e985431c433f10e9cdc86a845",
+      "src/dbworker.py": "07337100d945b0eccc00654138d15b954c3a546d5907482c30d5c7a05b2ce079"
+    },
+    "local_commit": "9e37e437a37150d47d1295efeee24f4a0ade6124",
+    "repository": "https://github.com/paperless-ngx/paperless-ngx"
+  },
+  "status": "passed",
+  "suite_id": "paperless_ngx",
+  "summary": {
+    "scanned_image_ingestion:paired_durable_request": {
+      "backends": {
+        "celery": {
+          "count": 5,
+          "max_wall_seconds": 41.04246620499998,
+          "median_wall_seconds": 40.36770711499997,
+          "min_wall_seconds": 37.748840656
+        },
+        "dbworker": {
+          "count": 5,
+          "max_wall_seconds": 41.46674175099997,
+          "median_wall_seconds": 40.142751089,
+          "min_wall_seconds": 38.36152909100002
+        }
+      },
+      "celery_over_dbworker_wall_ratio": 1.005603901573692,
+      "comparison_mode": "paired_durable_request",
+      "scenario": "scanned_image_ingestion"
+    }
+  }
+}

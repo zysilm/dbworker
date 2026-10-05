@@ -1,0 +1,88 @@
+{
+  "backend": "celery",
+  "capabilities": {
+    "scope": "Paired durable requests running the unchanged upstream ingestion body; auxiliary Redis progress is shared infrastructure",
+    "untested": [
+      "crash_recovery",
+      "postgresql",
+      "classification_training",
+      "barcode_split",
+      "workflow_continuations",
+      "AI"
+    ],
+    "verified": [
+      "unchanged_consume_file_plugin_pipeline",
+      "real_tesseract_ocr",
+      "durable_document_rows",
+      "original_file_sha256",
+      "real_thumbnails",
+      "tantivy_content_search",
+      "dbworker_ledger"
+    ]
+  },
+  "comparison_mode": "paired_durable_request",
+  "configuration": {
+    "application_database": "sqlite",
+    "celery_pool": "prefork",
+    "comparison_mode": "paired_durable_request",
+    "concurrency": 2,
+    "dbworker_pool": "spawn processes",
+    "ocr_clean": "none",
+    "ocr_deskew": false,
+    "ocr_language": "eng",
+    "ocr_mode": "force",
+    "ocr_output_type": "pdf",
+    "ocr_rotate_pages": false,
+    "platform_pool_limitation": null,
+    "profile": {
+      "repetitions": 5,
+      "requests": 100
+    },
+    "redis_aof": "everysec",
+    "redis_auxiliary_progress_both_backends": true,
+    "request_database": "sqlite",
+    "retry": "none",
+    "warmup_documents": 2
+  },
+  "dataset": {
+    "documents": 100,
+    "dpi": 200,
+    "format": "raster-only PNG",
+    "generation": "Pillow raster drawing using ReportLab Vera.ttf",
+    "independent_oracle": "expected markers and original SHA256",
+    "size": [
+      1800,
+      700
+    ],
+    "text": "INVOICE <five-digit-number>; Benchmark orchard payment received"
+  },
+  "environment": {
+    "interpreter": "/workspace/benchmarks/environments/paperless_ngx/celery/.venv/bin/python",
+    "packages": {
+      "celery": "5.6.3",
+      "dbworker": "0.0.6",
+      "django": "5.2.17",
+      "ocrmypdf": "17.12.1",
+      "sqlalchemy": "2.0.54",
+      "tantivy": "0.26.2"
+    },
+    "python": "3.12.3",
+    "tesseract": "tesseract 5.3.4"
+  },
+  "metrics": {
+    "documents_per_second": 2.4884730406324307,
+    "wall_seconds": 40.18528566200001
+  },
+  "repetition": 2,
+  "scenario": "scanned_image_ingestion",
+  "status": "passed",
+  "validation": {
+    "documents": 100,
+    "original_files": true,
+    "output_digest": "b409f93cfdeb5049aa44555d2d0299932248a183084f9978690f06783e680b8f",
+    "passed": true,
+    "raster_only_ocr": true,
+    "tantivy_search": true,
+    "thumbnails": true
+  }
+}
