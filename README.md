@@ -36,7 +36,7 @@ coordinator = Coordinator(session_factory, database_url=database_url)
     source=YourModel,
     eligible=lambda: (
         select(YourModel)
-        .where(YourModel.enabled.is_(True))
+        .where(YourModel.your_bool_property.is_(True))
         .order_by(YourModel.id)
     ),
     concurrency=4,
@@ -51,13 +51,12 @@ if __name__ == "__main__":
 ```
 
 `YourModel`, `session_factory`, and `database_url` come from your application.
-`eligible` selects which rows can be claimed and in what order; replace the
-illustrative `enabled` condition and `id` ordering with your application's rules.
+`eligible` selects which rows can be claimed and in what order.
 It is optional: omitting it selects from the whole model. DBWorker automatically
 excludes completed, failed, and actively claimed work.
 Return `Finished()` when processing is complete; no enqueue call is needed.
 
-See the [Usage Instructions](doc/usage.md) for eligibility queries, incremental
+See the [Usage Instructions](https://github.com/zysilm/dbworker/blob/main/doc/usage.md) for eligibility queries, incremental
 processing, service startup and shutdown, status tracking, dependencies,
 failure handling, and configuration.
 

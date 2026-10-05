@@ -21,7 +21,7 @@ DBWorker renews the claim while your handler runs. If the coordinator stops rene
 
 `source` is the database table that supplies input to your handler, specified as a SQLAlchemy model. It can store user requests, or any entries whose creation should automatically start a procedure. Each new entry gives DBWorker new work to run, and the selected entry is passed to your handler. Its primary key identifies that work so DBWorker can track its completion; the model must have a single primary-key column.
 
-`eligible` controls which inputs can be claimed next. Without it, any new entry can be picked up. Add it when work should wait for a condition or run in a particular order. In the example below, `YourModel` stands for your model. The `enabled` filter and ordering by `id` illustrate a selection rule; replace them with your own conditions and ordering.
+`eligible` controls which inputs can be claimed next. Without it, any new entry can be picked up. Add it when work should wait for a condition or run in a particular order.
 
 Decorate your handler like this. The comments describe where your application logic goes:
 
@@ -37,7 +37,7 @@ from dbworker import Finished
     source=YourModel,
     eligible=lambda: (
         select(YourModel)
-        .where(YourModel.enabled.is_(True))
+        .where(YourModel.your_bool_property.is_(True))
         .order_by(YourModel.id)
     ),
     concurrency=4,
@@ -65,7 +65,7 @@ from dbworker import Finished, Outcome, Unfinished
     source=YourModel,
     eligible=lambda: (
         select(YourModel)
-        .where(YourModel.enabled.is_(True))
+        .where(YourModel.your_bool_property.is_(True))
         .order_by(YourModel.id)
     ),
     concurrency=4,
