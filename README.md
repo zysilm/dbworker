@@ -25,12 +25,22 @@ rows, runs the handler in a child process, and commits its database changes with
 the execution status.
 
 ```python
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from dbworker import Coordinator, Finished
 
 coordinator = Coordinator(session_factory, database_url=database_url)
 
-@coordinator.transactional_worker(name="process", source=YourModel, concurrency=4)
+@coordinator.transactional_worker(
+    name="process",
+    source=YourModel,
+    eligible=lambda: (
+        select(YourModel)
+        .where(YourModel.enabled.is_(True))
+        .order_by(YourModel.id)
+    ),
+    concurrency=4,
+)
 def process(source: YourModel, session: Session) -> Finished:
     # Apply your application logic using the supplied session.
     return Finished()
@@ -41,6 +51,10 @@ if __name__ == "__main__":
 ```
 
 `YourModel`, `session_factory`, and `database_url` come from your application.
+`eligible` selects which rows can be claimed and in what order; replace the
+illustrative `enabled` condition and `id` ordering with your application's rules.
+It is optional: omitting it selects from the whole model. DBWorker automatically
+excludes completed, failed, and actively claimed work.
 Return `Finished()` when processing is complete; no enqueue call is needed.
 
 See the [Usage Instructions](doc/usage.md) for eligibility queries, incremental
