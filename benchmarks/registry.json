@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "suites": [
+    {
+      "suite_id": "imagededup",
+      "repository": "https://github.com/zysilm/dbworker",
+      "source_path": ".",
+      "entrypoint": "benchmarks/imagededup_benckmark/suite.py",
+      "admission": "implemented",
+      "interpreters": {
+        "benchmark_python": "benchmarks/environments/imagededup/benchmark/.venv/bin/python",
+        "celery_python": "benchmarks/environments/imagededup/celery/.venv/bin/python",
+        "dbworker_python": "benchmarks/environments/imagededup/dbworker/.venv/bin/python"
+      },
+      "profiles": {
+        "smoke": {
+          "images": 8,
+          "warmup_images": 2,
+          "repetitions": 1
+        },
+        "full": {
+          "images": 1000,
+          "warmup_images": 8,
+          "repetitions": 5
+        }
+      }
+    },
+    {
+      "suite_id": "superset",
+      "repository": "https://github.com/apache/superset",
+      "commit": "68f19947a8012ac587bb407c469abacbebae61ca",
+      "source_path": "examples/superset",
+      "entrypoint": "benchmarks/upstream/suite.py",
+      "historical": false,
+      "admission": "implemented_sqlite_paired",
+      "interpreters": {
+        "benchmark_python": "benchmarks/environments/superset/benchmark/.venv/bin/python",
+        "celery_python": "benchmarks/environments/superset/celery/.venv/bin/python",
+        "dbworker_python": "benchmarks/environments/superset/dbworker/.venv/bin/python"
+      },
+      "profiles": {
+        "smoke": {
+          "requests": 4,
+          "repetitions": 1
+        },
+        "full": {
+          "requests": 100,
+          "repetitions": 5
+        }
+      },
+      "python_version": "3.12"
+    },
+    {
+      "suite_id": "saleor",
+      "repository": "https://github.com/saleor/saleor",
+      "commit": "8385ca60ecefa3a068aed3d1a28188e096cdc543",
+      "source_path": "examples/saleor",
+      "entrypoint": "benchmarks/upstream/suite.py",
+      "historical": false,
+      "admission": "implemented_paired_export",
+      "interpreters": {
+        "benchmark_python": "benchmarks/environments/saleor/benchmark/.venv/bin/python",
+        "celery_python": "benchmarks/environments/saleor/celery/.venv/bin/python",
+        "dbworker_python": "benchmarks/environments/saleor/dbworker/.venv/bin/python"
+      },
+      "profiles": {
+        "smoke": {
+          "requests": 4,
+          "repetitions": 1,
+          "products": 24
+        },
+        "full": {
+          "requests": 100,
+          "repetitions": 5,
+          "products": 256
+        }
+      },
+      "python_version": "3.12"
+    },
+    {
+      "suite_id": "paperless_ngx",
+      "repository": "https://github.com/paperless-ngx/paperless-ngx",
+      "commit": "8adbff1423af58575bc5a08eee7a6d833fd95651",
+      "source_path": "examples/paperless_ngx",
+      "entrypoint": "benchmarks/upstream/suite.py",
+      "historical": false,
+      "admission": "implemented_paired_ingestion",
+      "interpreters": {
+        "benchmark_python": "benchmarks/environments/paperless_ngx/benchmark/.venv/bin/python",
+        "celery_python": "benchmarks/environments/paperless_ngx/celery/.venv/bin/python",
+        "dbworker_python": "benchmarks/environments/paperless_ngx/dbworker/.venv/bin/python"
+      },
+      "profiles": {
+        "smoke": {
+          "requests": 4,
+          "repetitions": 1
+        },
+        "full": {
+          "requests": 100,
+          "repetitions": 5
+        }
+      },
+      "python_version": "3.12"
+    },
+    {
+      "suite_id": "posthog",
+      "repository": "https://github.com/PostHog/posthog",
+      "commit": "526d64dd82340b1bf4293d6d9baea7e965997048",
+      "source_path": "examples/posthog",
+      "entrypoint": "benchmarks/upstream/suite.py",
+      "historical": false,
+      "admission": "implemented_paired_notification",
+      "interpreters": {
+        "benchmark_python": "benchmarks/environments/posthog/benchmark/.venv/bin/python",
+        "celery_python": "benchmarks/environments/posthog/celery/.venv/bin/python",
+        "dbworker_python": "benchmarks/environments/posthog/dbworker/.venv/bin/python"
+      },
+      "profiles": {
+        "smoke": {
+          "requests": 4,
+          "repetitions": 1
+        },
+        "full": {
+          "requests": 100,
+          "repetitions": 5
+        }
+      },
+      "python_version": "3.14.7"
+    },
+    {
+      "suite_id": "sentry",
+      "repository": "https://github.com/getsentry/sentry",
+      "commit": "94bf1b8aad4c21840829be1f362b096d12f782d0",
+      "source_path": "examples/sentry",
+      "entrypoint": "benchmarks/upstream/suite.py",
+      "historical": true,
+      "admission": "implemented_paired_bridge",
+      "interpreters": {
+        "benchmark_python": "benchmarks/environments/sentry/benchmark/.venv/bin/python",
+        "celery_python": "benchmarks/environments/sentry/celery/.venv/bin/python",
+        "dbworker_python": "benchmarks/environments/sentry/dbworker/.venv/bin/python",
+        "upstream_python": "benchmarks/environments/sentry/upstream/.venv/bin/python"
+      },
+      "profiles": {
+        "smoke": {
+          "requests": 4,
+          "repetitions": 1
+        },
+        "full": {
+          "requests": 100,
+          "repetitions": 5
+        }
+      },
+      "python_version": "3.12",
+      "upstream_python_version": "3.10.20"
+    }
+  ]
+}

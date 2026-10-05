@@ -1,0 +1,213 @@
+{
+  "artifacts": {
+    "provision_log": "superset.provision.log",
+    "samples": [
+      "superset-1-celery/sample.json",
+      "superset-1-dbworker/sample.json"
+    ],
+    "suite_log": "superset.log"
+  },
+  "capabilities": {
+    "scope": "Initial paired SQLite experiment; not the planned PostgreSQL performance profile",
+    "untested": [
+      "crash_recovery",
+      "postgresql",
+      "native_celery_lifecycle",
+      "outbox_recovery"
+    ],
+    "verified": [
+      "real_sql_lab",
+      "aggregate_rows",
+      "business_success",
+      "dbworker_ledger"
+    ]
+  },
+  "configuration": {
+    "backend_order": "alternating across repetitions",
+    "backends": {
+      "celery": {},
+      "dbworker": {}
+    },
+    "celery_retry": "no automatic retry",
+    "comparison_mode": "paired_durable_request",
+    "concurrency": 2,
+    "dbworker_retry": "no automatic retry",
+    "metadata_database": "sqlite",
+    "profile": {
+      "repetitions": 1,
+      "requests": 4
+    },
+    "publication": "single pass after durable request commit; outbox recovery untested",
+    "redis_aof": "everysec",
+    "request_database": "sqlite",
+    "sequential": true
+  },
+  "created_at": "2026-10-05T11:57:48.232524+00:00",
+  "dataset": {
+    "generation": "category=i%10,value=i",
+    "rows": 10000,
+    "table": "facts"
+  },
+  "environment": {
+    "backends": {
+      "celery": {
+        "interpreter": "/Users/ziyang/Documents/dbworker/benchmarks/environments/superset/celery/.venv/bin/python",
+        "packages": {
+          "apache-superset": "0.0.0.dev0",
+          "celery": "5.6.3",
+          "dbworker": null,
+          "rich": "15.0.0",
+          "sqlalchemy": "2.0.54"
+        },
+        "python": "3.12.13"
+      },
+      "dbworker": {
+        "interpreter": "/Users/ziyang/Documents/dbworker/benchmarks/environments/superset/dbworker/.venv/bin/python",
+        "packages": {
+          "apache-superset": "0.0.0.dev0",
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "rich": "15.0.0",
+          "sqlalchemy": "2.0.54"
+        },
+        "python": "3.12.13"
+      }
+    },
+    "interpreters": {
+      "benchmark_python": "/Users/ziyang/Documents/dbworker/benchmarks/environments/superset/benchmark/.venv/bin/python",
+      "celery_python": "/Users/ziyang/Documents/dbworker/benchmarks/environments/superset/celery/.venv/bin/python",
+      "dbworker_python": "/Users/ziyang/Documents/dbworker/benchmarks/environments/superset/dbworker/.venv/bin/python"
+    },
+    "orchestrator_python": "3.12.13 (main, May 10 2026, 19:20:41) [Clang 22.1.3 ]",
+    "platform": "macOS-26.2-arm64-arm-64bit",
+    "runner_class": "local-unspecified"
+  },
+  "errors": [],
+  "finished_at": "2026-10-05T11:58:48.949508+00:00",
+  "profile": "smoke",
+  "run_id": "20261005T115613641288Z",
+  "runs": [
+    {
+      "backend": "celery",
+      "comparison_mode": "paired_durable_request",
+      "environment": {
+        "interpreter": "/Users/ziyang/Documents/dbworker/benchmarks/environments/superset/celery/.venv/bin/python",
+        "packages": {
+          "apache-superset": "0.0.0.dev0",
+          "celery": "5.6.3",
+          "dbworker": null,
+          "rich": "15.0.0",
+          "sqlalchemy": "2.0.54"
+        },
+        "python": "3.12.13"
+      },
+      "metrics": {
+        "cpu_seconds": null,
+        "peak_rss_bytes": null,
+        "queries_per_second": 33.84239082245366,
+        "wall_seconds": 0.11819495912641287
+      },
+      "repetition": 1,
+      "scenario": "sql_lab_group_by",
+      "status": "passed",
+      "unavailable_metrics": {
+        "cpu_seconds": "Total-stack sampling is not implemented for this initial suite",
+        "peak_rss_bytes": "Total-stack sampling is not implemented for this initial suite"
+      },
+      "validation": {
+        "output_digest": "451fc63d9293e5a21e422dd81bbdf5927a7ae72de1c1bc56dd715785977dfee7",
+        "passed": true,
+        "queries": 4,
+        "rows_per_query": 10
+      }
+    },
+    {
+      "backend": "dbworker",
+      "comparison_mode": "paired_durable_request",
+      "environment": {
+        "interpreter": "/Users/ziyang/Documents/dbworker/benchmarks/environments/superset/dbworker/.venv/bin/python",
+        "packages": {
+          "apache-superset": "0.0.0.dev0",
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "rich": "15.0.0",
+          "sqlalchemy": "2.0.54"
+        },
+        "python": "3.12.13"
+      },
+      "metrics": {
+        "cpu_seconds": null,
+        "peak_rss_bytes": null,
+        "queries_per_second": 35.11325864546005,
+        "wall_seconds": 0.11391708301380277
+      },
+      "repetition": 1,
+      "scenario": "sql_lab_group_by",
+      "status": "passed",
+      "unavailable_metrics": {
+        "cpu_seconds": "Total-stack sampling is not implemented for this initial suite",
+        "peak_rss_bytes": "Total-stack sampling is not implemented for this initial suite"
+      },
+      "validation": {
+        "output_digest": "451fc63d9293e5a21e422dd81bbdf5927a7ae72de1c1bc56dd715785977dfee7",
+        "passed": true,
+        "queries": 4,
+        "rows_per_query": 10
+      }
+    }
+  ],
+  "schema_version": 1,
+  "source": {
+    "commit": "68f19947a8012ac587bb407c469abacbebae61ca",
+    "dirty": false,
+    "expected_commit": "68f19947a8012ac587bb407c469abacbebae61ca",
+    "historical": false,
+    "implementation_sha256": {
+      "benchmarks/common/__init__.py": "bb0609faf6962672e71a7f7c3a2fc365a274e9cd8eaf92ec8a548b88b4c7a2ec",
+      "benchmarks/common/processes.py": "9c5cd3b0c68de327dcdac9087afed540af34a98d721af0297a162221e1928986",
+      "benchmarks/common/reporting.py": "e1985a19c5534fed835a000e100544a8edab72759bfaf48a1c9ac7decc5fb25b",
+      "benchmarks/locks/superset.txt": "b368176ed1ba7501e23a446bea26d0f3ba642801ce762b0838deb37b77db56cf",
+      "benchmarks/registry.json": "7640381599e3b9a004ad3912b8e20f351875bf329e19a7e7b8e6a3fdcaed275d",
+      "benchmarks/run_all.py": "34da76db5889c1f22ce7e99beea904ba66447693732826bddacba7edfefc06e4",
+      "benchmarks/upstream/__init__.py": "7c7d8a2dfdd9ec5e8abdce344b92e304feb675736a0423397975b3f8d7f18926",
+      "benchmarks/upstream/celery_app.py": "9db5934ae0c51987ae9c445cf1a3e8565159f0e543be238cb30d6cb3d23cf366",
+      "benchmarks/upstream/paperless_ngx_backend.py": "f9b74b5e022f2ae877e84203793db5c4115a5c05e5713a7ffa9e12bc0915d838",
+      "benchmarks/upstream/posthog_backend.py": "f62ce446356ea166b5fbde5167cc7750d3b3cdd13c903544255af616daa4d4c8",
+      "benchmarks/upstream/saleor_backend.py": "6f752ee8a16b9f7d971248f43c2ecf8958aced1660d6217592e710cc82d10326",
+      "benchmarks/upstream/sentry_backend.py": "640a6c947ef9233b4c46344a2c85531b07cccafcc429af47d85413d6c05559f0",
+      "benchmarks/upstream/sentry_provision.py": "6d21b7c072fa1b3a7f53fdb503dbedc1fa4a9b2ddbef7dc357b0dca46f3cb3a4",
+      "benchmarks/upstream/suite.py": "116dba6685fb11a9f2627d597b2e6e9d50586fb48c95c3e98f52455949a29d4b",
+      "benchmarks/upstream/superset_backend.py": "f3b0cb6caa624a24fabe70d5ad00e71dbbec9e87c2950b764261eb4174e9fd34",
+      "examples/dbworker_integration/__init__.py": "0ebfeefbbeea1f0514103c27d8514e230fd1a827c38ff1f14eeda119a6dfccb7",
+      "examples/dbworker_integration/runtime.py": "4b6add8ca1ff07f92cd2da45038cf8cfcd3326871151bb662011659828ade57c",
+      "examples/superset_dbworker/__init__.py": "7dcb2c72c0b156f8b6260102c5ebadf6ed6c5a4f6b1cd0cf1aca632c50facd83",
+      "examples/superset_dbworker/adapter.py": "e3bbf46688b5e0c5b0b4110c07fcfdb02dcc2743927954b26d30fb0f5cbaf2ba",
+      "src/dbworker.py": "07337100d945b0eccc00654138d15b954c3a546d5907482c30d5c7a05b2ce079"
+    },
+    "local_commit": "9e3e63f58b589b0502e5dd6f914a80f036de44ec",
+    "repository": "https://github.com/apache/superset"
+  },
+  "status": "passed",
+  "suite_id": "superset",
+  "summary": {
+    "sql_lab_group_by:paired_durable_request": {
+      "backends": {
+        "celery": {
+          "count": 1,
+          "max_wall_seconds": 0.11819495912641287,
+          "median_wall_seconds": 0.11819495912641287,
+          "min_wall_seconds": 0.11819495912641287
+        },
+        "dbworker": {
+          "count": 1,
+          "max_wall_seconds": 0.11391708301380277,
+          "median_wall_seconds": 0.11391708301380277,
+          "min_wall_seconds": 0.11391708301380277
+        }
+      },
+      "celery_over_dbworker_wall_ratio": 1.0375525425988283,
+      "comparison_mode": "paired_durable_request",
+      "scenario": "sql_lab_group_by"
+    }
+  }
+}

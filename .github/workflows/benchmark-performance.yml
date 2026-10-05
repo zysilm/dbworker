@@ -1,0 +1,63 @@
+name: Fixed runner benchmarks
+
+on:
+  workflow_dispatch:
+
+# Enable a schedule only after the complete workflow passes on this runner.
+# Pull-request revisions never run on the persistent performance host.
+concurrency:
+  group: dbworker-fixed-benchmark-runner
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  performance:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: [self-hosted, linux, dbworker-benchmark]
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install orchestration dependencies
+        run: python -m pip install "uv==0.12.23" -r benchmarks/requirements.txt
+      - name: Expose PostgreSQL server binaries
+        run: |
+          for directory in /usr/lib/postgresql/*/bin; do
+            if [ -x "$directory/initdb" ]; then
+              echo "$directory" >> "$GITHUB_PATH"
+            fi
+          done
+      - name: Verify fixed host native prerequisites
+        # Provision this host with the native packages listed in benchmark-smoke.yml.
+        # Keep system package upgrades outside the performance workflow.
+        run: |
+          for binary in redis-server initdb postgres psql tesseract gs pdftotext qpdf; do
+            command -v "$binary" || exit 1
+          done
+          test "$(id -u)" -ne 0
+      - name: Provision and run every registered experiment sequentially
+        env:
+          BENCHMARK_RUNNER_CLASS: fixed-linux
+        run: python benchmarks/run_all.py --provision --profile full --output-dir "benchmarks/results/performance-${{ github.run_id }}-${{ github.run_attempt }}"
+      - name: Render a complete validated report
+        run: python benchmarks/render_results.py --run-dir "benchmarks/results/performance-${{ github.run_id }}-${{ github.run_attempt }}" --output doc/benchmark-results.md
+      - name: Propose the generated report update
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BENCHMARK_RESULT_DIRECTORY: benchmarks/results/performance-${{ github.run_id }}-${{ github.run_attempt }}
+          BENCHMARK_RESULTS_BRANCH: benchmark-results/${{ github.run_id }}-${{ github.run_attempt }}
+        run: python benchmarks/publish_report.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmark-performance-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            benchmarks/results/performance-${{ github.run_id }}-${{ github.run_attempt }}/
+            doc/benchmark-results.md

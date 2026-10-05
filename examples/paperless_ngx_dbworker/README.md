@@ -1,0 +1,9 @@
+# Paperless-ngx ingestion variation
+
+The adapter executes the pinned upstream `consume_file` body unchanged, supplying only its reviewed `request.id` context. The whole preflight, ASN, collation, barcode, workflow, consumer, parser, metadata, file and search signal pipeline remains upstream code. The benchmark supplies raster-only PNG scans and uses real OCRmyPDF and Tesseract, persisted Django documents, originals, rendered thumbnails and Tantivy search.
+
+The benchmark selects English OCR, PDF output, no cleaning, rotation or deskew, no configured workflows/classification rules/AI, and the same configuration in both backends. It initializes the persistent search index before workers start. Celery and DBWorker both execute the adapter from a durable request. This is a paired application-operation comparison, not a comparison against every upstream Celery lifecycle hook. DBWorker execution rejects hidden broker publication and eager Celery execution. Lock-exhaustion deferred indexing, barcode splitting, workflow continuations and AI are outside this scenario; dispatch in those paths is not silently accepted.
+
+Redis remains an auxiliary upstream websocket progress channel for both backends. Only the Celery stack uses Redis as its task broker. Django commits independently from the SQLAlchemy request/completion ledger, so this experiment makes no cross-ORM atomicity or crash-recovery claim.
+
+Provision Python 3.12 environments from `benchmarks/locks/paperless_ngx.txt`, install the root DBWorker project, and expose the pristine Paperless source through `PYTHONPATH`. Native requirements: Redis, Tesseract with English and OSD data, Ghostscript, ImageMagick, Poppler, and libmagic. The lock deliberately omits the unused lazy AI embedding providers, sentence-transformers and torch; it preserves the consumed application dependencies and records actual versions in the result.

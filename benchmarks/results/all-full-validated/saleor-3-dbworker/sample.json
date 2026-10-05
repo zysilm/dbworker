@@ -1,0 +1,80 @@
+{
+  "backend": "dbworker",
+  "capabilities": {
+    "scope": "Paired durable-request replacement of the real export body and upstream job hooks; plugins disabled equally",
+    "untested": [
+      "crash_recovery",
+      "replica_lag",
+      "webhook_delivery",
+      "email_delivery",
+      "native_celery_delivery_lifecycle",
+      "outbox_recovery"
+    ],
+    "verified": [
+      "real_product_csv_export",
+      "independent_csv_oracle",
+      "durable_job_success",
+      "exact_export_events",
+      "untimed_failure_lifecycle",
+      "dbworker_ledger"
+    ]
+  },
+  "comparison_mode": "paired_durable_request",
+  "configuration": {
+    "business_database": "postgresql",
+    "comparison_mode": "paired_durable_request",
+    "concurrency": 2,
+    "plugins": [],
+    "postgres_fsync": true,
+    "profile": {
+      "products": 256,
+      "repetitions": 5,
+      "requests": 100
+    },
+    "publication": "single pass after durable request commit",
+    "redis_aof": "everysec",
+    "replica": "same primary",
+    "request_database": "sqlite",
+    "retry": "no automatic retry",
+    "setup": "complete upstream migrations; eager maintenance tasks on empty database outside timing",
+    "warmup_requests": 2
+  },
+  "dataset": {
+    "exports": 100,
+    "fields": [
+      "id",
+      "name",
+      "product type",
+      "variant sku"
+    ],
+    "generation": "Product i, SKU-i, one variant per product",
+    "products": 256,
+    "variants": 256
+  },
+  "environment": {
+    "interpreter": "/Users/ziyang/Documents/dbworker/benchmarks/environments/saleor/dbworker/.venv/bin/python",
+    "packages": {
+      "Django": "5.2.17",
+      "celery": "5.6.3",
+      "dbworker": "0.0.6",
+      "saleor": "3.24.0-a.0",
+      "sqlalchemy": "2.1.3"
+    },
+    "postgres": "postgres (PostgreSQL) 18.3 (Homebrew)",
+    "python": "3.12.13"
+  },
+  "metrics": {
+    "exports_per_second": 72.56380191214045,
+    "wall_seconds": 1.3780975826084614
+  },
+  "repetition": 3,
+  "scenario": "product_csv_export",
+  "status": "passed",
+  "validation": {
+    "exports": 100,
+    "failure_lifecycle": "passed",
+    "output_digest": "fbd1035acd8d458fdbdce0f36e1c6fd526e40135f5ff5609637b9e3632b6b15e",
+    "passed": true,
+    "products_per_export": 256
+  }
+}

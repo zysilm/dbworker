@@ -1,0 +1,55 @@
+{
+  "complete_selection": true,
+  "created_at": "2026-10-05T12:08:42.785073+00:00",
+  "finished_at": "2026-10-05T13:44:12.784709+00:00",
+  "profile": "full",
+  "reports": [
+    {
+      "path": "imagededup.json",
+      "sha256": "20a1fbab8766d6e820ac67771fc688363555295a9e3637d762e3992faaa49660",
+      "status": "passed",
+      "suite_id": "imagededup"
+    },
+    {
+      "path": "superset.json",
+      "sha256": "f708f2a9249a9900e9edb5af5223cbb911e2e28b5c867ee81c85bd984f9c01c7",
+      "status": "passed",
+      "suite_id": "superset"
+    },
+    {
+      "path": "saleor.json",
+      "sha256": "0f65dfaa2b8d98dbcb6deb663cf8c60d44d137dbae08d560fc16ac4bc0384f34",
+      "status": "passed",
+      "suite_id": "saleor"
+    },
+    {
+      "path": "paperless_ngx.json",
+      "sha256": "cbf088ba2877638c0bc2787ca771384aa19f71edcf752c903fe4487d3d9d9203",
+      "status": "passed",
+      "suite_id": "paperless_ngx"
+    },
+    {
+      "path": "posthog.json",
+      "sha256": "412829f5a50a2cb610ef2b136e5e591b06ae7550189bb5e0e6e027a13696fbfe",
+      "status": "passed",
+      "suite_id": "posthog"
+    },
+    {
+      "path": "sentry.json",
+      "sha256": "3ecbe42e260978065475472bd0ecc791df80dbfc13d5bb539c83b1d116878145",
+      "status": "passed",
+      "suite_id": "sentry"
+    }
+  ],
+  "required_suites": [
+    "imagededup",
+    "superset",
+    "saleor",
+    "paperless_ngx",
+    "posthog",
+    "sentry"
+  ],
+  "run_id": "20261005T120842784528Z",
+  "schema_version": 1,
+  "status": "passed"
+}

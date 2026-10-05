@@ -1,0 +1,119 @@
+{
+  "backend": "dbworker",
+  "capabilities": {
+    "untested": [
+      "whole_posthog_application",
+      "clickhouse",
+      "delivery_retries",
+      "ambiguous_acceptance_recovery",
+      "campaign_deduplication",
+      "salt_rotation",
+      "rejection_and_error_capture"
+    ],
+    "verified": [
+      "upstream_template_rendering",
+      "css_inlining",
+      "smtp_acceptance",
+      "messaging_records",
+      "completion_ledger"
+    ]
+  },
+  "comparison_mode": "paired_durable_request",
+  "configuration": {
+    "application_scope": "unchanged PostHog notification models, rendering and SMTP business code; scoped bootstrap",
+    "celery_publication": "single pass after durable request commit",
+    "concurrency": 2,
+    "database": "postgresql",
+    "fault_recovery": "untested",
+    "rendering_timed": false,
+    "rendering_validated": true,
+    "transport": "real_local_smtp"
+  },
+  "dataset": {
+    "content": "deterministic recipients and Unicode notification content",
+    "requests": 100,
+    "template": "2fa_enabled",
+    "warmup_requests": 2
+  },
+  "environment": {
+    "interpreter": "/Users/ziyang/Documents/dbworker/benchmarks/environments/posthog/dbworker/.venv/bin/python",
+    "packages": {
+      "celery": "5.6.3",
+      "css-inline": "0.18.0",
+      "django": "5.2.17",
+      "posthoganalytics": "7.62.1",
+      "sqlalchemy": "2.0.54"
+    },
+    "python": "3.14.7",
+    "source_projections": {
+      "posthog.models.utils": [
+        "models/utils.py",
+        [
+          "UUIDTModel"
+        ]
+      ],
+      "posthog.security.url_validation": [
+        "security/url_validation.py",
+        [
+          "has_ambiguous_authority",
+          "has_authority_bypass_chars",
+          "ENCODED_AUTHORITY_TERMINATORS"
+        ]
+      ],
+      "posthog.settings.base_variables": [
+        "settings/base_variables.py",
+        [
+          "TEST"
+        ]
+      ],
+      "posthog.settings.utils": [
+        "settings/utils.py",
+        [
+          "get_from_env",
+          "get_list"
+        ]
+      ],
+      "posthog.utils": [
+        "utils.py",
+        [
+          "PotentialSecurityProblemException",
+          "absolute_uri",
+          "compact_number",
+          "str_to_bool"
+        ]
+      ]
+    },
+    "upstream_files": {
+      "email.py": "6e47575cc000547ed7954230d0b3f3ce883119e99fb958758fb37f0113f2a557",
+      "helpers/email_utils.py": "a3e7fcff79197fca5d50d6b62db4efe3555b56fb0d434bfe70d92da5088be0f9",
+      "models/instance_setting.py": "2fe749c4fb567982313ea9c30ebf5686f358b07f13c7e19c09066a23d841d715",
+      "models/messaging.py": "565052199fabfba4c3b90bef38a3e48278d33f5c552ce358fd107a717c83af28",
+      "models/utils.py": "732811559cb8f3f95b0613d4717a61c27fb17674ec6b5ee1c8918d0340ab82e1",
+      "security/url_validation.py": "d1e9974af587ac33e586998c7c2cd3ebd60472bcd9cccddb97b354129afa5387",
+      "settings/base_variables.py": "b6f59211caad013777fbe61878d51fae376dc58c44a109ee2798d5bb0fe293f6",
+      "settings/dynamic_settings.py": "99ac1f10ec3a6be1f21b76f57366375500248b35bca0834e6382f45c6c214e17",
+      "settings/utils.py": "17b09c01e58108d1a20bce9932a078b64f3a0b45930b905ad250077ff4279cb9",
+      "templates/email/2fa_enabled.html": "97cd3ffce063bb1f2f1d1b81599b64b2eb1a72823f94010c5536474149019b95",
+      "templates/email/base.html": "6f45b7a69ae2a2bb8cdc1ce8d4e479781e4b25499b89a069ba907e0a094b2c04",
+      "templates/email/styles.html": "35caf1f1226ac7cb2b3f2b256534fe7a384f1756f65144b954ea109db5b4527b",
+      "templatetags/posthog_assets.py": "09c01e9ebbb655f67311b7d2abd043aadb20b6edc2ea6bce2572c38bf2cf5bf9",
+      "templatetags/posthog_filters.py": "7306d610f824dab8cac20c11b2072b5d7ce4ced11c5dab16d7e2b0aab8126e84",
+      "utils.py": "05c851c54567f8e4d44fea9bbd4886e53200946f62d895bfa47faba3b553b614",
+      "uuidt.py": "1156947d745c8f3266d031b0424cbc9e12fb902e2c7969656da285c1e4db4386"
+    }
+  },
+  "metrics": {
+    "messages_per_second": 78.94910585058055,
+    "wall_seconds": 1.2666387911885977
+  },
+  "repetition": 5,
+  "scenario": "pre_rendered_notification_smtp",
+  "status": "passed",
+  "validation": {
+    "duplicate_acceptance": 0,
+    "messages": 100,
+    "output_digest": "57cc09ea027463316edaf544cb43ecc68577bcf36264c6163d76aa0d750f3650",
+    "passed": true,
+    "warmup_messages": 2
+  }
+}

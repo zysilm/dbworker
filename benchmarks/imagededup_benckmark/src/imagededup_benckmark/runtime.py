@@ -6,6 +6,7 @@ import shutil
 import signal
 import socket
 import subprocess  # nosec B404 -- commands are fixed argument lists and always run with shell=False.
+import sys
 import time
 from contextlib import AbstractContextManager
 from pathlib import Path
@@ -116,7 +117,12 @@ print(json.dumps(result))
                 self.start_process("worker_service", [str(self.python), "-m",
                                    "imagededup_system_dbwork.main_worker_service"], env)
             if self.backend == "redis_celery":
-                celery = [str(self.python), "-m", "celery", "-A", "imagededup_system_redis_celery.celery_app:app"]
+                # Celery's prefork pool requires fork; macOS defaults to spawn.
+                # Select the advertised pool behavior before importing Celery.
+                launcher = ["-m", "celery"]
+                if sys.platform == "darwin":
+                    launcher = ["-c", "import billiard; billiard.set_start_method('fork', force=True); from celery.__main__ import main; main()"]
+                celery = [str(self.python), *launcher, "-A", "imagededup_system_redis_celery.celery_app:app"]
                 for role, queue in (("build_worker", "image_build"), ("comparison_worker", "image_compare,image_control")):
                     self.start_process(role, celery + ["worker", "-Q", queue, "--pool=prefork", "--concurrency=4",
                                        f"--hostname={role}@%h", "--loglevel=WARNING"], env)

@@ -1,0 +1,88 @@
+{
+  "backend": "dbworker",
+  "capabilities": {
+    "scope": "Paired durable requests running the unchanged upstream ingestion body; auxiliary Redis progress is shared infrastructure",
+    "untested": [
+      "crash_recovery",
+      "postgresql",
+      "classification_training",
+      "barcode_split",
+      "workflow_continuations",
+      "AI"
+    ],
+    "verified": [
+      "unchanged_consume_file_plugin_pipeline",
+      "real_tesseract_ocr",
+      "durable_document_rows",
+      "original_file_sha256",
+      "real_thumbnails",
+      "tantivy_content_search",
+      "dbworker_ledger"
+    ]
+  },
+  "comparison_mode": "paired_durable_request",
+  "configuration": {
+    "application_database": "sqlite",
+    "celery_pool": "threads",
+    "comparison_mode": "paired_durable_request",
+    "concurrency": 2,
+    "dbworker_pool": "spawn processes",
+    "ocr_clean": "none",
+    "ocr_deskew": false,
+    "ocr_language": "eng",
+    "ocr_mode": "force",
+    "ocr_output_type": "pdf",
+    "ocr_rotate_pages": false,
+    "platform_pool_limitation": "macOS parser libraries crash in Celery fork children; local Celery uses threads",
+    "profile": {
+      "repetitions": 1,
+      "requests": 4
+    },
+    "redis_aof": "everysec",
+    "redis_auxiliary_progress_both_backends": true,
+    "request_database": "sqlite",
+    "retry": "none",
+    "warmup_documents": 2
+  },
+  "dataset": {
+    "documents": 4,
+    "dpi": 200,
+    "format": "raster-only PNG",
+    "generation": "Pillow raster drawing using ReportLab Vera.ttf",
+    "independent_oracle": "expected markers and original SHA256",
+    "size": [
+      1800,
+      700
+    ],
+    "text": "INVOICE <five-digit-number>; Benchmark orchard payment received"
+  },
+  "environment": {
+    "interpreter": "/Users/ziyang/Documents/dbworker/benchmarks/environments/paperless_ngx/dbworker/.venv/bin/python",
+    "packages": {
+      "celery": "5.6.3",
+      "dbworker": "0.0.6",
+      "django": "5.2.17",
+      "ocrmypdf": "17.12.1",
+      "sqlalchemy": "2.0.54",
+      "tantivy": "0.26.2"
+    },
+    "python": "3.12.13",
+    "tesseract": "tesseract 5.5.3"
+  },
+  "metrics": {
+    "documents_per_second": 2.4152578482907665,
+    "wall_seconds": 1.656137874815613
+  },
+  "repetition": 1,
+  "scenario": "scanned_image_ingestion",
+  "status": "passed",
+  "validation": {
+    "documents": 4,
+    "original_files": true,
+    "output_digest": "dac8dda922c388182a538cb0bdb1e15bd9d60b235f6d377f93d133eb6e953486",
+    "passed": true,
+    "raster_only_ocr": true,
+    "tantivy_search": true,
+    "thumbnails": true
+  }
+}

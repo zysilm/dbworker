@@ -14,3 +14,16 @@ benchmarks/**/data/
 benchmarks/**/.runs/
 
 .idea/
+
+# Benchmark provisioning data and transient service configurations.
+benchmarks/environments/
+benchmarks/results/*/*-work/
+benchmarks/results/*/superset-*/
+benchmarks/results/*/saleor-*/
+benchmarks/results/*/paperless_ngx-*/
+benchmarks/results/*/posthog-*/
+benchmarks/results/*/sentry-*/
+
+# Generated invocation configuration and process logs are local diagnostics.
+benchmarks/results/*/*.config.json
+benchmarks/results/*/*.log
