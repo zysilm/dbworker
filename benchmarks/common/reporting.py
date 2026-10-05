@@ -67,7 +67,7 @@ def validate_report(report: dict[str, Any], *, terminal: bool = True) -> None:
     required = ("source", "environment", "configuration", "dataset", "summary", "capabilities", "artifacts")
     if report.get("schema_version") != 1 or not isinstance(report.get("suite_id"), str):
         raise ValueError("Invalid suite schema or identity")
-    if not isinstance(report.get("run_id"), str) or report.get("profile") not in {"smoke", "full"}:
+    if not isinstance(report.get("run_id"), str) or report.get("profile") != "full":
         raise ValueError("Invalid run identity or profile")
     if report.get("status") not in STATUSES or terminal and report["status"] == "running":
         raise ValueError("Invalid or unfinished suite status")

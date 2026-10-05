@@ -44,7 +44,7 @@ class ReportingTests(unittest.TestCase):
             validate_report(report)
 
     def test_failed_admission_is_valid_without_samples(self):
-        report = new_report("example", "run-1", "smoke")
+        report = new_report("example", "run-1", "full")
         report["status"] = "blocked"
         report["errors"].append({"phase": "setup", "message": "Interpreter unavailable"})
         validate_report(report)

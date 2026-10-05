@@ -3,7 +3,6 @@
 Run all six repository experiments sequentially from one Python entry point:
 
 ```sh
-python benchmarks/run_all.py --profile smoke --provision
 python benchmarks/run_all.py --profile full --provision
 ```
 
@@ -14,14 +13,10 @@ running experiments concurrently. Backend order alternates between repetitions.
 
 ## Implemented experiments
 
-All six suites passed one complete sequential smoke invocation with automatic
-provisioning on 2026-10-05. Retained evidence: [index](results/all-smoke-validated/index.json),
-[generated report](results/all-smoke-validated/report.md), and
-[documented smoke results](../doc/benchmark-smoke-results.md). The invocation
-produced 16 validated samples across six suite JSON reports. The complete full profile also passed on the same local macOS host, with 80
-validated samples. See [full index](results/all-full-validated/index.json) and
-[local full results](../doc/benchmark-full-local-results.md). Fixed Linux runner and
-GitHub CI execution remain unvalidated.
+The complete full profile passed on a local macOS host with 80 validated samples.
+See [full index](results/all-full-validated/index.json) and
+[local full results](../doc/benchmark-full-local-results.md).
+GitHub-hosted Linux execution must be confirmed by the first CI run.
 Capability research and planning are preserved separately on the `extension1-research` branch.
 
 | Suite | Actual operation and checks | Current comparison scope |
@@ -50,7 +45,7 @@ Initialize the pinned sources, install `uv>=0.12.23`, and expose required native
 
 ```sh
 git submodule update --init --depth 1
-python benchmarks/run_all.py --profile smoke --provision --output-dir benchmarks/results/my-smoke
+python benchmarks/run_all.py --profile full --provision --output-dir benchmarks/results/my-full
 ```
 
 Provisioning creates separate benchmark, Celery and DBWorker environments under
@@ -90,7 +85,7 @@ in their listed order. Provisioning and experiment failures preserve per-suite J
 For development, select a subset explicitly:
 
 ```sh
-python benchmarks/run_all.py --profile smoke --suite saleor --provision --output-dir benchmarks/results/my-saleor-smoke
+python benchmarks/run_all.py --profile full --suite saleor --provision --output-dir benchmarks/results/my-saleor-full
 ```
 
 Override executable paths with `--interpreters PATH_TO_JSON`:
@@ -113,11 +108,9 @@ explicitly. It is a synchronous utility invocation, not a second task queue.
 
 ## Profiles, results and limitations
 
-Smoke uses one repetition: 8 measured images and 2 warm-up images for image work;
-4 measured requests and 2 warm-up requests for each upstream operation. Saleor
-uses 24 products with one variant each. Full uses five repetitions: 1,000 images,
-8 image warm-up inputs, or 100 upstream requests per backend and repetition;
-Saleor exports 256 products each time. The registry is authoritative.
+Full uses five repetitions: 1,000 measured images and 8 warm-up images,
+or 100 upstream requests per backend and repetition. Saleor exports 256 products
+each time. Only the full profile is supported; the registry is authoritative.
 
 Reports retain configuration, source pins/hashes, datasets, samples, validators,
 errors and artifacts. Comparable samples require identical backend repetition sets, all repetitions
@@ -143,18 +136,30 @@ python benchmarks/render_results.py --run-dir benchmarks/results/RUN_ID --output
 ```
 
 Official rendering requires every registered suite to pass in a complete `full`
-invocation. Add `--allow-partial` only for clearly labeled diagnostic smoke/partial
+invocation. Add `--allow-partial` only for clearly labeled diagnostic partial
 Markdown. Incomplete results do not overwrite the official performance document.
 Ratios are Celery wall time / DBWorker wall time; different workload units are not
 averaged into one score.
 
-The PR workflow is one job that provisions and runs all six suites through the
-same sequential entry point, then uploads results and diagnostics. There is no
-parallel live-experiment matrix. The manual fixed-runner workflow also runs every
-suite sequentially, validates complete results, and proposes a generated
-Markdown/results PR. Native provisioning, Linux execution, scheduled runs and
-remote writeback still need validation. Defining a workflow does not prove that
-GitHub CI has passed.
+The benchmark workflow runs only on pushes to `main` that change executable
+inputs; README, documentation and result-only updates are excluded. It does not
+run on pull requests. Six matrix jobs run concurrently on separate fresh
+`ubuntu-24.04` VMs, each building a new Docker image and provisioning only its
+own suite. Celery and DBWorker measurements remain sequential within each suite.
+The standalone Python entry point still runs every suite sequentially.
+
+All jobs share a run ID and measured source revision. The final job accepts only
+complete, checksum-valid full results matching the registered workload and source
+pins. It replaces `benchmarks/results/latest`, writes `doc/benchmark-results.md`,
+and replaces the final README table with median timings and a bold faster backend.
+Only JSON evidence and generated Markdown enter the result commit. Failure logs
+are uploaded separately with seven-day artifact retention. Failed or incomplete
+runs never update README. Publication skips stale runs if `main` has advanced;
+normal pushes honor branch protection and never force-update `main`. The workflow
+requires permission for `GITHUB_TOKEN` to push to `main`.
+
+GitHub-hosted VM hardware can vary between runs. The paired measurements share
+one VM and container within each experiment; results include environment metadata.
 
 Run harness checks in an environment containing psutil, Celery and SQLAlchemy:
 

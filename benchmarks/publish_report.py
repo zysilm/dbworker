@@ -1,4 +1,4 @@
-"""Propose a validated complete report from the trusted performance workflow."""
+"""Publish validated full results and the final compact README section to main."""
 
 from __future__ import annotations
 
@@ -6,12 +6,11 @@ import json
 import os
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from benchmarks.render_results import render
+from benchmarks.render_results import render, update_readme
 
 
 def run(*command: str) -> None:
@@ -20,37 +19,43 @@ def run(*command: str) -> None:
 
 def main() -> None:
     directory = (ROOT / os.environ["BENCHMARK_RESULT_DIRECTORY"]).resolve()
-    branch = os.environ["BENCHMARK_RESULTS_BRANCH"]
-    if directory.parent != ROOT / "benchmarks/results" or not branch.startswith("benchmark-results/"):
-        raise ValueError("Invalid workflow result directory or branch")
+    if directory != ROOT / "benchmarks/results/latest":
+        raise ValueError("Publication requires the fixed latest result directory")
     report = ROOT / "doc/benchmark-results.md"
-    expected = render(directory, report)
-    if report.read_text() != expected:
-        raise ValueError("The report differs from its validated JSON inputs")
+    content = render(directory, report)
+    readme = ROOT / "README.md"
+    compact = update_readme(directory, readme)
     staged = subprocess.check_output(["git", "diff", "--cached", "--name-only"], cwd=ROOT, text=True)
     if staged.strip():
-        raise ValueError("Report publication requires an empty staging area")
+        raise ValueError("Publication requires an empty staging area")
+    run("git", "fetch", "origin", "main")
+    current = subprocess.check_output(["git", "rev-parse", "origin/main"], cwd=ROOT, text=True).strip()
+    source = os.environ["BENCHMARK_SOURCE_COMMIT"]
+    if current != source:
+        print("Main advanced during the benchmark; skipping obsolete result publication.")
+        return
+    head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    if head != source:
+        raise ValueError("Publication checkout differs from the measured revision")
+    report.write_text(content)
+    readme.write_text(compact)
+    # Stage only allowlisted evidence. Logs, configs, media and databases stay in artifacts.
     index = json.loads((directory / "index.json").read_text())
-    paths = [report, directory / "index.json"]
+    paths = [report, readme, directory / "index.json", directory / "report.md"]
     paths += [directory / entry["path"] for entry in index["reports"]]
-    # Include the raw image report referenced by the suite JSON, never private
-    # databases, environments, arbitrary logs or unrelated working-tree files.
+    paths += sorted(directory.rglob("sample.json"))
     raw = directory / "imagededup.raw.json"
     if raw.is_file():
         paths.append(raw)
-    run("git", "check-ref-format", "--branch", branch)
-    run("git", "checkout", "-b", branch)
     run("git", "config", "user.name", "github-actions[bot]")
     run("git", "config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com")
-    run("git", "add", "--", *(str(path.relative_to(ROOT)) for path in paths))
-    run("git", "commit", "-m", "docs: update validated application benchmark results")
-    run("git", "push", "origin", branch)
-    with tempfile.TemporaryDirectory() as temporary:
-        body = Path(temporary) / "body.md"
-        body.write_text("Update the application performance report from a complete fixed-runner experiment.\n\n"
-                        f"Run: `{index['run_id']}`. All registered suites passed output and report validation.\n"
-                        "The committed JSON files retain source pins, interpreter details and individual samples.\n")
-        run("gh", "pr", "create", "--head", branch, "--title", "Update application benchmark results", "--body-file", str(body))
+    run("git", "add", "-A", "--", "benchmarks/results/latest")
+    # Force-add only explicitly permitted JSON evidence in ignored private directories.
+    run("git", "add", "-f", "--", *(str(path.relative_to(ROOT)) for path in paths))
+    run("git", "diff", "--cached", "--check")
+    run("git", "commit", "-m", "docs: update full application benchmark results [skip ci]")
+    # A normal push rejects races and honors main branch protection.
+    run("git", "push", "origin", "HEAD:main")
 
 
 if __name__ == "__main__":

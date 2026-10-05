@@ -144,7 +144,8 @@ def run_suite(suite: dict[str, Any], *, output: Path, run_id: str, profile: str,
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--profile", choices=("smoke", "full"), default="smoke")
+    parser.add_argument("--profile", choices=("full",), default="full")
+    parser.add_argument("--run-id", help="Shared identity for isolated CI matrix jobs")
     parser.add_argument("--registry", type=Path, default=ROOT / "benchmarks/registry.json")
     parser.add_argument("--interpreters", type=Path, help="JSON mapping suite IDs to interpreter overrides")
     parser.add_argument("--suite", action="append", help="Explicit partial suite selection; repeatable")
@@ -164,7 +165,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.timeout_seconds <= 0:
         parser.error("Timeout must be positive")
     selected = [s for s in suites if not args.suite or s["suite_id"] in args.suite]
-    run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
+    run_id = args.run_id or datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", run_id):
+        parser.error("Invalid run identity")
     output = (args.output_dir or ROOT / "benchmarks/results" / run_id).resolve()
     output.mkdir(parents=True, exist_ok=False)
     overrides = json.loads(args.interpreters.read_text()) if args.interpreters else {}

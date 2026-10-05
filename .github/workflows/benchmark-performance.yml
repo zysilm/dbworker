@@ -1,63 +1,110 @@
-name: Fixed runner benchmarks
+name: Full application benchmarks
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore:
+      - README.md
+      - 'doc/**'
+      - 'docs/**'
+      - 'benchmarks/results/**'
 
-# Enable a schedule only after the complete workflow passes on this runner.
-# Pull-request revisions never run on the persistent performance host.
 concurrency:
-  group: dbworker-fixed-benchmark-runner
-  cancel-in-progress: false
+  group: full-application-benchmarks-main
+  cancel-in-progress: true
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
-  performance:
-    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
-    runs-on: [self-hosted, linux, dbworker-benchmark]
-    timeout-minutes: 360
+  experiment:
+    name: Full benchmark (${{ matrix.suite }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        suite: [imagededup, superset, saleor, paperless_ngx, posthog, sentry]
     steps:
       - uses: actions/checkout@v5
+      - name: Initialize only this experiment's pinned source
+        if: matrix.suite != 'imagededup'
+        env:
+          SUITE: ${{ matrix.suite }}
+        run: git submodule update --init --depth 1 -- "examples/$SUITE"
+      - name: Build a fresh benchmark container
+        run: docker build --pull --tag dbworker-benchmark --file benchmarks/Dockerfile benchmarks
+      - name: Run the full experiment in isolation
+        env:
+          SUITE: ${{ matrix.suite }}
+          RUN_ID: github-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          docker run --rm --init \
+            --user "$(id -u):$(id -g)" \
+            --env HOME=/tmp --env BENCHMARK_RUNNER_CLASS=github-hosted-docker \
+            --env PYTHONPATH=/workspace:/workspace/src \
+            --volume "$GITHUB_WORKSPACE:/workspace" \
+            dbworker-benchmark benchmarks/run_all.py \
+            --suite "$SUITE" --profile full --provision --run-id "$RUN_ID" \
+            --timeout-seconds 9000 --output-dir benchmarks/results/ci-full
+      - name: Package result evidence and failure diagnostics
+        if: always()
+        env:
+          SUITE: ${{ matrix.suite }}
+        run: |
+          python3 benchmarks/ci_results.py package \
+            --source benchmarks/results/ci-full --output benchmark-artifact --suite "$SUITE"
+      - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          submodules: true
+          name: benchmark-${{ matrix.suite }}
+          path: benchmark-artifact/
+          retention-days: 7
+          if-no-files-found: warn
+
+  publish:
+    name: Validate all experiments and update README
+    needs: experiment
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
-      - name: Install orchestration dependencies
-        run: python -m pip install "uv==0.12.23" -r benchmarks/requirements.txt
-      - name: Expose PostgreSQL server binaries
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: benchmark-*
+          path: incoming
+      - name: Normalize artifact directories
         run: |
-          for directory in /usr/lib/postgresql/*/bin; do
-            if [ -x "$directory/initdb" ]; then
-              echo "$directory" >> "$GITHUB_PATH"
-            fi
+          for directory in incoming/benchmark-*; do
+            mv "$directory" "incoming/${directory##*/benchmark-}"
           done
-      - name: Verify fixed host native prerequisites
-        # Provision this host with the native packages listed in benchmark-smoke.yml.
-        # Keep system package upgrades outside the performance workflow.
+      - name: Verify aggregation and report integrity
+        run: python -m unittest benchmarks.tests.test_ci_results benchmarks.tests.test_reporting
+      - name: Assemble a complete validated result set
+        env:
+          RUN_ID: github-${{ github.run_id }}-${{ github.run_attempt }}
+          SOURCE_COMMIT: ${{ github.sha }}
         run: |
-          for binary in redis-server initdb postgres psql tesseract gs pdftotext qpdf; do
-            command -v "$binary" || exit 1
-          done
-          test "$(id -u)" -ne 0
-      - name: Provision and run every registered experiment sequentially
+          rm -rf benchmarks/results/latest
+          python benchmarks/ci_results.py combine \
+            --incoming incoming --output benchmarks/results/latest \
+            --run-id "$RUN_ID" --commit "$SOURCE_COMMIT"
+      - name: Publish compact README and detailed JSON results
         env:
-          BENCHMARK_RUNNER_CLASS: fixed-linux
-        run: python benchmarks/run_all.py --provision --profile full --output-dir "benchmarks/results/performance-${{ github.run_id }}-${{ github.run_attempt }}"
-      - name: Render a complete validated report
-        run: python benchmarks/render_results.py --run-dir "benchmarks/results/performance-${{ github.run_id }}-${{ github.run_attempt }}" --output doc/benchmark-results.md
-      - name: Propose the generated report update
-        env:
-          GH_TOKEN: ${{ github.token }}
-          BENCHMARK_RESULT_DIRECTORY: benchmarks/results/performance-${{ github.run_id }}-${{ github.run_attempt }}
-          BENCHMARK_RESULTS_BRANCH: benchmark-results/${{ github.run_id }}-${{ github.run_attempt }}
+          BENCHMARK_RESULT_DIRECTORY: benchmarks/results/latest
+          BENCHMARK_SOURCE_COMMIT: ${{ github.sha }}
         run: python benchmarks/publish_report.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: benchmark-performance-${{ github.run_id }}-${{ github.run_attempt }}
+          name: benchmark-complete
           path: |
-            benchmarks/results/performance-${{ github.run_id }}-${{ github.run_attempt }}/
+            benchmarks/results/latest/
             doc/benchmark-results.md
+          retention-days: 7

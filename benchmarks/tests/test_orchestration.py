@@ -115,7 +115,7 @@ finally:
             suite = {"suite_id": "malformed", "repository": "local", "source_path": ".",
                      "entrypoint": str(child), "interpreters": {
                          role + "_python": sys.executable for role in ("benchmark", "celery", "dbworker")}}
-            report = run_suite(suite, output=root, run_id="one", profile="smoke", overrides={}, timeout=5)
+            report = run_suite(suite, output=root, run_id="one", profile="full", overrides={}, timeout=5)
             validate_report(report)
             self.assertEqual(report["status"], "failed")
             self.assertEqual((root / "malformed.invalid.json").read_text(), "[1, 2]")

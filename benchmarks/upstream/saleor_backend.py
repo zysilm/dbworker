@@ -113,7 +113,7 @@ def main():
         from saleor.csv.models import ExportFile
         from saleor.product.models import Product, ProductType, ProductVariant
 
-        count = profile.get("products", 24 if config["profile"] == "smoke" else 256)
+        count = profile.get("products", 256)
         with allow_writer():
             kind = ProductType.objects.create(name="Benchmark type", slug="benchmark-type", kind="NORMAL")
             products = Product.objects.bulk_create([Product(product_type=kind, name=f"Product {i:04d}",

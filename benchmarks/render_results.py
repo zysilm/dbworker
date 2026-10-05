@@ -35,8 +35,6 @@ def render(run_dir: Path, output: Path, *, allow_partial: bool = False) -> str:
              f"Coverage: {'complete' if index['complete_selection'] else 'partial'}", "",
              "Wall-time ratio is Celery / DBWorker; values above 1 mean DBWorker completed faster.",
              "Workload units differ across projects; no overall throughput average is calculated.", ""]
-    if index["profile"] == "smoke":
-        lines += ["Smoke runs validate correctness. These timings are not fixed-runner performance baselines.", ""]
     for entry in entries:
         path = (run_dir / entry["path"]).resolve()
         if path.parent != run_dir.resolve() or digest(path) != entry["sha256"]:
@@ -74,6 +72,45 @@ def main(argv: list[str] | None = None) -> None:
     temporary = args.output.with_name(args.output.name + ".part")
     temporary.write_text(payload, encoding="utf-8")
     temporary.replace(args.output)
+
+
+def update_readme(run_dir: Path, readme: Path) -> str:
+    """Replace the final compact benchmark section using validated full results."""
+    render(run_dir, readme)
+    index = json.loads((run_dir / "index.json").read_text())
+    start, end = "<!-- benchmark-results:start -->", "<!-- benchmark-results:end -->"
+    original = readme.read_text()
+    if original.count(start) != original.count(end) or original.count(start) > 1:
+        raise ValueError("Invalid README benchmark markers")
+    lines = [start, "## Benchmark Results", "",
+             "Median wall time in seconds; **bold** marks the faster backend. "
+             "Each experiment runs in a fresh Docker container on its own GitHub-hosted Ubuntu VM.", "",
+             "| Experiment | Scenario | Celery (s) | DBWorker (s) | Celery / DBWorker |",
+             "|---|---|---:|---:|---:|"]
+    for entry in index["reports"]:
+        report = json.loads((run_dir / entry["path"]).read_text())
+        for summary in summarize(report["runs"]).values():
+            celery = summary["backends"]["celery"]["median_wall_seconds"]
+            dbworker = summary["backends"]["dbworker"]["median_wall_seconds"]
+            c, d = f"{celery:.3f}", f"{dbworker:.3f}"
+            if celery < dbworker:
+                c = f"**{c}**"
+            elif dbworker < celery:
+                d = f"**{d}**"
+            lines.append(f"| {escape(entry['suite_id'])} | {escape(summary['scenario'])} | {c} | {d} | {celery / dbworker:.2f} |")
+    detail = Path(os.path.relpath(ROOT / "doc/benchmark-results.md", readme.parent)).as_posix()
+    raw = Path(os.path.relpath(run_dir / "index.json", readme.parent)).as_posix()
+    lines += ["", f"Run: `{escape(index['run_id'])}`. [Details and scope]({detail}) · [JSON results]({raw}).",
+              "Scoped application workloads; Sentry uses historical 24.1.0. "
+              "Ratios above 1 favor DBWorker; no cross-project average is computed.", end]
+    section = "\n".join(lines)
+    if start in original:
+        before, remainder = original.split(start, 1)
+        _, after = remainder.split(end, 1)
+        if after.strip():
+            raise ValueError("The benchmark section must be the final README chapter")
+        return before.rstrip() + "\n\n" + section + "\n"
+    return original.rstrip() + "\n\n" + section + "\n"
 
 
 if __name__ == "__main__":

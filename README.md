@@ -213,3 +213,11 @@ For SQLite, use a file-backed database. Worker names must start with a lowercase
 ## License
 
 [MIT](LICENSE) © 2026 Ziyang Song.
+
+<!-- benchmark-results:start -->
+## Benchmark Results
+
+Full application benchmark results will appear here after the first successful
+GitHub-hosted run on `main`. Each experiment uses its own fresh VM and Docker
+container. [Benchmark workloads and methodology](benchmarks/README.md).
+<!-- benchmark-results:end -->

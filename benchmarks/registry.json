@@ -13,11 +13,6 @@
         "dbworker_python": "benchmarks/environments/imagededup/dbworker/.venv/bin/python"
       },
       "profiles": {
-        "smoke": {
-          "images": 8,
-          "warmup_images": 2,
-          "repetitions": 1
-        },
         "full": {
           "images": 1000,
           "warmup_images": 8,
@@ -39,10 +34,6 @@
         "dbworker_python": "benchmarks/environments/superset/dbworker/.venv/bin/python"
       },
       "profiles": {
-        "smoke": {
-          "requests": 4,
-          "repetitions": 1
-        },
         "full": {
           "requests": 100,
           "repetitions": 5
@@ -64,11 +55,6 @@
         "dbworker_python": "benchmarks/environments/saleor/dbworker/.venv/bin/python"
       },
       "profiles": {
-        "smoke": {
-          "requests": 4,
-          "repetitions": 1,
-          "products": 24
-        },
         "full": {
           "requests": 100,
           "repetitions": 5,
@@ -91,10 +77,6 @@
         "dbworker_python": "benchmarks/environments/paperless_ngx/dbworker/.venv/bin/python"
       },
       "profiles": {
-        "smoke": {
-          "requests": 4,
-          "repetitions": 1
-        },
         "full": {
           "requests": 100,
           "repetitions": 5
@@ -116,10 +98,6 @@
         "dbworker_python": "benchmarks/environments/posthog/dbworker/.venv/bin/python"
       },
       "profiles": {
-        "smoke": {
-          "requests": 4,
-          "repetitions": 1
-        },
         "full": {
           "requests": 100,
           "repetitions": 5
@@ -142,10 +120,6 @@
         "upstream_python": "benchmarks/environments/sentry/upstream/.venv/bin/python"
       },
       "profiles": {
-        "smoke": {
-          "requests": 4,
-          "repetitions": 1
-        },
         "full": {
           "requests": 100,
           "repetitions": 5
