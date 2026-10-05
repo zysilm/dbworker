@@ -1,0 +1,187 @@
+{
+  "research_date": "2026-10-04",
+  "local_commit": "9e3e63f58b589b0502e5dd6f914a80f036de44ec",
+  "method": "GitHub API metadata and raw source fetched at pinned commits; selected-file review, not an exhaustive task inventory.",
+  "repositories": [
+    {
+      "repository": "apache/superset",
+      "stars_observed": 75030,
+      "commit": "68f19947a8012ac587bb407c469abacbebae61ca",
+      "tag": null,
+      "files_fetched": [
+        {
+          "path": "superset/commands/tasks/cancel.py",
+          "url": "https://github.com/apache/superset/blob/68f19947a8012ac587bb407c469abacbebae61ca/superset/commands/tasks/cancel.py",
+          "sha256": "665140b00b550f442b203c1fb5d709b118aeb66db31d99791553827271930780"
+        },
+        {
+          "path": "superset/commands/tasks/reap.py",
+          "url": "https://github.com/apache/superset/blob/68f19947a8012ac587bb407c469abacbebae61ca/superset/commands/tasks/reap.py",
+          "sha256": "828dbfb724fc4b94657452a0f17ae3b13efb57e1542cf0bfe08d1a4b10c7ce03"
+        },
+        {
+          "path": "superset/commands/tasks/submit.py",
+          "url": "https://github.com/apache/superset/blob/68f19947a8012ac587bb407c469abacbebae61ca/superset/commands/tasks/submit.py",
+          "sha256": "822c32cf79713a4d5016f3b77c2aac3d34c69bc25c52b0dd085a9693a9e7db7d"
+        },
+        {
+          "path": "superset/config.py",
+          "url": "https://github.com/apache/superset/blob/68f19947a8012ac587bb407c469abacbebae61ca/superset/config.py",
+          "sha256": "bdef9edccf0e79364e9e28313429eb6bb042aa4b8ebfbf9e4f988299308837dc"
+        },
+        {
+          "path": "superset/tasks/async_queries.py",
+          "url": "https://github.com/apache/superset/blob/68f19947a8012ac587bb407c469abacbebae61ca/superset/tasks/async_queries.py",
+          "sha256": "2be6d1b8b722e619aead586d0bb23f30858a481169095e5f904aff1492285b13"
+        },
+        {
+          "path": "superset/tasks/scheduler.py",
+          "url": "https://github.com/apache/superset/blob/68f19947a8012ac587bb407c469abacbebae61ca/superset/tasks/scheduler.py",
+          "sha256": "be3437dd9f5ccbe4aea288999fa16f41c04d273663e06f3e1fd530c5bc572929"
+        },
+        {
+          "path": "superset/tasks/thumbnails.py",
+          "url": "https://github.com/apache/superset/blob/68f19947a8012ac587bb407c469abacbebae61ca/superset/tasks/thumbnails.py",
+          "sha256": "e4094d3327f24311aa174075a47d22bd645e8cf38bf6a263c73cb2c33e85804b"
+        }
+      ]
+    },
+    {
+      "repository": "saleor/saleor",
+      "stars_observed": 23406,
+      "commit": "8385ca60ecefa3a068aed3d1a28188e096cdc543",
+      "tag": null,
+      "files_fetched": [
+        {
+          "path": "saleor/core/tasks.py",
+          "url": "https://github.com/saleor/saleor/blob/8385ca60ecefa3a068aed3d1a28188e096cdc543/saleor/core/tasks.py",
+          "sha256": "e29aedc157e75f6ce95f0ac52aa198340d33f1cd80e20cf7d19259b356880658"
+        },
+        {
+          "path": "saleor/csv/tasks.py",
+          "url": "https://github.com/saleor/saleor/blob/8385ca60ecefa3a068aed3d1a28188e096cdc543/saleor/csv/tasks.py",
+          "sha256": "c50dc236429f914f6d6f8cd238f91d4727364b14a3dbe0cfa28f9c9345376716"
+        },
+        {
+          "path": "saleor/plugins/user_email/tasks.py",
+          "url": "https://github.com/saleor/saleor/blob/8385ca60ecefa3a068aed3d1a28188e096cdc543/saleor/plugins/user_email/tasks.py",
+          "sha256": "f91c02f0c30e8e1ce1de33b4ca85a8f2a44b0d2f91089f06ec1031bbd01848de"
+        },
+        {
+          "path": "saleor/product/tasks.py",
+          "url": "https://github.com/saleor/saleor/blob/8385ca60ecefa3a068aed3d1a28188e096cdc543/saleor/product/tasks.py",
+          "sha256": "28226734ff8d9ba4d703421198281c913fd0b7ea0ffbb843eaef73d86149b205"
+        },
+        {
+          "path": "saleor/settings.py",
+          "url": "https://github.com/saleor/saleor/blob/8385ca60ecefa3a068aed3d1a28188e096cdc543/saleor/settings.py",
+          "sha256": "a96a2372eeafeab80fb6397a41594714ec535db293678d41ed5b0daf1deb8ad1"
+        },
+        {
+          "path": "saleor/webhook/models.py",
+          "url": "https://github.com/saleor/saleor/blob/8385ca60ecefa3a068aed3d1a28188e096cdc543/saleor/webhook/models.py",
+          "sha256": "7abd6a0462e6ead511bf1ab406901ea37b033a0c5cdad5144ac458360d2512ca"
+        },
+        {
+          "path": "saleor/webhook/transport/asynchronous/transport.py",
+          "url": "https://github.com/saleor/saleor/blob/8385ca60ecefa3a068aed3d1a28188e096cdc543/saleor/webhook/transport/asynchronous/transport.py",
+          "sha256": "2990fe46ace58040490b19a94c38ebe2391241488408455826359ae48e7a53bc"
+        }
+      ]
+    },
+    {
+      "repository": "paperless-ngx/paperless-ngx",
+      "stars_observed": 46264,
+      "commit": "8adbff1423af58575bc5a08eee7a6d833fd95651",
+      "tag": null,
+      "files_fetched": [
+        {
+          "path": "src/documents/signals/handlers.py",
+          "url": "https://github.com/paperless-ngx/paperless-ngx/blob/8adbff1423af58575bc5a08eee7a6d833fd95651/src/documents/signals/handlers.py",
+          "sha256": "749eba4d8a887fe144a4f86de8ddb0efa14ecf319729a0a8c02788e8ee80d13a"
+        },
+        {
+          "path": "src/documents/tasks.py",
+          "url": "https://github.com/paperless-ngx/paperless-ngx/blob/8adbff1423af58575bc5a08eee7a6d833fd95651/src/documents/tasks.py",
+          "sha256": "e916133fdf8b447a70194c2768d10d0cd1880089d0af962bc65037ca24d194ee"
+        },
+        {
+          "path": "src/paperless/celery.py",
+          "url": "https://github.com/paperless-ngx/paperless-ngx/blob/8adbff1423af58575bc5a08eee7a6d833fd95651/src/paperless/celery.py",
+          "sha256": "5c346889b13ff3896d471b3c50a49ea380801e367bb38c73dc64bc397756e8db"
+        },
+        {
+          "path": "src/paperless_mail/tasks.py",
+          "url": "https://github.com/paperless-ngx/paperless-ngx/blob/8adbff1423af58575bc5a08eee7a6d833fd95651/src/paperless_mail/tasks.py",
+          "sha256": "c04f85f06c25a1d54ffd15bbd6df72b585bd314100c7a0148fc2f573aedc5b2e"
+        }
+      ]
+    },
+    {
+      "repository": "PostHog/posthog",
+      "stars_observed": 40128,
+      "commit": "526d64dd82340b1bf4293d6d9baea7e965997048",
+      "tag": null,
+      "files_fetched": [
+        {
+          "path": "ee/tasks/subscriptions/email_subscriptions.py",
+          "url": "https://github.com/PostHog/posthog/blob/526d64dd82340b1bf4293d6d9baea7e965997048/ee/tasks/subscriptions/email_subscriptions.py",
+          "sha256": "778f22b177cb7f83c7fb3ef38ff4ebcdeea420a2eacc973aa5b3160a3295b9a8"
+        },
+        {
+          "path": "posthog/celery.py",
+          "url": "https://github.com/PostHog/posthog/blob/526d64dd82340b1bf4293d6d9baea7e965997048/posthog/celery.py",
+          "sha256": "9979508b3c3dfb9675a6109dd917c95a07c9df0ad7834da3766819d57b92a4e7"
+        },
+        {
+          "path": "posthog/settings/celery.py",
+          "url": "https://github.com/PostHog/posthog/blob/526d64dd82340b1bf4293d6d9baea7e965997048/posthog/settings/celery.py",
+          "sha256": "9b6cdc4f36e68021de8380f6bdb3544319ebf8013812990ced304588eb59cdb5"
+        },
+        {
+          "path": "posthog/tasks/calculate_cohort.py",
+          "url": "https://github.com/PostHog/posthog/blob/526d64dd82340b1bf4293d6d9baea7e965997048/posthog/tasks/calculate_cohort.py",
+          "sha256": "adfa20f0bde857aae087142964d6f60f7cae4d8db6cceea80b84b0219593cb02"
+        },
+        {
+          "path": "posthog/tasks/email.py",
+          "url": "https://github.com/PostHog/posthog/blob/526d64dd82340b1bf4293d6d9baea7e965997048/posthog/tasks/email.py",
+          "sha256": "fa988a5e7e993ce3fb08cdb3d3c8b2fa0d08d3a5966048b9786702aa14e60c4e"
+        },
+        {
+          "path": "posthog/tasks/exporter.py",
+          "url": "https://github.com/PostHog/posthog/blob/526d64dd82340b1bf4293d6d9baea7e965997048/posthog/tasks/exporter.py",
+          "sha256": "8cdf07977427bb5bb94211ed3ad4496df49b075bdaa867790785baf7a7aa8474"
+        }
+      ]
+    },
+    {
+      "repository": "getsentry/sentry",
+      "stars_observed": 45255,
+      "commit": "94bf1b8aad4c21840829be1f362b096d12f782d0",
+      "tag": "24.1.0",
+      "files_fetched": [
+        {
+          "path": "src/sentry/conf/server.py",
+          "url": "https://github.com/getsentry/sentry/blob/94bf1b8aad4c21840829be1f362b096d12f782d0/src/sentry/conf/server.py",
+          "sha256": "7917fe59c2504a3bc28b993559dcc3f31be56deaca7ff7bd1864e2957c31bab1"
+        },
+        {
+          "path": "src/sentry/tasks/base.py",
+          "url": "https://github.com/getsentry/sentry/blob/94bf1b8aad4c21840829be1f362b096d12f782d0/src/sentry/tasks/base.py",
+          "sha256": "6ce063cf9a18ec4f21bf6b37b898d96856181532b64c31b38d128a4bc68071e1"
+        },
+        {
+          "path": "src/sentry/tasks/deliver_from_outbox.py",
+          "url": "https://github.com/getsentry/sentry/blob/94bf1b8aad4c21840829be1f362b096d12f782d0/src/sentry/tasks/deliver_from_outbox.py",
+          "sha256": "533d8555caccda9885c5ab9d7738ebcc3faace8e2db9a1433118b3698ac3ff5a"
+        },
+        {
+          "path": "src/sentry/tasks/digests.py",
+          "url": "https://github.com/getsentry/sentry/blob/94bf1b8aad4c21840829be1f362b096d12f782d0/src/sentry/tasks/digests.py",
+          "sha256": "2ef4d2eff454a3153ada872edb6e9f6d996034c023092934fe5af695b855eed4"
+        }
+      ]
+    }
+  ]
+}
