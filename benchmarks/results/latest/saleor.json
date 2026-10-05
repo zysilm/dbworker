@@ -1,0 +1,996 @@
+{
+  "artifacts": {
+    "provision_log": "saleor.provision.log",
+    "samples": [
+      "saleor-1-celery/sample.json",
+      "saleor-1-dbworker/sample.json",
+      "saleor-2-dbworker/sample.json",
+      "saleor-2-celery/sample.json",
+      "saleor-3-celery/sample.json",
+      "saleor-3-dbworker/sample.json",
+      "saleor-4-dbworker/sample.json",
+      "saleor-4-celery/sample.json",
+      "saleor-5-celery/sample.json",
+      "saleor-5-dbworker/sample.json"
+    ],
+    "suite_log": "saleor.log"
+  },
+  "capabilities": {
+    "scope": "Paired durable-request replacement of the real export body and upstream job hooks; plugins disabled equally",
+    "untested": [
+      "crash_recovery",
+      "replica_lag",
+      "webhook_delivery",
+      "email_delivery",
+      "native_celery_delivery_lifecycle",
+      "outbox_recovery"
+    ],
+    "verified": [
+      "real_product_csv_export",
+      "independent_csv_oracle",
+      "durable_job_success",
+      "exact_export_events",
+      "untimed_failure_lifecycle",
+      "dbworker_ledger"
+    ]
+  },
+  "configuration": {
+    "backend_order": "alternating across repetitions",
+    "backends": {
+      "celery": {
+        "business_database": "postgresql",
+        "comparison_mode": "paired_durable_request",
+        "concurrency": 2,
+        "plugins": [],
+        "postgres_fsync": true,
+        "profile": {
+          "products": 256,
+          "repetitions": 5,
+          "requests": 100
+        },
+        "publication": "single pass after durable request commit",
+        "redis_aof": "everysec",
+        "replica": "same primary",
+        "request_database": "sqlite",
+        "retry": "no automatic retry",
+        "setup": "complete upstream migrations; eager maintenance tasks on empty database outside timing",
+        "warmup_requests": 2
+      },
+      "dbworker": {
+        "business_database": "postgresql",
+        "comparison_mode": "paired_durable_request",
+        "concurrency": 2,
+        "plugins": [],
+        "postgres_fsync": true,
+        "profile": {
+          "products": 256,
+          "repetitions": 5,
+          "requests": 100
+        },
+        "publication": "single pass after durable request commit",
+        "redis_aof": "everysec",
+        "replica": "same primary",
+        "request_database": "sqlite",
+        "retry": "no automatic retry",
+        "setup": "complete upstream migrations; eager maintenance tasks on empty database outside timing",
+        "warmup_requests": 2
+      }
+    },
+    "profile": {
+      "products": 256,
+      "repetitions": 5,
+      "requests": 100
+    },
+    "sequential": true
+  },
+  "created_at": "2026-10-05T17:49:05.527898+00:00",
+  "dataset": {
+    "exports": 100,
+    "fields": [
+      "id",
+      "name",
+      "product type",
+      "variant sku"
+    ],
+    "generation": "Product i, SKU-i, one variant per product",
+    "products": 256,
+    "variants": 256
+  },
+  "environment": {
+    "backends": {
+      "celery": {
+        "interpreter": "/workspace/benchmarks/environments/saleor/celery/.venv/bin/python",
+        "packages": {
+          "Django": "5.2.17",
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "saleor": "3.24.0-a.0",
+          "sqlalchemy": "2.1.3"
+        },
+        "postgres": "postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+        "python": "3.12.3"
+      },
+      "dbworker": {
+        "interpreter": "/workspace/benchmarks/environments/saleor/dbworker/.venv/bin/python",
+        "packages": {
+          "Django": "5.2.17",
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "saleor": "3.24.0-a.0",
+          "sqlalchemy": "2.1.3"
+        },
+        "postgres": "postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+        "python": "3.12.3"
+      }
+    },
+    "interpreters": {
+      "benchmark_python": "/workspace/benchmarks/environments/saleor/benchmark/.venv/bin/python",
+      "celery_python": "/workspace/benchmarks/environments/saleor/celery/.venv/bin/python",
+      "dbworker_python": "/workspace/benchmarks/environments/saleor/dbworker/.venv/bin/python"
+    },
+    "orchestrator_python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+    "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+    "runner_class": "github-hosted-docker"
+  },
+  "errors": [],
+  "finished_at": "2026-10-05T18:10:40.106548+00:00",
+  "profile": "full",
+  "run_id": "github-37351143262-1",
+  "runs": [
+    {
+      "backend": "celery",
+      "capabilities": {
+        "scope": "Paired durable-request replacement of the real export body and upstream job hooks; plugins disabled equally",
+        "untested": [
+          "crash_recovery",
+          "replica_lag",
+          "webhook_delivery",
+          "email_delivery",
+          "native_celery_delivery_lifecycle",
+          "outbox_recovery"
+        ],
+        "verified": [
+          "real_product_csv_export",
+          "independent_csv_oracle",
+          "durable_job_success",
+          "exact_export_events",
+          "untimed_failure_lifecycle",
+          "dbworker_ledger"
+        ]
+      },
+      "comparison_mode": "paired_durable_request",
+      "configuration": {
+        "business_database": "postgresql",
+        "comparison_mode": "paired_durable_request",
+        "concurrency": 2,
+        "plugins": [],
+        "postgres_fsync": true,
+        "profile": {
+          "products": 256,
+          "repetitions": 5,
+          "requests": 100
+        },
+        "publication": "single pass after durable request commit",
+        "redis_aof": "everysec",
+        "replica": "same primary",
+        "request_database": "sqlite",
+        "retry": "no automatic retry",
+        "setup": "complete upstream migrations; eager maintenance tasks on empty database outside timing",
+        "warmup_requests": 2
+      },
+      "dataset": {
+        "exports": 100,
+        "fields": [
+          "id",
+          "name",
+          "product type",
+          "variant sku"
+        ],
+        "generation": "Product i, SKU-i, one variant per product",
+        "products": 256,
+        "variants": 256
+      },
+      "environment": {
+        "interpreter": "/workspace/benchmarks/environments/saleor/celery/.venv/bin/python",
+        "packages": {
+          "Django": "5.2.17",
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "saleor": "3.24.0-a.0",
+          "sqlalchemy": "2.1.3"
+        },
+        "postgres": "postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+        "python": "3.12.3"
+      },
+      "metrics": {
+        "exports_per_second": 52.290555357282024,
+        "wall_seconds": 1.9123912399999767
+      },
+      "repetition": 1,
+      "scenario": "product_csv_export",
+      "status": "passed",
+      "validation": {
+        "exports": 100,
+        "failure_lifecycle": "passed",
+        "output_digest": "fbd1035acd8d458fdbdce0f36e1c6fd526e40135f5ff5609637b9e3632b6b15e",
+        "passed": true,
+        "products_per_export": 256
+      }
+    },
+    {
+      "backend": "dbworker",
+      "capabilities": {
+        "scope": "Paired durable-request replacement of the real export body and upstream job hooks; plugins disabled equally",
+        "untested": [
+          "crash_recovery",
+          "replica_lag",
+          "webhook_delivery",
+          "email_delivery",
+          "native_celery_delivery_lifecycle",
+          "outbox_recovery"
+        ],
+        "verified": [
+          "real_product_csv_export",
+          "independent_csv_oracle",
+          "durable_job_success",
+          "exact_export_events",
+          "untimed_failure_lifecycle",
+          "dbworker_ledger"
+        ]
+      },
+      "comparison_mode": "paired_durable_request",
+      "configuration": {
+        "business_database": "postgresql",
+        "comparison_mode": "paired_durable_request",
+        "concurrency": 2,
+        "plugins": [],
+        "postgres_fsync": true,
+        "profile": {
+          "products": 256,
+          "repetitions": 5,
+          "requests": 100
+        },
+        "publication": "single pass after durable request commit",
+        "redis_aof": "everysec",
+        "replica": "same primary",
+        "request_database": "sqlite",
+        "retry": "no automatic retry",
+        "setup": "complete upstream migrations; eager maintenance tasks on empty database outside timing",
+        "warmup_requests": 2
+      },
+      "dataset": {
+        "exports": 100,
+        "fields": [
+          "id",
+          "name",
+          "product type",
+          "variant sku"
+        ],
+        "generation": "Product i, SKU-i, one variant per product",
+        "products": 256,
+        "variants": 256
+      },
+      "environment": {
+        "interpreter": "/workspace/benchmarks/environments/saleor/dbworker/.venv/bin/python",
+        "packages": {
+          "Django": "5.2.17",
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "saleor": "3.24.0-a.0",
+          "sqlalchemy": "2.1.3"
+        },
+        "postgres": "postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+        "python": "3.12.3"
+      },
+      "metrics": {
+        "exports_per_second": 54.64099184595029,
+        "wall_seconds": 1.830127833000006
+      },
+      "repetition": 1,
+      "scenario": "product_csv_export",
+      "status": "passed",
+      "validation": {
+        "exports": 100,
+        "failure_lifecycle": "passed",
+        "output_digest": "fbd1035acd8d458fdbdce0f36e1c6fd526e40135f5ff5609637b9e3632b6b15e",
+        "passed": true,
+        "products_per_export": 256
+      }
+    },
+    {
+      "backend": "dbworker",
+      "capabilities": {
+        "scope": "Paired durable-request replacement of the real export body and upstream job hooks; plugins disabled equally",
+        "untested": [
+          "crash_recovery",
+          "replica_lag",
+          "webhook_delivery",
+          "email_delivery",
+          "native_celery_delivery_lifecycle",
+          "outbox_recovery"
+        ],
+        "verified": [
+          "real_product_csv_export",
+          "independent_csv_oracle",
+          "durable_job_success",
+          "exact_export_events",
+          "untimed_failure_lifecycle",
+          "dbworker_ledger"
+        ]
+      },
+      "comparison_mode": "paired_durable_request",
+      "configuration": {
+        "business_database": "postgresql",
+        "comparison_mode": "paired_durable_request",
+        "concurrency": 2,
+        "plugins": [],
+        "postgres_fsync": true,
+        "profile": {
+          "products": 256,
+          "repetitions": 5,
+          "requests": 100
+        },
+        "publication": "single pass after durable request commit",
+        "redis_aof": "everysec",
+        "replica": "same primary",
+        "request_database": "sqlite",
+        "retry": "no automatic retry",
+        "setup": "complete upstream migrations; eager maintenance tasks on empty database outside timing",
+        "warmup_requests": 2
+      },
+      "dataset": {
+        "exports": 100,
+        "fields": [
+          "id",
+          "name",
+          "product type",
+          "variant sku"
+        ],
+        "generation": "Product i, SKU-i, one variant per product",
+        "products": 256,
+        "variants": 256
+      },
+      "environment": {
+        "interpreter": "/workspace/benchmarks/environments/saleor/dbworker/.venv/bin/python",
+        "packages": {
+          "Django": "5.2.17",
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "saleor": "3.24.0-a.0",
+          "sqlalchemy": "2.1.3"
+        },
+        "postgres": "postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+        "python": "3.12.3"
+      },
+      "metrics": {
+        "exports_per_second": 44.0160752851579,
+        "wall_seconds": 2.2718972410000333
+      },
+      "repetition": 2,
+      "scenario": "product_csv_export",
+      "status": "passed",
+      "validation": {
+        "exports": 100,
+        "failure_lifecycle": "passed",
+        "output_digest": "fbd1035acd8d458fdbdce0f36e1c6fd526e40135f5ff5609637b9e3632b6b15e",
+        "passed": true,
+        "products_per_export": 256
+      }
+    },
+    {
+      "backend": "celery",
+      "capabilities": {
+        "scope": "Paired durable-request replacement of the real export body and upstream job hooks; plugins disabled equally",
+        "untested": [
+          "crash_recovery",
+          "replica_lag",
+          "webhook_delivery",
+          "email_delivery",
+          "native_celery_delivery_lifecycle",
+          "outbox_recovery"
+        ],
+        "verified": [
+          "real_product_csv_export",
+          "independent_csv_oracle",
+          "durable_job_success",
+          "exact_export_events",
+          "untimed_failure_lifecycle",
+          "dbworker_ledger"
+        ]
+      },
+      "comparison_mode": "paired_durable_request",
+      "configuration": {
+        "business_database": "postgresql",
+        "comparison_mode": "paired_durable_request",
+        "concurrency": 2,
+        "plugins": [],
+        "postgres_fsync": true,
+        "profile": {
+          "products": 256,
+          "repetitions": 5,
+          "requests": 100
+        },
+        "publication": "single pass after durable request commit",
+        "redis_aof": "everysec",
+        "replica": "same primary",
+        "request_database": "sqlite",
+        "retry": "no automatic retry",
+        "setup": "complete upstream migrations; eager maintenance tasks on empty database outside timing",
+        "warmup_requests": 2
+      },
+      "dataset": {
+        "exports": 100,
+        "fields": [
+          "id",
+          "name",
+          "product type",
+          "variant sku"
+        ],
+        "generation": "Product i, SKU-i, one variant per product",
+        "products": 256,
+        "variants": 256
+      },
+      "environment": {
+        "interpreter": "/workspace/benchmarks/environments/saleor/celery/.venv/bin/python",
+        "packages": {
+          "Django": "5.2.17",
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "saleor": "3.24.0-a.0",
+          "sqlalchemy": "2.1.3"
+        },
+        "postgres": "postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+        "python": "3.12.3"
+      },
+      "metrics": {
+        "exports_per_second": 51.587491107870534,
+        "wall_seconds": 1.9384544170000026
+      },
+      "repetition": 2,
+      "scenario": "product_csv_export",
+      "status": "passed",
+      "validation": {
+        "exports": 100,
+        "failure_lifecycle": "passed",
+        "output_digest": "fbd1035acd8d458fdbdce0f36e1c6fd526e40135f5ff5609637b9e3632b6b15e",
+        "passed": true,
+        "products_per_export": 256
+      }
+    },
+    {
+      "backend": "celery",
+      "capabilities": {
+        "scope": "Paired durable-request replacement of the real export body and upstream job hooks; plugins disabled equally",
+        "untested": [
+          "crash_recovery",
+          "replica_lag",
+          "webhook_delivery",
+          "email_delivery",
+          "native_celery_delivery_lifecycle",
+          "outbox_recovery"
+        ],
+        "verified": [
+          "real_product_csv_export",
+          "independent_csv_oracle",
+          "durable_job_success",
+          "exact_export_events",
+          "untimed_failure_lifecycle",
+          "dbworker_ledger"
+        ]
+      },
+      "comparison_mode": "paired_durable_request",
+      "configuration": {
+        "business_database": "postgresql",
+        "comparison_mode": "paired_durable_request",
+        "concurrency": 2,
+        "plugins": [],
+        "postgres_fsync": true,
+        "profile": {
+          "products": 256,
+          "repetitions": 5,
+          "requests": 100
+        },
+        "publication": "single pass after durable request commit",
+        "redis_aof": "everysec",
+        "replica": "same primary",
+        "request_database": "sqlite",
+        "retry": "no automatic retry",
+        "setup": "complete upstream migrations; eager maintenance tasks on empty database outside timing",
+        "warmup_requests": 2
+      },
+      "dataset": {
+        "exports": 100,
+        "fields": [
+          "id",
+          "name",
+          "product type",
+          "variant sku"
+        ],
+        "generation": "Product i, SKU-i, one variant per product",
+        "products": 256,
+        "variants": 256
+      },
+      "environment": {
+        "interpreter": "/workspace/benchmarks/environments/saleor/celery/.venv/bin/python",
+        "packages": {
+          "Django": "5.2.17",
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "saleor": "3.24.0-a.0",
+          "sqlalchemy": "2.1.3"
+        },
+        "postgres": "postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+        "python": "3.12.3"
+      },
+      "metrics": {
+        "exports_per_second": 48.11151284908788,
+        "wall_seconds": 2.0785045839999157
+      },
+      "repetition": 3,
+      "scenario": "product_csv_export",
+      "status": "passed",
+      "validation": {
+        "exports": 100,
+        "failure_lifecycle": "passed",
+        "output_digest": "fbd1035acd8d458fdbdce0f36e1c6fd526e40135f5ff5609637b9e3632b6b15e",
+        "passed": true,
+        "products_per_export": 256
+      }
+    },
+    {
+      "backend": "dbworker",
+      "capabilities": {
+        "scope": "Paired durable-request replacement of the real export body and upstream job hooks; plugins disabled equally",
+        "untested": [
+          "crash_recovery",
+          "replica_lag",
+          "webhook_delivery",
+          "email_delivery",
+          "native_celery_delivery_lifecycle",
+          "outbox_recovery"
+        ],
+        "verified": [
+          "real_product_csv_export",
+          "independent_csv_oracle",
+          "durable_job_success",
+          "exact_export_events",
+          "untimed_failure_lifecycle",
+          "dbworker_ledger"
+        ]
+      },
+      "comparison_mode": "paired_durable_request",
+      "configuration": {
+        "business_database": "postgresql",
+        "comparison_mode": "paired_durable_request",
+        "concurrency": 2,
+        "plugins": [],
+        "postgres_fsync": true,
+        "profile": {
+          "products": 256,
+          "repetitions": 5,
+          "requests": 100
+        },
+        "publication": "single pass after durable request commit",
+        "redis_aof": "everysec",
+        "replica": "same primary",
+        "request_database": "sqlite",
+        "retry": "no automatic retry",
+        "setup": "complete upstream migrations; eager maintenance tasks on empty database outside timing",
+        "warmup_requests": 2
+      },
+      "dataset": {
+        "exports": 100,
+        "fields": [
+          "id",
+          "name",
+          "product type",
+          "variant sku"
+        ],
+        "generation": "Product i, SKU-i, one variant per product",
+        "products": 256,
+        "variants": 256
+      },
+      "environment": {
+        "interpreter": "/workspace/benchmarks/environments/saleor/dbworker/.venv/bin/python",
+        "packages": {
+          "Django": "5.2.17",
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "saleor": "3.24.0-a.0",
+          "sqlalchemy": "2.1.3"
+        },
+        "postgres": "postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+        "python": "3.12.3"
+      },
+      "metrics": {
+        "exports_per_second": 37.93228838294718,
+        "wall_seconds": 2.6362764880000213
+      },
+      "repetition": 3,
+      "scenario": "product_csv_export",
+      "status": "passed",
+      "validation": {
+        "exports": 100,
+        "failure_lifecycle": "passed",
+        "output_digest": "fbd1035acd8d458fdbdce0f36e1c6fd526e40135f5ff5609637b9e3632b6b15e",
+        "passed": true,
+        "products_per_export": 256
+      }
+    },
+    {
+      "backend": "dbworker",
+      "capabilities": {
+        "scope": "Paired durable-request replacement of the real export body and upstream job hooks; plugins disabled equally",
+        "untested": [
+          "crash_recovery",
+          "replica_lag",
+          "webhook_delivery",
+          "email_delivery",
+          "native_celery_delivery_lifecycle",
+          "outbox_recovery"
+        ],
+        "verified": [
+          "real_product_csv_export",
+          "independent_csv_oracle",
+          "durable_job_success",
+          "exact_export_events",
+          "untimed_failure_lifecycle",
+          "dbworker_ledger"
+        ]
+      },
+      "comparison_mode": "paired_durable_request",
+      "configuration": {
+        "business_database": "postgresql",
+        "comparison_mode": "paired_durable_request",
+        "concurrency": 2,
+        "plugins": [],
+        "postgres_fsync": true,
+        "profile": {
+          "products": 256,
+          "repetitions": 5,
+          "requests": 100
+        },
+        "publication": "single pass after durable request commit",
+        "redis_aof": "everysec",
+        "replica": "same primary",
+        "request_database": "sqlite",
+        "retry": "no automatic retry",
+        "setup": "complete upstream migrations; eager maintenance tasks on empty database outside timing",
+        "warmup_requests": 2
+      },
+      "dataset": {
+        "exports": 100,
+        "fields": [
+          "id",
+          "name",
+          "product type",
+          "variant sku"
+        ],
+        "generation": "Product i, SKU-i, one variant per product",
+        "products": 256,
+        "variants": 256
+      },
+      "environment": {
+        "interpreter": "/workspace/benchmarks/environments/saleor/dbworker/.venv/bin/python",
+        "packages": {
+          "Django": "5.2.17",
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "saleor": "3.24.0-a.0",
+          "sqlalchemy": "2.1.3"
+        },
+        "postgres": "postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+        "python": "3.12.3"
+      },
+      "metrics": {
+        "exports_per_second": 39.89726572172667,
+        "wall_seconds": 2.506437425999934
+      },
+      "repetition": 4,
+      "scenario": "product_csv_export",
+      "status": "passed",
+      "validation": {
+        "exports": 100,
+        "failure_lifecycle": "passed",
+        "output_digest": "fbd1035acd8d458fdbdce0f36e1c6fd526e40135f5ff5609637b9e3632b6b15e",
+        "passed": true,
+        "products_per_export": 256
+      }
+    },
+    {
+      "backend": "celery",
+      "capabilities": {
+        "scope": "Paired durable-request replacement of the real export body and upstream job hooks; plugins disabled equally",
+        "untested": [
+          "crash_recovery",
+          "replica_lag",
+          "webhook_delivery",
+          "email_delivery",
+          "native_celery_delivery_lifecycle",
+          "outbox_recovery"
+        ],
+        "verified": [
+          "real_product_csv_export",
+          "independent_csv_oracle",
+          "durable_job_success",
+          "exact_export_events",
+          "untimed_failure_lifecycle",
+          "dbworker_ledger"
+        ]
+      },
+      "comparison_mode": "paired_durable_request",
+      "configuration": {
+        "business_database": "postgresql",
+        "comparison_mode": "paired_durable_request",
+        "concurrency": 2,
+        "plugins": [],
+        "postgres_fsync": true,
+        "profile": {
+          "products": 256,
+          "repetitions": 5,
+          "requests": 100
+        },
+        "publication": "single pass after durable request commit",
+        "redis_aof": "everysec",
+        "replica": "same primary",
+        "request_database": "sqlite",
+        "retry": "no automatic retry",
+        "setup": "complete upstream migrations; eager maintenance tasks on empty database outside timing",
+        "warmup_requests": 2
+      },
+      "dataset": {
+        "exports": 100,
+        "fields": [
+          "id",
+          "name",
+          "product type",
+          "variant sku"
+        ],
+        "generation": "Product i, SKU-i, one variant per product",
+        "products": 256,
+        "variants": 256
+      },
+      "environment": {
+        "interpreter": "/workspace/benchmarks/environments/saleor/celery/.venv/bin/python",
+        "packages": {
+          "Django": "5.2.17",
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "saleor": "3.24.0-a.0",
+          "sqlalchemy": "2.1.3"
+        },
+        "postgres": "postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+        "python": "3.12.3"
+      },
+      "metrics": {
+        "exports_per_second": 53.20570049110128,
+        "wall_seconds": 1.8794978559999436
+      },
+      "repetition": 4,
+      "scenario": "product_csv_export",
+      "status": "passed",
+      "validation": {
+        "exports": 100,
+        "failure_lifecycle": "passed",
+        "output_digest": "fbd1035acd8d458fdbdce0f36e1c6fd526e40135f5ff5609637b9e3632b6b15e",
+        "passed": true,
+        "products_per_export": 256
+      }
+    },
+    {
+      "backend": "celery",
+      "capabilities": {
+        "scope": "Paired durable-request replacement of the real export body and upstream job hooks; plugins disabled equally",
+        "untested": [
+          "crash_recovery",
+          "replica_lag",
+          "webhook_delivery",
+          "email_delivery",
+          "native_celery_delivery_lifecycle",
+          "outbox_recovery"
+        ],
+        "verified": [
+          "real_product_csv_export",
+          "independent_csv_oracle",
+          "durable_job_success",
+          "exact_export_events",
+          "untimed_failure_lifecycle",
+          "dbworker_ledger"
+        ]
+      },
+      "comparison_mode": "paired_durable_request",
+      "configuration": {
+        "business_database": "postgresql",
+        "comparison_mode": "paired_durable_request",
+        "concurrency": 2,
+        "plugins": [],
+        "postgres_fsync": true,
+        "profile": {
+          "products": 256,
+          "repetitions": 5,
+          "requests": 100
+        },
+        "publication": "single pass after durable request commit",
+        "redis_aof": "everysec",
+        "replica": "same primary",
+        "request_database": "sqlite",
+        "retry": "no automatic retry",
+        "setup": "complete upstream migrations; eager maintenance tasks on empty database outside timing",
+        "warmup_requests": 2
+      },
+      "dataset": {
+        "exports": 100,
+        "fields": [
+          "id",
+          "name",
+          "product type",
+          "variant sku"
+        ],
+        "generation": "Product i, SKU-i, one variant per product",
+        "products": 256,
+        "variants": 256
+      },
+      "environment": {
+        "interpreter": "/workspace/benchmarks/environments/saleor/celery/.venv/bin/python",
+        "packages": {
+          "Django": "5.2.17",
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "saleor": "3.24.0-a.0",
+          "sqlalchemy": "2.1.3"
+        },
+        "postgres": "postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+        "python": "3.12.3"
+      },
+      "metrics": {
+        "exports_per_second": 52.72998278090221,
+        "wall_seconds": 1.8964542510000229
+      },
+      "repetition": 5,
+      "scenario": "product_csv_export",
+      "status": "passed",
+      "validation": {
+        "exports": 100,
+        "failure_lifecycle": "passed",
+        "output_digest": "fbd1035acd8d458fdbdce0f36e1c6fd526e40135f5ff5609637b9e3632b6b15e",
+        "passed": true,
+        "products_per_export": 256
+      }
+    },
+    {
+      "backend": "dbworker",
+      "capabilities": {
+        "scope": "Paired durable-request replacement of the real export body and upstream job hooks; plugins disabled equally",
+        "untested": [
+          "crash_recovery",
+          "replica_lag",
+          "webhook_delivery",
+          "email_delivery",
+          "native_celery_delivery_lifecycle",
+          "outbox_recovery"
+        ],
+        "verified": [
+          "real_product_csv_export",
+          "independent_csv_oracle",
+          "durable_job_success",
+          "exact_export_events",
+          "untimed_failure_lifecycle",
+          "dbworker_ledger"
+        ]
+      },
+      "comparison_mode": "paired_durable_request",
+      "configuration": {
+        "business_database": "postgresql",
+        "comparison_mode": "paired_durable_request",
+        "concurrency": 2,
+        "plugins": [],
+        "postgres_fsync": true,
+        "profile": {
+          "products": 256,
+          "repetitions": 5,
+          "requests": 100
+        },
+        "publication": "single pass after durable request commit",
+        "redis_aof": "everysec",
+        "replica": "same primary",
+        "request_database": "sqlite",
+        "retry": "no automatic retry",
+        "setup": "complete upstream migrations; eager maintenance tasks on empty database outside timing",
+        "warmup_requests": 2
+      },
+      "dataset": {
+        "exports": 100,
+        "fields": [
+          "id",
+          "name",
+          "product type",
+          "variant sku"
+        ],
+        "generation": "Product i, SKU-i, one variant per product",
+        "products": 256,
+        "variants": 256
+      },
+      "environment": {
+        "interpreter": "/workspace/benchmarks/environments/saleor/dbworker/.venv/bin/python",
+        "packages": {
+          "Django": "5.2.17",
+          "celery": "5.6.3",
+          "dbworker": "0.0.6",
+          "saleor": "3.24.0-a.0",
+          "sqlalchemy": "2.1.3"
+        },
+        "postgres": "postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+        "python": "3.12.3"
+      },
+      "metrics": {
+        "exports_per_second": 49.941662719273666,
+        "wall_seconds": 2.0023362169999928
+      },
+      "repetition": 5,
+      "scenario": "product_csv_export",
+      "status": "passed",
+      "validation": {
+        "exports": 100,
+        "failure_lifecycle": "passed",
+        "output_digest": "fbd1035acd8d458fdbdce0f36e1c6fd526e40135f5ff5609637b9e3632b6b15e",
+        "passed": true,
+        "products_per_export": 256
+      }
+    }
+  ],
+  "schema_version": 1,
+  "source": {
+    "commit": "8385ca60ecefa3a068aed3d1a28188e096cdc543",
+    "dirty": false,
+    "expected_commit": "8385ca60ecefa3a068aed3d1a28188e096cdc543",
+    "historical": false,
+    "implementation_sha256": {
+      "benchmarks/common/__init__.py": "bb0609faf6962672e71a7f7c3a2fc365a274e9cd8eaf92ec8a548b88b4c7a2ec",
+      "benchmarks/common/processes.py": "9c5cd3b0c68de327dcdac9087afed540af34a98d721af0297a162221e1928986",
+      "benchmarks/common/reporting.py": "fd60945dca0dab53ec0a7cdfb58ec6bc368fedefbe8ae0cef0f3491a33aeadd6",
+      "benchmarks/locks/saleor.txt": "fbaad602d1dc1796bf8616bfc994d08d540123cd5c45ef49d184aa280bdce775",
+      "benchmarks/registry.json": "d02f9804d02cc309414dc511b63b325515c2b2d0714d15be2aab4cb7a8801284",
+      "benchmarks/run_all.py": "670b6f13a93ca5bcc3563d44cb1895ee6ea383b622cede222ed3cc972862e351",
+      "benchmarks/upstream/__init__.py": "7c7d8a2dfdd9ec5e8abdce344b92e304feb675736a0423397975b3f8d7f18926",
+      "benchmarks/upstream/celery_app.py": "9db5934ae0c51987ae9c445cf1a3e8565159f0e543be238cb30d6cb3d23cf366",
+      "benchmarks/upstream/paperless_ngx_backend.py": "f9b74b5e022f2ae877e84203793db5c4115a5c05e5713a7ffa9e12bc0915d838",
+      "benchmarks/upstream/posthog_backend.py": "f62ce446356ea166b5fbde5167cc7750d3b3cdd13c903544255af616daa4d4c8",
+      "benchmarks/upstream/saleor_backend.py": "c9283444d8cbb49c519666c1f26579afaebdb725cd540a540a8b36e9e5269231",
+      "benchmarks/upstream/sentry_backend.py": "640a6c947ef9233b4c46344a2c85531b07cccafcc429af47d85413d6c05559f0",
+      "benchmarks/upstream/sentry_provision.py": "6d21b7c072fa1b3a7f53fdb503dbedc1fa4a9b2ddbef7dc357b0dca46f3cb3a4",
+      "benchmarks/upstream/suite.py": "116dba6685fb11a9f2627d597b2e6e9d50586fb48c95c3e98f52455949a29d4b",
+      "benchmarks/upstream/superset_backend.py": "f3b0cb6caa624a24fabe70d5ad00e71dbbec9e87c2950b764261eb4174e9fd34",
+      "examples/dbworker_integration/__init__.py": "0ebfeefbbeea1f0514103c27d8514e230fd1a827c38ff1f14eeda119a6dfccb7",
+      "examples/dbworker_integration/runtime.py": "4b6add8ca1ff07f92cd2da45038cf8cfcd3326871151bb662011659828ade57c",
+      "examples/saleor_dbworker/__init__.py": "63d117b282d114e82b3b5a0665eb99ed8c3796fb181828b3bd62951ebf267fa1",
+      "examples/saleor_dbworker/adapter.py": "a9891b25b74368b9f287a09d468fb3a7a91b28d9cc8a0efd62a2460bc38323fd",
+      "examples/saleor_dbworker/benchmark_settings.py": "d35b6ebd858a2fa6115ec8ab811f9a4ab935336dbc99f7bf5307b6b8803f11d6",
+      "src/dbworker.py": "07337100d945b0eccc00654138d15b954c3a546d5907482c30d5c7a05b2ce079"
+    },
+    "local_commit": "9e37e437a37150d47d1295efeee24f4a0ade6124",
+    "repository": "https://github.com/saleor/saleor"
+  },
+  "status": "passed",
+  "suite_id": "saleor",
+  "summary": {
+    "product_csv_export:paired_durable_request": {
+      "backends": {
+        "celery": {
+          "count": 5,
+          "max_wall_seconds": 2.0785045839999157,
+          "median_wall_seconds": 1.9123912399999767,
+          "min_wall_seconds": 1.8794978559999436
+        },
+        "dbworker": {
+          "count": 5,
+          "max_wall_seconds": 2.6362764880000213,
+          "median_wall_seconds": 2.2718972410000333,
+          "min_wall_seconds": 1.830127833000006
+        }
+      },
+      "celery_over_dbworker_wall_ratio": 0.8417595679451546,
+      "comparison_mode": "paired_durable_request",
+      "scenario": "product_csv_export"
+    }
+  }
+}
