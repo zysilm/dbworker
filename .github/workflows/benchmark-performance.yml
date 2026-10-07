@@ -11,8 +11,8 @@ on:
       - 'benchmarks/results/**'
 
 concurrency:
-  group: full-application-benchmarks-${{ github.ref }}
-  cancel-in-progress: true
+  group: native-application-benchmarks-v1-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref == 'refs/heads/main' }}
 
 permissions:
   contents: read

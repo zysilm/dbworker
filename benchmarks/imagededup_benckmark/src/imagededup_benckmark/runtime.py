@@ -15,6 +15,8 @@ from typing import Any, IO
 import httpx
 
 REPOSITORY = Path(__file__).resolve().parents[4]
+# The standalone image package also uses the repository-wide admission checks.
+sys.path.insert(0, str(REPOSITORY))
 WORKERS = 4
 
 
