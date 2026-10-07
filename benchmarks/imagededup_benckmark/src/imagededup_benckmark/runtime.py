@@ -12,8 +12,6 @@ from contextlib import AbstractContextManager
 from pathlib import Path
 from typing import Any, IO
 
-import httpx
-
 REPOSITORY = Path(__file__).resolve().parents[4]
 # The standalone image package also uses the repository-wide admission checks.
 sys.path.insert(0, str(REPOSITORY))
@@ -26,9 +24,38 @@ def free_port() -> int:
         return int(listener.getsockname()[1])
 
 
+def native_celery_business_idle(app: Any) -> bool:
+    """Observe worker state and every Redis priority lane without declaring queues."""
+    inspect = app.control.inspect(timeout=2)
+    responses = [inspect.active(), inspect.reserved(), inspect.scheduled()]
+    if not all(response and len(response) == 2 for response in responses):
+        return False
+    worker_sets = [set(response) for response in responses]
+    if any(workers != worker_sets[0] for workers in worker_sets[1:]):
+        return False
+    for response in responses:
+        for tasks in response.values():
+            for task in tasks:
+                item = task.get("request", task)
+                if item.get("name") in ("images.build", "images.compare"):
+                    return False
+    with app.connection_for_read() as connection:
+        if connection.transport.driver_type != "redis":
+            raise RuntimeError("Image Celery idle observation requires the native Redis transport")
+        channel = connection.channel()
+        # Redis removes a list key when its final message is consumed. Passive
+        # queue declaration tests key existence and consequently rejects a
+        # healthy empty queue. Kombu's Redis _size uses LLEN for every configured
+        # priority lane, including key-prefix handling, without changing broker
+        # state. Missing lanes have length zero.
+        return all(channel._size(queue) == 0 for queue in ("image_build", "image_compare"))
+
+
 class Stack(AbstractContextManager["Stack"]):
     def __init__(self, backend: str, directory: Path, *, page_size: int,
                  python: Path | None = None, redis_server: str = "redis-server", import_root: Path | None = None) -> None:
+        import httpx
+
         self.backend = backend
         self.directory = directory
         self.database = directory / "application.db"
@@ -59,6 +86,8 @@ class Stack(AbstractContextManager["Stack"]):
                 raise RuntimeError(f"{role} exited with {process.returncode}; see {self.directory / (role + '.log')}")
 
     def wait_for_http(self) -> None:
+        import httpx
+
         deadline = time.monotonic() + 180
         while time.monotonic() < deadline:
             self.check_alive()
@@ -179,21 +208,8 @@ print(json.dumps(evidence))
             return True
         code = """import json
 from imagededup_system_redis_celery.celery_app import app
-inspect = app.control.inspect(timeout=2)
-responses = [inspect.active(), inspect.reserved(), inspect.scheduled()]
-idle = all(response and len(response) == 2 for response in responses)
-for response in responses:
-    for tasks in (response or {}).values():
-        for task in tasks:
-            item = task.get('request', task)
-            if item.get('name') in ('images.build', 'images.compare'):
-                idle = False
-with app.connection_for_read() as connection:
-    channel = connection.channel()
-    for queue in ('image_build', 'image_compare'):
-        if channel.queue_declare(queue=queue, passive=True).message_count:
-            idle = False
-print(json.dumps({'idle': idle}))
+from imagededup_benckmark.runtime import native_celery_business_idle
+print(json.dumps({'idle': native_celery_business_idle(app)}))
 """
         result = subprocess.check_output([str(self.python), "-c", code], env=self.environment,
                                          cwd=self.directory, text=True, timeout=30)

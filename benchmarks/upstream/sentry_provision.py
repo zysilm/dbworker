@@ -30,7 +30,7 @@ def provision(uv="uv"):
                 "--no-binary", "lxml", "--no-binary", "xmlsec",
                 "--reinstall-package", "lxml", "--reinstall-package", "xmlsec",
                 "--build-constraint", "benchmarks/locks/sentry-build.txt",
-                "lxml==4.9.3", "xmlsec==1.3.17")
+                "lxml==4.9.3", "xmlsec==1.3.14")
             subprocess.run([str(python), "-c",
                 "from benchmarks.upstream.sentry_backend import xml_library_linkage; "
                 "print(xml_library_linkage())"], cwd=ROOT, check=True)

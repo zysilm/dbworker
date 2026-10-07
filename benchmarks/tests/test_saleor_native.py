@@ -6,6 +6,8 @@ import ast
 import datetime
 import json
 import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -23,6 +25,54 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class SaleorNativeTests(unittest.TestCase):
+    def test_fresh_coordinator_claims_commits_and_does_not_reclaim_finished_job(self):
+        # A fresh interpreter keeps SQLAlchemy metadata pristine: another test's
+        # registered ledger must not mask first-use schema creation failures.
+        script = '''
+import sys
+from sqlalchemy import inspect
+from dbworker import ExecutionStatus, Finished, _execute_claim
+from examples.saleor_dbworker.runtime import Job, coordinator
+
+runtime = coordinator("sqlite:///" + sys.argv[1], concurrency=1)
+engine = runtime.session_factory.kw["bind"]
+try:
+    assert "saleor_work" in inspect(engine).get_table_names()
+    with runtime.session_factory.begin() as session:
+        job = Job(task_id="first-delivery", operation_id="operation-1", parent_id=None,
+                  task_name="export-products", payload="pending")
+        session.add(job)
+        session.flush()
+        identity = job.id
+    worker = runtime.workers["saleor"]
+    with runtime.session_factory() as session:
+        assert runtime.execution_status(session, worker="saleor", source_id=identity) is None
+
+    def complete(source, session):
+        source.payload = "persisted-handler-write"
+        session.flush()
+        return Finished()
+
+    worker.handler = complete
+    claim = runtime.claim(worker)
+    assert claim is not None and claim.source_id == identity
+    with runtime.session_factory() as session:
+        assert runtime.execution_status(session, worker="saleor", source_id=identity) == ExecutionStatus.WORKING
+    assert isinstance(_execute_claim(worker, claim, runtime.session_factory), Finished)
+    with runtime.session_factory() as session:
+        assert session.get(Job, identity).payload == "persisted-handler-write"
+        assert runtime.execution_status(session, worker="saleor", source_id=identity) == ExecutionStatus.FINISHED
+    assert runtime.claim(worker) is None
+    print("Durable handler write and completion committed; finished job was not reclaimed")
+finally:
+    engine.dispose()
+'''
+        with tempfile.TemporaryDirectory() as temporary:
+            result = subprocess.run([sys.executable, "-c", script, str(Path(temporary) / "fresh.db")],
+                                    cwd=ROOT, capture_output=True, text=True, timeout=30)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("finished job was not reclaimed", result.stdout)
+
     def test_clean_provisioning_installs_smtp_receiver_in_both_backend_environments(self):
         from benchmarks.provision import provision
 

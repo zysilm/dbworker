@@ -110,4 +110,5 @@ def coordinator(database_url, concurrency=2):
     runtime = Coordinator(sessionmaker(engine, expire_on_commit=False), database_url=database_url,
                           poll_seconds=.05, max_poll_seconds=.25, lease_seconds=300)
     runtime.transactional_worker(name="saleor", source=Job, concurrency=concurrency)(handle)
+    runtime.create_worker_tables()
     return runtime

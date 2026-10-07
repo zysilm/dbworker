@@ -308,8 +308,8 @@ def main():
         environment["compatibility_deviations"] = {"hiredis": {
             "historical": "0.3.1", "selected": "2.3.2",
             "reason": "Original setup imports imp, removed in Python 3.12; both arms use the same Redis parser pin"},
-            "xmlsec": {"historical": "1.3.13", "selected": "1.3.17",
-                       "reason": "Inherited isolated historical lock uses an ARM-compatible extension; XML signing is outside the email fixture"},
+            "xmlsec": {"historical": "1.3.13", "selected": "1.3.14",
+                       "reason": "Minimum release removes obsolete SOAP constants for modern libxmlsec and accepts original lxml4.9.3 build headers; both extensions use identical system libxml2"},
             "typing-extensions": {"historical": "4.5.0", "selected": "4.6.0",
                        "reason": "SQLAlchemy's declared dependency requires >=4.6.0; both application environments use the same minimum compatible pin"},
             "grpcio": {"historical": "1.56.0", "selected": "1.59.3",

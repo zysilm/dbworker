@@ -19,7 +19,10 @@ class SentryProvisionTest(unittest.TestCase):
                 "--no-cache", "--no-deps", "--no-binary", "lxml", "--no-binary", "xmlsec",
                 "--reinstall-package", "lxml", "--reinstall-package", "xmlsec",
                 "--build-constraint", "benchmarks/locks/sentry-build.txt",
-                "lxml==4.9.3", "xmlsec==1.3.17"])
+                "lxml==4.9.3", "xmlsec==1.3.14"])
+        lock = (sentry_provision.ROOT / "benchmarks/locks/sentry-native.txt").read_text().splitlines()
+        self.assertIn("lxml==4.9.3", lock)
+        self.assertIn("xmlsec==1.3.14", lock)
         self.assertFalse(any("--no-binary-package" in command for command in commands))
 
 

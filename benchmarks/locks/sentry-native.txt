@@ -7,6 +7,8 @@
 # build failed with modern Clang; grpcio-status remains at its original pin.
 # Provision rebuilds pinned lxml and xmlsec from source against the same system
 # libxml2; mixed binary wheels fail the native Django URL-check SAML import.
+# xmlsec 1.3.13 -> 1.3.14 removes obsolete SOAP constants and accepts historical
+# lxml build headers; 1.3.17 requires incompatible lxml==6.0.2 headers.
 amqp==5.2.0
 anyio==3.7.1
 asgiref==3.7.2
@@ -153,7 +155,7 @@ uritemplate==4.1.1
 urllib3==2.0.7
 vine==5.1.0
 wcwidth==0.2.10
-xmlsec==1.3.17
+xmlsec==1.3.14
 zstandard==0.18.0
 
 aiosmtpd==1.4.6

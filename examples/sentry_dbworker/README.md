@@ -64,13 +64,20 @@ provides Python 3.12 macOS and Linux wheels. `grpcio-status==1.56.0` remains pin
 its declared `grpcio>=1.56.0` constraint accepts this version. RPC is outside the
 email fixture, while all original Sentry imports and task instrumentation remain.
 
-The isolated historical lock already used `xmlsec==1.3.17` instead of the upstream
-1.3.13 pin for ARM-compatible packaging. That inherited deviation remains recorded
-for both arms. XML signing is outside the selected email workload.
+Both arms select `xmlsec==1.3.14` instead of upstream 1.3.13. This minimum next
+release removes obsolete SOAP constants used by 1.3.13 that are absent from modern
+libxmlsec. Its [original build requirements](https://github.com/xmlsec/python-xmlsec/blob/1.3.14/pyproject.toml)
+accept the unchanged `lxml==4.9.3` headers and historical setuptools constraints.
+The previous isolated lock selected 1.3.17 for packaging, but its
+[build requirements](https://github.com/xmlsec/python-xmlsec/blob/1.3.17/pyproject.toml)
+force `lxml==6.0.2` and `setuptools==80.9.0`, producing a real unsatisfiable
+source-build resolution with the historical application graph. Build isolation
+remains enabled, and the declared requirements are honored. XML signing is
+outside the selected email workload.
 
 A real Linux native worker startup exposed incompatible bundled libxml2 versions
 in the lxml and xmlsec wheels while Django checked the original SAML URLs. The
-provisioner retains `lxml==4.9.3` and `xmlsec==1.3.17`, rebuilding both from source
+provisioner uses `lxml==4.9.3` and `xmlsec==1.3.14`, rebuilding both from source
 against the same system libxml2 in each arm. It discards cached builds for these
 two packages and checks their compiled and runtime library versions before
 admission. Each result records this linkage evidence. Native URL checks remain
