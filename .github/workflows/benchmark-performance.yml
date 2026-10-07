@@ -11,7 +11,7 @@ on:
       - 'benchmarks/results/**'
 
 concurrency:
-  group: native-application-benchmarks-v1-${{ github.ref }}
+  group: native-application-benchmarks-v1-${{ github.ref == 'refs/heads/main' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.ref == 'refs/heads/main' }}
 
 permissions:
@@ -94,7 +94,7 @@ jobs:
             mv "$directory" "incoming/${directory##*/benchmark-}"
           done
       - name: Verify aggregation and report integrity
-        run: python -m unittest benchmarks.tests.test_ci_results benchmarks.tests.test_reporting benchmarks.tests.test_native_admission benchmarks.tests.test_native_origin benchmarks.tests.test_native_observer benchmarks.tests.test_workflow_graph benchmarks.tests.test_performance_admission
+        run: python -m unittest benchmarks.tests.test_ci_results benchmarks.tests.test_reporting benchmarks.tests.test_native_admission benchmarks.tests.test_native_origin benchmarks.tests.test_native_observer benchmarks.tests.test_sentry_provision benchmarks.tests.test_workflow_graph benchmarks.tests.test_performance_admission
       - name: Assemble a complete validated result set
         env:
           RUN_ID: github-${{ github.run_id }}-${{ github.run_attempt }}

@@ -27,7 +27,7 @@ def provision(uv="uv"):
             # checks import both extensions, so build the unchanged pins against
             # the same system libraries, including on an existing environment.
             run("pip", "install", "--python", python, "--no-cache", "--no-deps",
-                "--no-binary-package", "lxml", "--no-binary-package", "xmlsec",
+                "--no-binary", "lxml", "--no-binary", "xmlsec",
                 "--reinstall-package", "lxml", "--reinstall-package", "xmlsec",
                 "--build-constraint", "benchmarks/locks/sentry-build.txt",
                 "lxml==4.9.3", "xmlsec==1.3.17")
