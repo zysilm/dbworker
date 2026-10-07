@@ -1,4 +1,4 @@
-# Application Benchmark Harness
+# Application benchmark harness
 
 Run all six repository experiments sequentially from one Python entry point:
 
@@ -6,89 +6,93 @@ Run all six repository experiments sequentially from one Python entry point:
 python benchmarks/run_all.py --profile full --provision
 ```
 
-The runner never launches suites or backend measurements in parallel. It writes
-one JSON per repository, an `index.json`, and a generated `report.md` after success. Application workers
-can execute requests concurrently within one experiment; this is distinct from
-running experiments concurrently. Backend order alternates between repetitions.
+The standalone runner never launches suites or backend measurements in parallel.
+Workers may process jobs concurrently inside an experiment. Backend order alternates
+between repetitions. Each suite produces a result JSON; the invocation also produces
+`index.json` and generates `report.md` only from admitted results.
 
-## Implemented experiments
+## Native comparison contract and validation status
 
-The complete full profile passed on a local macOS host with 80 validated samples.
-See [full index](results/all-full-validated/index.json) and
-[local full results](../doc/benchmark-full-local-results.md).
-GitHub-hosted Linux execution must be confirmed by the first CI run.
-Capability research and planning are preserved separately on the `extension1-research` branch.
+The implemented comparisons use each pinned application's original Celery app and
+task entry points. DBWorker variations replace scheduling while preserving business
+work and individual job granularity. No benchmark-defined Celery task wraps an
+extracted business function. Child jobs remain separate jobs on both backends.
 
-| Suite | Actual operation and checks | Current comparison scope |
-|---|---|---|
-| `imagededup` | Image hashes, paged top-K comparisons, mixed workloads; original full output validation | Existing two native example stacks |
-| `superset` | Real SQL Lab aggregation of 10,000 rows; independent aggregate oracle, durable query success, DBWorker ledger | Paired durable requests; SQLite metadata, request and analytical databases |
-| `saleor` | Real product/variant CSV export; exact rows, file hash, job status, pending/success events; untimed failure lifecycle | Paired durable requests; PostgreSQL business database, SQLite request database; plugins disabled equally |
-| `paperless_ngx` | Unchanged ingestion pipeline; raster scans, real Tesseract/OCRmyPDF, persisted documents, originals, thumbnails and Tantivy search | Paired durable requests; SQLite; auxiliary Redis progress on both backends |
-| `posthog` | Original template rendering and CSS inlining, original SMTP send, real MessagingRecord rows and complete receiver content validation | Paired durable requests; PostgreSQL; scoped real notification application; rendering occurs before timing |
-| `sentry` | Original historical SMTP utility with real app initialization; multipart content, envelopes, headers and accepted counts | Historical 24.1.0; identical synchronous subprocess bridge on both backends |
+**Complete full-profile validation of all six native workflows is pending.**
+Implementation, source checks, and unit tests are not a successful performance run.
+Previously retained paired-callable and subprocess-bridge JSON files are historical
+results; they must not be relabeled or published as native workflow measurements.
+Capability research remains on the separate `extension1-research` branch.
 
-The upstream suites measure specific application boundaries rather than complete
-native Celery lifecycle replacement. They reuse pinned upstream code through
-sibling `*_dbworker` packages. Nested Kombu publication and Celery eager execution
-are rejected in DBWorker operations. A result is successful only after real output
-and durable completion checks pass.
+| Suite | Implemented native workflow | Per-backend full workload in each repetition |
+| --- | --- | --- |
+| `imagededup` | This repository's original Celery example; image hashing, bounded comparison pages and mixed workloads | 1,000 measured images per scenario; actual build and scoring-page jobs are checked against matching inputs and page bounds |
+| `superset` | Authenticated SQL Lab REST submission, original async task, result storage and authenticated retrieval | 100 query jobs against 10,000 fixture rows; one `sql_lab` job per query |
+| `saleor` | Original export task and lifecycle, upstream plugins, separately queued admin-email notification | 100 exports of 256 products plus 100 email jobs; one export-to-email edge per operation; no webhook subscriptions |
+| `paperless_ngx` | Original folder producer and unsplit ingestion task, tracked lifecycle and real OCR pipeline | 100 scans and 100 ingestion jobs; original documents, OCR text, archives, thumbnails and search are checked |
+| `posthog` | Original 2FA notification task and child delivery task, with full native application/settings | 100 notification jobs plus 100 delivery jobs; rendering and SMTP delivery remain inside timing |
+| `sentry` | Historical original `MessageBuilder.send_async` and native email tasks with persistent workers | 100 operations, each with two distinct recipients, producing 200 individual delivery jobs |
 
-On macOS, Paperless's native parser libraries crash in fork children. Its diagnostic
-Celery worker therefore uses two threads, while DBWorker uses spawned processes.
-This difference is recorded and prevents interpreting local timing as an equivalent
-process-pool performance comparison. Linux uses the configured process pool.
+The upstream suites use sibling `*_dbworker` packages without editing the pinned
+sources. Unexpected stages, unsupported continuations, missing jobs, duplicate
+attempts and unequal task graphs prevent admission. A deliberately unsplit or
+subscription-free fixture is a declared workload boundary, not evidence of support
+for every workflow in that application.
 
-## Prerequisites and isolated provisioning
+## Provisioning and execution environments
 
-Initialize the pinned sources, install `uv>=0.12.23`, and expose required native binaries:
+Initialize the pinned sources and expose the required native binaries:
 
 ```sh
 git submodule update --init --depth 1
 python benchmarks/run_all.py --profile full --provision --output-dir benchmarks/results/my-full
 ```
 
-Provisioning creates separate benchmark, Celery and DBWorker environments under
-`benchmarks/environments/`; it does not activate shells or overwrite existing user
-venvs. A private orchestrator environment is bootstrapped if its dependencies are
-absent. Installation, migrations, fixtures and warm-up are outside workload timing.
-Omit `--provision` when the environments already exist.
+Install `uv>=0.12.23`. Provisioning creates separate benchmark, Celery and DBWorker
+environments under `benchmarks/environments/`; it does not activate shells. A private
+orchestrator environment is bootstrapped when needed. Omit `--provision` to reuse
+already provisioned environments. Installation, migrations, fixture generation,
+worker startup and warmup are outside workload timing on both arms.
 
-Required native inputs include Redis, PostgreSQL (`initdb`, `postgres`, `psql`),
+Native prerequisites include Redis, PostgreSQL (`initdb`, `postgres`, `psql`),
 Tesseract with English and OSD data, Ghostscript, ImageMagick, Poppler and libmagic.
-PostgreSQL clusters run as an unprivileged user. Native binary installation and
-interpreter builds are host prerequisites, not performed by the Python provisioner.
-The first image run can download its real MIRFLICKR corpus.
+PostgreSQL runs as an unprivileged user. Native binary installation and interpreter
+availability are host prerequisites. The image suite can download the real
+MIRFLICKR corpus on its first run.
 
-Most queue environments use Python 3.12. PostHog's two queue environments require
-exact Python 3.14.7; supply that interpreter when `uv` cannot download it on the
-host platform. Its scoped dependency lock excludes unrelated analytics products
-but executes the original notification models, templates and business module.
-Selected support exports are compiled from their original AST nodes; source
-projection boundaries are recorded in results.
+Most queue environments use Python 3.12. PostHog queue environments require exactly
+Python 3.14.7 and provision the complete frozen upstream dependency graph rather
+than a projected notification-only application. Its source imports, settings and
+business functions remain original; environment overrides isolate local services.
 
-Sentry uses modern Python 3.12 queue environments and a separate historical Python
-3.10.20 application environment. The historical frozen requirements were generated
-on 3.10 and do not resolve on 3.8. The lock includes an explicitly documented xmlsec
-wheel compatibility adjustment, outside the measured SMTP feature. Both queue
-backends include the same per-operation legacy initialization and bridge cost.
-This experiment does not describe current Sentry's taskbroker.
+Sentry is pinned to historical 24.1.0. Its native application must initialize inside
+each backend's supported interpreter, including Python >=3.12 for DBWorker. Historical
+Python 3.10 is not a substitute for a supported DBWorker runtime. Dependency or
+initialization incompatibility produces a structured blocker; no per-operation
+application subprocess bridge is used. This suite does not describe modern Sentry's
+taskbroker.
 
-Dependency constraints are retained in `benchmarks/locks/`; actual interpreter,
-package, source and implementation identities appear in JSON. Native versions and
-runner hardware remain inputs that must be fixed before performance baselines.
+The native Paperless Celery pool retains prefork and child recycling. Linux is
+required for its admitted comparison; macOS threads are not used as a substitute.
+Pool and lifecycle differences between the native app and DBWorker are recorded,
+not silently normalized away.
 
-## Selection and interpreter overrides
+Dependency constraints and provisioning rules live in `benchmarks/locks/` and
+`benchmarks/provision.py`. JSON records interpreter, package, source and implementation
+identities together with infrastructure overrides and available resource metrics.
 
-An output directory must be new. Without `--suite`, all six registry entries run
-in their listed order. Provisioning and experiment failures preserve per-suite JSON/log reports and do not silently exclude suites; later suites are still attempted.
-For development, select a subset explicitly:
+## Suite selection and interpreter overrides
+
+Use a new output directory for each invocation. Without `--suite`, the registry
+entries run in their listed order. Failed provisioning or experiments retain error
+reports and logs; later suites are still attempted rather than silently excluded.
+To select a suite explicitly:
 
 ```sh
 python benchmarks/run_all.py --profile full --suite saleor --provision --output-dir benchmarks/results/my-saleor-full
 ```
 
-Override executable paths with `--interpreters PATH_TO_JSON`:
+Override interpreter paths with `--interpreters PATH_TO_JSON`:
 
 ```json
 {
@@ -96,72 +100,82 @@ Override executable paths with `--interpreters PATH_TO_JSON`:
     "benchmark_python": "/opt/bench/superset-harness/bin/python",
     "celery_python": "/opt/bench/superset-celery/bin/python",
     "dbworker_python": "/opt/bench/superset-dbworker/bin/python"
-  },
-  "sentry": {
-    "upstream_python": "/opt/bench/sentry-legacy/bin/python"
   }
 }
 ```
 
-The Sentry backend passes the configured upstream interpreter to the bridge
-explicitly. It is a synchronous utility invocation, not a second task queue.
+The registry is authoritative: only `full` is supported, with five repetitions,
+1,000 measured images and eight warmup images for the image suite, or 100 measured
+operations and two warmup operations for each upstream suite. Auxiliary jobs are
+additional work, not replacements for the top-level operation count.
 
-## Profiles, results and limitations
+## Evidence, admission and measurement boundaries
 
-Full uses five repetitions: 1,000 measured images and 8 warm-up images,
-or 100 upstream requests per backend and repetition. Saleor exports 256 products
-each time. Only the full profile is supported; the registry is authoritative.
+Native admission checks the worker launch AST, the live original application/task
+objects and their source identities, and the pristine pinned checkout. Retained
+append-only JSONL traces describe submitted, started and terminal business jobs,
+including operation identities and parent/child relationships. Result JSON includes
+the trace path and SHA-256. Independent report admission replays these traces,
+checks the expected graph per operation, and compares the two backend graphs.
+Submission observations record publication intent before transport, so a fast
+worker can correlate protocol-1 tasks. Intent alone is insufficient: every job
+must also have matching execution and successful completion evidence.
 
-Reports retain configuration, source pins/hashes, datasets, samples, validators,
-errors and artifacts. Comparable samples require identical backend repetition sets, all repetitions
-requested by the registry profile, and matching normalized output digests. Nonfinite metrics, duplicate samples,
-wrong identities and altered JSON checksums are rejected.
+Reports retain configuration, datasets, samples, validators, errors and artifacts.
+Admission also checks source pins, full profile coverage, matching backend repetition
+sets, normalized business-output digests and artifact checksums. Uncorrelated tasks,
+unexpected stages, duplicates, failed attempts, invalid identities and nonfinite
+metrics cannot become an official successful comparison.
 
-Image reports preserve stack resource measurements. Upstream experiments currently
-record wall time and their own throughput unit; they do not provide a complete
-stack CPU/memory or latency-distribution comparison. App-owned ORM/file/SMTP effects
-are independent of DBWorker's completion transaction. A durable request alone does
-not establish crash-safe publication, atomic remote effects or equivalent retry.
-These capabilities are explicitly untested. Superset and Paperless remain SQLite
-profiles; their planned PostgreSQL profiles are not implemented.
+Timing begins with real submission and includes all required workflow stages and
+business effects. Superset includes async result retrieval; notification workflows
+include actual SMTP acceptance and their required application records. Each scenario
+checks independent business outputs, not just queue acknowledgement or a completion
+flag. Warmup identities are explicitly excluded from measured graphs.
 
-## Markdown and CI
+Metrics vary by suite. Wall time and throughput are reported in the suite's own
+units; unavailable CPU/RSS metrics are declared rather than fabricated. App-owned
+ORM, file and SMTP effects may be independent of DBWorker's completion transaction.
+These successful-work experiments do not establish crash-safe publication, atomic
+remote side effects, equivalent retry policy, timeout handling or cancellation.
+Superset and Paperless use declared SQLite business fixtures; PostgreSQL coordination
+coverage is provided by the PostHog fixture rather than every suite.
 
-Successful invocations automatically generate result-directory `report.md`.
-Regenerate Markdown or write the dedicated publication document from retained JSON
-without starting applications:
+## Generated Markdown and CI
+
+Generate Markdown from retained evidence without starting applications:
 
 ```sh
 python benchmarks/render_results.py --run-dir benchmarks/results/RUN_ID --output doc/benchmark-results.md
 ```
 
-Official rendering requires every registered suite to pass in a complete `full`
-invocation. Add `--allow-partial` only for clearly labeled diagnostic partial
-Markdown. Incomplete results do not overwrite the official performance document.
-Ratios are Celery wall time / DBWorker wall time; different workload units are not
-averaged into one score.
+Official rendering requires every registered suite to pass a complete admitted
+`full` invocation. `--allow-partial` is for clearly labeled diagnostic Markdown;
+partial results do not replace the official performance document. Ratios use Celery
+wall time / DBWorker wall time. Different workload units are not averaged into one
+score.
 
-The benchmark workflow runs only on pushes to `main` that change executable
-inputs; README, documentation and result-only updates are excluded. It does not
-run on pull requests. Six matrix jobs run concurrently on separate fresh
-`ubuntu-24.04` VMs, each building a new Docker image and provisioning only its
-own suite. Celery and DBWorker measurements remain sequential within each suite.
-The standalone Python entry point still runs every suite sequentially.
+The GitHub workflow runs on executable-input pushes to `main`, including merged
+changes, and excludes documentation-only and result-only changes. It does not run
+on pull requests. Six matrix jobs execute concurrently on separate fresh
+`ubuntu-24.04` VMs. Each builds a new Docker image and provisions its own suite.
+Celery and DBWorker measurements remain sequential within each matrix job; the
+standalone Python entry point also runs all suites sequentially.
 
-All jobs share a run ID and measured source revision. The final job accepts only
-complete, checksum-valid full results matching the registered workload and source
-pins. It replaces `benchmarks/results/latest`, writes `doc/benchmark-results.md`,
-and replaces the final README table with median timings and a bold faster backend.
-Only JSON evidence and generated Markdown enter the result commit. Failure logs
-are uploaded separately with seven-day artifact retention. Failed or incomplete
-runs never update README. Publication skips stale runs if `main` has advanced;
-normal pushes honor branch protection and never force-update `main`. The workflow
-requires permission for `GITHUB_TOKEN` to push to `main`.
+A final aggregation job waits for all six experiments. It independently validates
+full workload coverage, source revision and pins, result checksums, native execution
+evidence and persisted JSONL task traces. Only a complete admitted run replaces
+`benchmarks/results/latest`, generates `doc/benchmark-results.md`, and updates the
+compact final README table with median timings and a bold faster backend. Published
+evidence includes result JSON and JSONL traces. Failure diagnostics are uploaded
+separately with seven-day artifact retention.
 
-GitHub-hosted VM hardware can vary between runs. The paired measurements share
-one VM and container within each experiment; results include environment metadata.
+Failed, blocked, incomplete or stale runs never update the official table. Publication
+skips a run if `main` has advanced and uses a normal push with `GITHUB_TOKEN` write
+permission; it never force-updates `main`. Paired measurements share one VM/container
+within a suite, while hosted hardware can vary across runs.
 
-Run harness checks in an environment containing psutil, Celery and SQLAlchemy:
+Run harness checks in an environment containing the applicable dependencies:
 
 ```sh
 PYTHONPATH=.:src benchmarks/environments/superset/dbworker/.venv/bin/python -m unittest discover -s benchmarks/tests

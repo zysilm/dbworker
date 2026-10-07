@@ -73,6 +73,8 @@ failure handling, and configuration.
 <!-- benchmark-results:start -->
 ## Benchmark Results
 
+The table below is a historical paired-callable run. Native application results are pending full validation.
+
 Median wall time in seconds; **bold** marks the faster backend. Each experiment runs in a fresh Docker container on its own GitHub-hosted Ubuntu VM.
 
 | Experiment | Scenario | Celery (s) | DBWorker (s) | Celery / DBWorker |

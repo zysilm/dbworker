@@ -1,13 +1,42 @@
-# PostHog notification variation
+# Native PostHog two-stage notification variation
 
-This variation measures `pre_rendered_notification_smtp`, using the pinned PostHog checkout's real notification code. It does not boot the entire analytics application. Both backend environments use the exact Python 3.14.7 version required by that checkout.
+The baseline now starts the original `posthog.celery:app`, its original Django
+application/settings/import graph and its existing email queue. It publishes the
+original `posthog.tasks.email.send_two_factor_auth_enabled_email` task. That task
+loads a genuine User, renders/inlines the original notification template and
+publishes the original `posthog.email._send_email` task. Both stages are timed.
+No benchmark Celery application/task, eager execution, projected AST module,
+two-model synthetic application or pre-rendered payload replaces this baseline.
 
-The adapter calls the unchanged upstream `posthog.email._send_email_now` function, then checks the genuine `MessagingRecord` delivery records. Fixture setup constructs the upstream `EmailMessage`, renders the upstream `2fa_enabled` template with its base and styles, and performs actual CSS inlining. Rendering and independent checks of the expected notification text occur before timing. The measured operation starts with a durable request and includes notification record handling, SMTP delivery and completion persistence. Two warm-up requests precede measured work.
+The DBWorker sibling has one durable notification row and a separate durable
+delivery row per operation. The original notification callable runs with a narrow
+process-local interception of only its delivery publication. The child payload
+is persisted separately; another handler invokes the original delivery callable.
+Actual user lookup, original subject/campaign generation, user display metadata,
+empty native plain body, template/CSS work, SMTP fallback and MessagingRecord
+transactions are retained. The two stages share two process slots. Exception
+retries persist attempts and next-run times with native max-three exponential
+backoff/jitter; successful-work admission rejects observed retry/duplicate traces.
+Crash/replay correctness is not claimed merely from that policy implementation.
 
-A scoped Django application registers the original `InstanceSetting` and `MessagingRecord` models and creates their genuine schema in an isolated PostgreSQL database. `bootstrap.py` loads original business modules, models, helpers and templates without editing the submodule. Package namespaces bypass unrelated application initializers. A small, explicitly listed set of support functions, constants and `UUIDTModel` is compiled from original source AST nodes with the required imports; those definitions are not reimplemented or mocked. This projection is a benchmark application configuration, and its mapping plus source-file SHA256 values are recorded in each sample.
+The business boundary starts before notification publication and ends after both
+observed stages succeed, the receiver accepts mail, and DBWorker source completion
+is durable. Full-scale 100 operations require 200 observed business nodes per arm,
+one notification-to-delivery edge per operation. Control ping is not business work.
+The native observer does not replace task bodies; origin checks verify task bodies
+and the original exported application. Sample JSON retains the observed graph and
+the trace path/hash. Existing paired-send results are historical diagnostics and
+must not be relabeled as native measurements.
 
-Celery with Redis and DBWorker use the same durable request schema and adapter. The local SMTP server accepts real messages over TCP. Validation checks recipient counts, envelope and MIME identities, subject, plain and HTML bodies, Unicode text, fixture headers, reply-to, dates, unique transport Message-IDs, durable sent records and the DBWorker ledger. Comparable digests exclude variable transport IDs and dates while retaining business content. The configured host points only to the owned local sink.
+A pristine full native application dependency installation is now necessary.
+The earlier notification-slice lock is insufficient: an actual initialization
+attempt fails on missing `django_structlog`, before database/SMTP work. Further
+native dependency or service requirements are not presumed resolved. PostgreSQL,
+Redis and SMTP listeners are also prohibited in the current restricted execution
+environment. No native live experiment or new performance result is claimed.
+Admission failures produce `admission.json`, a nonzero exit and no successful
+sample; there is no fallback to the old sliced application.
 
-This experiment does not measure ClickHouse, the whole PostHog application, original Celery autoretry behavior, campaign deduplication, salt rotation, rejected deliveries, error capture or recovery after ambiguous SMTP acceptance. PostgreSQL business records and SQLAlchemy completion records use independent transactions. A passing result does not establish atomic email delivery or exactly-once behavior.
-
-Use `benchmarks/locks/posthog.txt` for both backend venvs and install the root DBWorker project. The orchestration environment is separate. Native dependencies are PostgreSQL (`initdb`, `postgres`, `psql`) and Redis. Source checkout cleanliness and commit identity are checked by the common runner before execution.
+Offline checks verify the original worker command, absence of AST/module
+projection and separate durable row/trace graph accounting. They do not claim
+that native models, migrations, hooks, transport or retries were executed.

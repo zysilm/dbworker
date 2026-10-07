@@ -41,6 +41,8 @@ class Stack(AbstractContextManager["Stack"]):
         self.startup_seconds = 0.0
         self.versions: dict[str, Any] = {}
         self.http_samples: list[tuple[str, float]] = []
+        self.observation_file = directory / "operations.jsonl"
+        self.native_execution: dict[str, Any] = {}
 
     def start_process(self, role: str, command: list[str], env: dict[str, str]) -> None:
         log = (self.directory / f"{role}.log").open("wb")
@@ -74,11 +76,20 @@ class Stack(AbstractContextManager["Stack"]):
         self.directory.mkdir(parents=True, exist_ok=False)
         started = time.perf_counter()
         env = os.environ.copy()
+        observer_source = REPOSITORY / "benchmarks" / "imagededup_benckmark" / "src"
+        example_source = REPOSITORY / "examples" / f"imagededup_system_{self.backend}" / "src"
+        env["PYTHONPATH"] = os.pathsep.join([str(observer_source), str(example_source), str(REPOSITORY),
+                                           env.get("PYTHONPATH", "")])
+        env.update(IMAGE_OBSERVATION_DATABASE=str(self.database), IMAGE_OBSERVATION_FILE=str(self.observation_file),
+                   IMAGE_OBSERVATION_BACKEND="dbworker" if self.backend == "dbwork" else "celery")
         # Both scientific stacks receive the same thread limits. CPU parallelism
         # comes from four worker processes of each type, not nested BLAS pools.
         env.update(OMP_NUM_THREADS="1", OPENBLAS_NUM_THREADS="1", MKL_NUM_THREADS="1",
                    VECLIB_MAXIMUM_THREADS="1", NUMEXPR_NUM_THREADS="1")
+        self.environment = env
         try:
+            from benchmarks.common.native_admission import check_worker_source
+            self.native_execution = check_worker_source(Path(__file__).read_text(), "imagededup")
             if not self.python.is_file():
                 raise FileNotFoundError(f"Install the example's Poetry environment first: {self.python}")
             code = """import importlib.metadata as m, json, platform
@@ -95,7 +106,26 @@ print(json.dumps(result))
                 env.update(DBWORKER_DATABASE_URL=f"sqlite:///{self.database}", DBWORKER_BUILD_WORKERS="4",
                            DBWORKER_COMPARISON_WORKERS="4", DBWORKER_COMPARISON_PAGE_SIZE=str(self.page_size),
                            DBWORKER_IMPORT_ROOT=str(self.import_root))
+                env["DBWORKER_OBSERVER_MODULE"] = "imagededup_benckmark.observation"
             else:
+                admission_code = """import json, sys
+from pathlib import Path
+from imagededup_system_redis_celery.celery_app import app
+import imagededup_system_redis_celery.tasks
+from benchmarks.common.native_admission import check_original_tasks
+evidence = check_original_tasks(app, ['images.build', 'images.compare', 'images.dispatch'],
+    Path(sys.argv[1]),
+    expected_application='imagededup_system_redis_celery.celery_app:app',
+    configuration={'task_acks_late': app.conf.task_acks_late,
+                   'task_reject_on_worker_lost': app.conf.task_reject_on_worker_lost,
+                   'worker_prefetch_multiplier': app.conf.worker_prefetch_multiplier,
+                   'task_soft_time_limit': app.conf.task_soft_time_limit,
+                   'task_time_limit': app.conf.task_time_limit})
+print(json.dumps(evidence))
+"""
+                self.native_execution = json.loads(subprocess.check_output(
+                    [str(self.python), "-c", admission_code, str(example_source)],
+                    env=env, cwd=self.directory, text=True, timeout=30))
                 redis_binary = shutil.which(self.redis_server)
                 if redis_binary is None:
                     raise FileNotFoundError("redis-server is required for the Redis/Celery benchmark")
@@ -119,12 +149,13 @@ print(json.dumps(result))
             if self.backend == "redis_celery":
                 # Celery's prefork pool requires fork; macOS defaults to spawn.
                 # Select the advertised pool behavior before importing Celery.
-                launcher = ["-m", "celery"]
+                celery = [str(self.python), "-m", "celery", "-A", "imagededup_system_redis_celery.celery_app:app"]
                 if sys.platform == "darwin":
-                    launcher = ["-c", "import billiard; billiard.set_start_method('fork', force=True); from celery.__main__ import main; main()"]
-                celery = [str(self.python), *launcher, "-A", "imagededup_system_redis_celery.celery_app:app"]
+                    celery = [str(self.python), "-c", "import billiard; billiard.set_start_method('fork', force=True); from celery.__main__ import main; main()",
+                              "-A", "imagededup_system_redis_celery.celery_app:app"]
                 for role, queue in (("build_worker", "image_build"), ("comparison_worker", "image_compare,image_control")):
-                    self.start_process(role, celery + ["worker", "-Q", queue, "--pool=prefork", "--concurrency=4",
+                    self.start_process(role, celery + ["worker", "--include", "imagededup_benckmark.observation",
+                                       "-Q", queue, "--pool=prefork", "--concurrency=4",
                                        f"--hostname={role}@%h", "--loglevel=WARNING"], env)
                 self.start_process("beat", celery + ["beat", "--schedule", str(self.directory / "beat-schedule"),
                                    "--loglevel=WARNING"], env)
@@ -140,6 +171,31 @@ print(json.dumps(result))
         self.http_samples.append((method + " " + path.split("?")[0], time.perf_counter() - started))
         response.raise_for_status()
         return response.json()
+
+    def native_business_idle(self) -> bool:
+        if self.backend != "redis_celery":
+            return True
+        code = """import json
+from imagededup_system_redis_celery.celery_app import app
+inspect = app.control.inspect(timeout=2)
+responses = [inspect.active(), inspect.reserved(), inspect.scheduled()]
+idle = all(response and len(response) == 2 for response in responses)
+for response in responses:
+    for tasks in (response or {}).values():
+        for task in tasks:
+            item = task.get('request', task)
+            if item.get('name') in ('images.build', 'images.compare'):
+                idle = False
+with app.connection_for_read() as connection:
+    channel = connection.channel()
+    for queue in ('image_build', 'image_compare'):
+        if channel.queue_declare(queue=queue, passive=True).message_count:
+            idle = False
+print(json.dumps({'idle': idle}))
+"""
+        result = subprocess.check_output([str(self.python), "-c", code], env=self.environment,
+                                         cwd=self.directory, text=True, timeout=30)
+        return bool(json.loads(result)["idle"])
 
     def __exit__(self, *args: object) -> None:
         self.client.close()

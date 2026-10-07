@@ -100,6 +100,21 @@ class Measurement:
                         self.stop_event.wait(self.interval)
                         continue
                     ready, requests, scored, completed = map(int, row)
+                    if getattr(self.stack, "backend", None) == "dbwork":
+                        build_status = "SELECT COUNT(*) FROM artifact_build_work w JOIN feature_artifact a ON a.id=w.source_id WHERE a.workspace_id=? AND w.execution_status='finished'"
+                        comparison_status = "SELECT COUNT(*) FROM comparison_work w JOIN comparison_request r ON r.id=w.source_id WHERE r.workspace_id=? AND w.execution_status='finished'"
+                    elif getattr(self.stack, "backend", None) == "redis_celery":
+                        build_status = "SELECT COUNT(*) FROM feature_artifact WHERE workspace_id=? AND execution_status='finished'"
+                        comparison_status = "SELECT COUNT(*) FROM comparison_request WHERE workspace_id=? AND execution_status='finished'"
+                    else:
+                        raise ValueError("Unknown image application backend")
+                    try:
+                        terminal_builds = connection.execute(build_status, (self.workspace_id,)).fetchone()[0]
+                        terminal_comparisons = connection.execute(comparison_status, (self.workspace_id,)).fetchone()[0]
+                    except sqlite3.OperationalError:
+                        self.sql_busy_probes += 1
+                        self.stop_event.wait(self.interval)
+                        continue
                     elapsed = time.perf_counter() - self.started
                     sample = {"seconds": elapsed, "built": ready, "requests": requests,
                               "scored_pairs": scored, "completed_requests": completed}
@@ -114,7 +129,8 @@ class Measurement:
                         self.first_scored = elapsed
                     if scored and ready < self.images:
                         self.overlap_observed = True
-                    if ready == self.images and requests == self.comparisons and completed == self.comparisons:
+                    if (ready == self.images and requests == self.comparisons and completed == self.comparisons
+                            and terminal_builds == self.images and terminal_comparisons == self.comparisons):
                         self.finished = elapsed
                         self.done_event.set()
                         return

@@ -33,10 +33,11 @@ class RunnerTest(unittest.TestCase):
             database = Path(directory, "test.db")
             with sqlite3.connect(database) as connection:
                 connection.executescript('''CREATE TABLE feature_artifact (workspace_id INTEGER, hash_value TEXT);
-                    CREATE TABLE comparison_request (workspace_id INTEGER, candidates_scored_count INTEGER);
-                    INSERT INTO feature_artifact VALUES (1,'a'),(1,'b');
-                    INSERT INTO comparison_request VALUES (1,1),(1,1);''')
-            stack = cast(Stack, SimpleNamespace(database=database, api_port=9, processes={}, check_alive=lambda: None))
+                    ALTER TABLE feature_artifact ADD COLUMN execution_status TEXT;
+                    CREATE TABLE comparison_request (workspace_id INTEGER, candidates_scored_count INTEGER, execution_status TEXT);
+                    INSERT INTO feature_artifact VALUES (1,'a','finished'),(1,'b','finished');
+                    INSERT INTO comparison_request VALUES (1,1,'finished'),(1,1,'finished');''')
+            stack = cast(Stack, SimpleNamespace(backend="redis_celery", database=database, api_port=9, processes={}, check_alive=lambda: None))
             meter = Measurement(stack, 1, 2, 2, interval=.01, timeout=1)
             meter.start()
             result = meter.finish()
@@ -44,9 +45,25 @@ class RunnerTest(unittest.TestCase):
             self.assertEqual(result["progress"][-1]["completed_requests"], 2)
             self.assertFalse(meter.thread.is_alive())
 
+    def test_counts_cannot_finish_before_terminal_business_status(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory, "test.db")
+            with sqlite3.connect(database) as connection:
+                connection.executescript('''CREATE TABLE feature_artifact (workspace_id INTEGER, hash_value TEXT, execution_status TEXT);
+                    CREATE TABLE comparison_request (workspace_id INTEGER, candidates_scored_count INTEGER, execution_status TEXT);
+                    INSERT INTO feature_artifact VALUES (1,'a','finished'),(1,'b','finished');
+                    INSERT INTO comparison_request VALUES (1,1,'working'),(1,1,'finished');''')
+            stack = cast(Stack, SimpleNamespace(backend="redis_celery", database=database, api_port=9, processes={}, check_alive=lambda: None))
+            meter = Measurement(stack, 1, 2, 2, interval=.01, timeout=.05)
+            meter.start()
+            with self.assertRaisesRegex(TimeoutError, "Scenario exceeded"):
+                meter.finish()
+            self.assertIsNone(meter.finished)
+
     def test_failed_start_closes_resources(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
-            stack = Stack("dbwork", Path(directory, "stack"), page_size=250, python=Path(sys.executable))
+            with patch("imagededup_benckmark.runtime.free_port", return_value=12345):
+                stack = Stack("dbwork", Path(directory, "stack"), page_size=250, python=Path(sys.executable))
             with patch.object(stack, "start_process"), patch.object(stack, "wait_for_http", side_effect=RuntimeError("startup")):
                 with self.assertRaisesRegex(RuntimeError, "startup"):
                     stack.__enter__()
@@ -54,7 +71,8 @@ class RunnerTest(unittest.TestCase):
 
     def test_dbworker_starts_api_and_worker_service_independently(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
-            stack = Stack("dbwork", Path(directory, "stack"), page_size=250, python=Path(sys.executable))
+            with patch("imagededup_benckmark.runtime.free_port", return_value=12345):
+                stack = Stack("dbwork", Path(directory, "stack"), page_size=250, python=Path(sys.executable))
             with patch.object(stack, "start_process") as start, patch.object(stack, "wait_for_http"):
                 with stack:
                     self.assertEqual([call.args[0] for call in start.call_args_list], ["api", "worker_service"])

@@ -95,3 +95,16 @@ poetry run mypy --strict src
 ```
 
 Tests use small local fixtures and do not download a dataset.
+## Benchmark observation
+
+The repository image benchmark enables an optional external observer through
+`DBWORKER_OBSERVER_MODULE`. Normal example deployments leave this variable unset.
+It observes each individual build or bounded comparison-page handler and records
+successful business work only after DBWorker commits its transaction. The
+observer does not batch images, increase comparison page size, or change task
+eligibility. Results include exact input and scored-pair accounting.
+
+This example's benchmark compares successful workloads. It does not implement
+Celery's automatic SQL retry policy or soft/hard task deadlines. Those lifecycle
+differences are explicitly unverified in benchmark JSON; failed or retried
+attempts do not qualify as successful performance results.

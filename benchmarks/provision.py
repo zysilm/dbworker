@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -46,8 +47,18 @@ def provision(selected: list[str] | None = None, *, uv: str = "uv") -> None:
                 run(uv, "pip", "install", "--python", str(python), "-r", "benchmarks/requirements.txt")
             elif name == "saleor":
                 run(uv, "pip", "install", "--python", str(python), "--constraint", "benchmarks/locks/saleor.txt",
-                    "examples/saleor", ".", "psutil", "pytest")
-            elif name in ("posthog", "paperless_ngx"):
+                    "examples/saleor", ".", "psutil", "pytest", "aiosmtpd")
+            elif name == "posthog":
+                # Native application initialization needs the full frozen upstream
+                # graph, not the previous projected notification dependency slice.
+                # UV_PROJECT_ENVIRONMENT keeps every role outside the submodule.
+                environment = os.environ.copy()
+                environment["UV_PROJECT_ENVIRONMENT"] = str(python.parent.parent)
+                subprocess.run([uv, "sync", "--frozen", "--no-dev", "--no-editable",
+                                "--no-install-project", "--project", str(ROOT / "examples/posthog"),
+                                "--python", str(python)], cwd=ROOT, env=environment, check=True)
+                run(uv, "pip", "install", "--python", str(python), ".", "psutil==7.2.2", "aiosmtpd==1.4.6")
+            elif name == "paperless_ngx":
                 run(uv, "pip", "install", "--python", str(python), "-r", f"benchmarks/locks/{name}.txt", ".")
             elif name == "superset":
                 command = [uv, "pip", "install", "--python", str(python), "--constraint",

@@ -3,8 +3,8 @@ FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates git curl python3 python3-venv redis-server \
-    postgresql postgresql-client libpq-dev build-essential pkg-config \
+    ca-certificates git curl python3 python3-dev python3-venv redis-server \
+    postgresql postgresql-client libpq-dev librdkafka-dev build-essential pkg-config \
     libffi-dev libxml2-dev libxslt1-dev libxmlsec1-dev libxmlsec1-openssl \
     libjpeg-dev zlib1g-dev libmagic1 ghostscript poppler-utils qpdf \
     imagemagick tesseract-ocr tesseract-ocr-eng tesseract-ocr-osd \

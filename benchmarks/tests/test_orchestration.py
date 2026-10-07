@@ -10,6 +10,43 @@ from benchmarks.run_all import main, run_suite
 
 
 class OrchestrationTests(unittest.TestCase):
+    def test_source_mutation_and_forged_source_evidence_fail_admission(self):
+        for mutation in ("implementation", "evidence"):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                child = root / "child.py"
+                child.write_text("""import json, sys
+from pathlib import Path
+config = json.loads(Path(sys.argv[2]).read_text())
+path = Path(config['report_path'])
+report = json.loads(path.read_text())
+report['status'] = 'passed'
+report['runs'] = [
+    {'scenario': 'fixture', 'comparison_mode': 'paired', 'backend': backend,
+     'repetition': 1, 'status': 'passed', 'metrics': {'wall_seconds': 1},
+     'validation': {'passed': True, 'output_digest': 'same'}}
+    for backend in ('celery', 'dbworker')]
+if config['suite']['mutation'] == 'evidence':
+    report['source']['local_commit'] = 'forged'
+else:
+    source = Path(__file__)
+    source.write_text(source.read_text() + '\\n# Changed during execution\\n')
+path.write_text(json.dumps(report))
+""")
+                suite = {"suite_id": "fixture", "repository": "local", "source_path": ".",
+                         "entrypoint": str(child), "mutation": mutation,
+                         "interpreters": {role + "_python": sys.executable
+                                          for role in ("benchmark", "celery", "dbworker")}}
+                output = root / "results"
+                output.mkdir()
+                report = run_suite(suite, output=output, run_id="source-test", profile="full",
+                                   overrides={}, timeout=30)
+                self.assertEqual(report["status"], "failed")
+                self.assertNotEqual(report["source"]["local_commit"], "forged")
+                reason = report["errors"][-1]["message"]
+                self.assertIn("source changed" if mutation == "implementation"
+                              else "source evidence", reason)
+
     def test_failed_provisioning_preserves_every_suite_report_and_index(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

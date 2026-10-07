@@ -47,8 +47,10 @@ def main() -> int:
                 report[key] = original[key]
             report["environment"]["host"] = original["host"]
             report["environment"]["stacks"] = original["stacks"]
-            report["capabilities"] = {"verified": ["image_hash", "top_k", "completion_ledger"],
-                                      "untested": ["database_outage", "child_crash"],
+            report["capabilities"] = {"verified": ["image_hash", "top_k", "completion_ledger",
+                                                    "individual_builds", "bounded_scoring_pages",
+                                                    "native_task_origin", "business_quiescence"],
+                                      "untested": ["database_outage", "child_crash", "retry_policy_parity", "task_deadline_parity"],
                                       "measurement_notes": original["measurement_notes"]}
             for row in original["runs"]:
                 validation = dict(row["validation"])

@@ -6,7 +6,7 @@
       "repository": "https://github.com/zysilm/dbworker",
       "source_path": ".",
       "entrypoint": "benchmarks/imagededup_benckmark/suite.py",
-      "admission": "implemented",
+      "admission": "native_workflow_required",
       "interpreters": {
         "benchmark_python": "benchmarks/environments/imagededup/benchmark/.venv/bin/python",
         "celery_python": "benchmarks/environments/imagededup/celery/.venv/bin/python",
@@ -18,7 +18,8 @@
           "warmup_images": 8,
           "repetitions": 5
         }
-      }
+      },
+      "comparison_contract": "native-business-workflow-v1"
     },
     {
       "suite_id": "superset",
@@ -27,7 +28,7 @@
       "source_path": "examples/superset",
       "entrypoint": "benchmarks/upstream/suite.py",
       "historical": false,
-      "admission": "implemented_sqlite_paired",
+      "admission": "native_workflow_required",
       "interpreters": {
         "benchmark_python": "benchmarks/environments/superset/benchmark/.venv/bin/python",
         "celery_python": "benchmarks/environments/superset/celery/.venv/bin/python",
@@ -39,7 +40,8 @@
           "repetitions": 5
         }
       },
-      "python_version": "3.12"
+      "python_version": "3.12",
+      "comparison_contract": "native-business-workflow-v1"
     },
     {
       "suite_id": "saleor",
@@ -48,7 +50,7 @@
       "source_path": "examples/saleor",
       "entrypoint": "benchmarks/upstream/suite.py",
       "historical": false,
-      "admission": "implemented_paired_export",
+      "admission": "native_workflow_required",
       "interpreters": {
         "benchmark_python": "benchmarks/environments/saleor/benchmark/.venv/bin/python",
         "celery_python": "benchmarks/environments/saleor/celery/.venv/bin/python",
@@ -61,7 +63,8 @@
           "products": 256
         }
       },
-      "python_version": "3.12"
+      "python_version": "3.12",
+      "comparison_contract": "native-business-workflow-v1"
     },
     {
       "suite_id": "paperless_ngx",
@@ -70,7 +73,7 @@
       "source_path": "examples/paperless_ngx",
       "entrypoint": "benchmarks/upstream/suite.py",
       "historical": false,
-      "admission": "implemented_paired_ingestion",
+      "admission": "native_workflow_required",
       "interpreters": {
         "benchmark_python": "benchmarks/environments/paperless_ngx/benchmark/.venv/bin/python",
         "celery_python": "benchmarks/environments/paperless_ngx/celery/.venv/bin/python",
@@ -82,7 +85,8 @@
           "repetitions": 5
         }
       },
-      "python_version": "3.12"
+      "python_version": "3.12",
+      "comparison_contract": "native-business-workflow-v1"
     },
     {
       "suite_id": "posthog",
@@ -91,7 +95,7 @@
       "source_path": "examples/posthog",
       "entrypoint": "benchmarks/upstream/suite.py",
       "historical": false,
-      "admission": "implemented_paired_notification",
+      "admission": "native_workflow_required",
       "interpreters": {
         "benchmark_python": "benchmarks/environments/posthog/benchmark/.venv/bin/python",
         "celery_python": "benchmarks/environments/posthog/celery/.venv/bin/python",
@@ -103,7 +107,8 @@
           "repetitions": 5
         }
       },
-      "python_version": "3.14.7"
+      "python_version": "3.14.7",
+      "comparison_contract": "native-business-workflow-v1"
     },
     {
       "suite_id": "sentry",
@@ -112,12 +117,11 @@
       "source_path": "examples/sentry",
       "entrypoint": "benchmarks/upstream/suite.py",
       "historical": true,
-      "admission": "implemented_paired_bridge",
+      "admission": "native_workflow_required",
       "interpreters": {
         "benchmark_python": "benchmarks/environments/sentry/benchmark/.venv/bin/python",
         "celery_python": "benchmarks/environments/sentry/celery/.venv/bin/python",
-        "dbworker_python": "benchmarks/environments/sentry/dbworker/.venv/bin/python",
-        "upstream_python": "benchmarks/environments/sentry/upstream/.venv/bin/python"
+        "dbworker_python": "benchmarks/environments/sentry/dbworker/.venv/bin/python"
       },
       "profiles": {
         "full": {
@@ -126,7 +130,7 @@
         }
       },
       "python_version": "3.12",
-      "upstream_python_version": "3.10.20"
+      "comparison_contract": "native-business-workflow-v1"
     }
   ]
 }

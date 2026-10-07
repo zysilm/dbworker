@@ -18,6 +18,8 @@ import psutil
 from imagededup_benckmark.dataset import DEFAULT_DIRECTORY, download_dataset
 from imagededup_benckmark.measurement import Measurement, distribution
 from imagededup_benckmark.runtime import WORKERS, Stack
+from imagededup_benckmark.evidence import quiesce, verify
+from imagededup_benckmark.observation import read_records
 
 PROJECT = Path(__file__).resolve().parents[2]
 
@@ -94,7 +96,7 @@ def validate(stack: Stack, workspace: int, artifact_ids: list[int], request_ids:
 
 def scenario(stack: Stack, kind: str, directory: Path, count: int, *, page_size: int,
              top_k: int, max_distance: int, interval: float, timeout: float,
-             existing: tuple[int, list[int]] | None = None) -> tuple[dict[str, Any], tuple[int, list[int]]]:
+             existing: tuple[int, list[int]] | None = None, trace_root: Path | None = None) -> tuple[dict[str, Any], tuple[int, list[int]]]:
     if existing is None:
         workspace = int(stack.request("POST", "/workspaces", {"name": kind})["id"])
         artifact_ids: list[int] = []
@@ -102,6 +104,8 @@ def scenario(stack: Stack, kind: str, directory: Path, count: int, *, page_size:
         workspace, artifact_ids = existing
     request_ids: list[int] = []
     comparison_count = 0 if kind == "build" else count
+    quiesce(stack, timeout=timeout)
+    record_offset = len(read_records(stack.observation_file))
     meter = Measurement(stack, workspace, count, comparison_count, interval=interval, timeout=timeout)
     stack.http_samples.clear()
     meter.start()
@@ -134,11 +138,32 @@ def scenario(stack: Stack, kind: str, directory: Path, count: int, *, page_size:
         and first_request_submitted < metrics["builds_finished_seconds"]
     )
     metrics["images_per_second"] = count / metrics["wall_seconds"] if existing is None else None
+    drain_started = time.perf_counter()
+    observations = quiesce(stack, timeout=timeout)
+    metrics["untimed_business_drain_seconds"] = time.perf_counter() - drain_started
+    evidence = verify(observations, workspace=workspace, artifact_ids=artifact_ids, request_ids=request_ids,
+                      new_builds=existing is None, page_size=page_size, record_offset=record_offset)
     checked = validate(stack, workspace, artifact_ids, request_ids, top_k=top_k, max_distance=max_distance)
+    snapshot_path = stack.directory / f"{kind}-observations.jsonl"
+    snapshot_bytes = "".join(json.dumps(record, sort_keys=True) + "\n" for record in observations[record_offset:]).encode()
+    temporary = snapshot_path.with_suffix(".part")
+    temporary.write_bytes(snapshot_bytes)
+    temporary.replace(snapshot_path)
+    trace_metadata = {"path": str(snapshot_path.relative_to(trace_root)) if trace_root else str(snapshot_path),
+                      "sha256": hashlib.sha256(snapshot_bytes).hexdigest(), "workspace": workspace,
+                      "artifact_ids": artifact_ids, "request_ids": request_ids,
+                      "new_builds": existing is None, "page_size": page_size, "record_offset": 0}
     row = {"backend": stack.backend, "scenario": kind, "status": "passed", "images": count,
            "comparison_requests": comparison_count, "expected_pairs": comparison_count * (count - 1),
            "page_size": page_size, "workers": {"build": WORKERS, "comparison": WORKERS},
-           "metrics": metrics, "validation": checked, "sql_database_bytes": stack.database.stat().st_size}
+           "metrics": metrics, "validation": checked, "operation_evidence": evidence, "operation_trace": trace_metadata,
+           "native_execution": {**stack.native_execution,
+                                "celery_app": "imagededup_system_redis_celery.celery_app:app",
+                                "native_tasks": ["images.build", "images.compare", "images.dispatch"],
+                                "replacement_celery_tasks": False,
+                                "scope": "successful_business_work",
+                                "unverified_lifecycle": ["retry_policy_parity", "task_deadline_parity", "crash_recovery", "outage_recovery"]},
+           "sql_database_bytes": stack.database.stat().st_size}
     return row, (workspace, artifact_ids)
 
 
@@ -212,6 +237,9 @@ def main(argv: list[str] | None = None) -> None:
             "Each repetition starts fresh stacks and SQL databases; scenarios use isolated workspaces.",
             "Warm-up, service startup, dataset preparation, final correctness checks and shutdown are untimed.",
             "Timed work includes API submissions, SQL and broker overhead, and completion observation latency.",
+            "Timing requires persisted terminal business outcomes; native business task/queue drain is checked separately outside timing.",
+            "Observation-only native Celery signals and DBWorker after-commit hooks record individual builds and bounded scoring pages.",
+            "Comparison covers successful work; Celery retries and deadlines are retained but DBWorker lifecycle parity is unverified.",
             "Progress uses read-only aggregate queries against common SQL data tables; API probes request one artifact.",
             "RSS is summed across all processes and can double-count shared pages; CPU is summed across process trees.",
             "DBWorker includes independent API and worker-service process trees, including handler children.",
@@ -234,7 +262,7 @@ def main(argv: list[str] | None = None) -> None:
                     report["stacks"].append({"repetition": repetition + 1, "backend": backend,
                                              "startup_seconds": stack.startup_seconds, "logs": str(stack.directory), "versions": stack.versions})
                     common = dict(page_size=args.page_size, top_k=args.top_k, max_distance=args.max_distance,
-                                  interval=args.poll_interval, timeout=args.timeout_seconds)
+                                  interval=args.poll_interval, timeout=args.timeout_seconds, trace_root=output.parent)
                     if args.warmup_images:
                         scenario(stack, "warmup", warmup, args.warmup_images, **common)
                     built: tuple[int, list[int]] | None = None

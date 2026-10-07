@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from benchmarks.common.reporting import digest, timestamp, validate_report, write_json
+from benchmarks.common.performance_admission import validate_native_report
 from benchmarks.render_results import render
 
 
@@ -23,6 +24,8 @@ def package(source: Path, output: Path, suite: str) -> None:
         paths.append(source / "imagededup.raw.json")
     paths += sorted(source.rglob("sample.json"))
     paths += sorted(source.rglob("*.log"))
+    paths += sorted(source.rglob("*.jsonl"))
+    paths += sorted(source.rglob("admission.json"))
     for path in paths:
         if path.is_file() and not path.is_symlink():
             target = output / path.relative_to(source)
@@ -55,6 +58,10 @@ def combine(incoming: Path, output: Path, *, run_id: str, commit: str,
             raise ValueError(f"Matrix checksum or status mismatch: {name}")
         report = json.loads(path.read_text())
         validate_report(report)
+        if suite.get("comparison_contract") == "native-business-workflow-v1":
+            if report.get("source", {}).get("comparison_contract") != suite["comparison_contract"]:
+                raise ValueError("Missing native benchmark source contract")
+            validate_native_report(report, directory, expected_profile=suite["profiles"]["full"])
         if (report["suite_id"], report["run_id"], report["profile"], report["status"]) != (
                 name, run_id, "full", "passed"):
             raise ValueError(f"Matrix report identity mismatch: {name}")
@@ -73,7 +80,7 @@ def combine(incoming: Path, output: Path, *, run_id: str, commit: str,
     output.mkdir(parents=True, exist_ok=False)
     for directory, path, entry in validated:
         shutil.copyfile(path, output / path.name)
-        for evidence in [directory / "imagededup.raw.json", *directory.rglob("sample.json")]:
+        for evidence in [directory / "imagededup.raw.json", *directory.rglob("sample.json"), *directory.rglob("*.jsonl")]:
             if evidence.is_file() and not evidence.is_symlink():
                 target = output / evidence.relative_to(directory)
                 target.parent.mkdir(parents=True, exist_ok=True)

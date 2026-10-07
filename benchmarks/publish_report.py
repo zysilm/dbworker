@@ -11,6 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from benchmarks.render_results import render, update_readme
+from benchmarks.common.performance_admission import validate_native_report
 
 
 def run(*command: str) -> None:
@@ -21,6 +22,15 @@ def main() -> None:
     directory = (ROOT / os.environ["BENCHMARK_RESULT_DIRECTORY"]).resolve()
     if directory != ROOT / "benchmarks/results/latest":
         raise ValueError("Publication requires the fixed latest result directory")
+    index = json.loads((directory / "index.json").read_text())
+    registry = json.loads((ROOT / "benchmarks/registry.json").read_text())["suites"]
+    if {entry["suite_id"] for entry in index["reports"]} != {suite["suite_id"] for suite in registry}:
+        raise ValueError("Publication requires every native suite")
+    for suite in registry:
+        result = json.loads((directory / f"{suite['suite_id']}.json").read_text())
+        if result.get("source", {}).get("comparison_contract") != "native-business-workflow-v1":
+            raise ValueError("Historical wrapper results cannot be published as native results")
+        validate_native_report(result, directory, expected_profile=suite["profiles"]["full"])
     report = ROOT / "doc/benchmark-results.md"
     content = render(directory, report)
     readme = ROOT / "README.md"
@@ -44,6 +54,7 @@ def main() -> None:
     paths = [report, readme, directory / "index.json", directory / "report.md"]
     paths += [directory / entry["path"] for entry in index["reports"]]
     paths += sorted(directory.rglob("sample.json"))
+    paths += sorted(directory.rglob("*.jsonl"))
     raw = directory / "imagededup.raw.json"
     if raw.is_file():
         paths.append(raw)

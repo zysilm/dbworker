@@ -101,3 +101,21 @@ Run the separated DBWorker services without starting Celery or Redis:
 ```sh
 poetry run imagededup-benchmark --backend dbwork --images 1000 --repetitions 1 --output results/separated_dbworker_1000.json
 ```
+## Native workload admission
+
+The experiment retains this repository's original image Celery application and
+tasks. Observer signals record real deliveries; the DBWorker variation records
+individual handlers after their business transaction commits. Each result
+contains `operation_evidence`, with submitted/completed image identities,
+per-comparison page widths, exact scored-pair counts, and separate empty-wait and
+dispatcher counts. A scoring page cannot exceed the shared configured page size.
+
+Timing begins before API publication and ends after terminal business outcomes
+are committed. An additional untimed barrier checks business task completion,
+Celery active/reserved/scheduled work, and its business queues between scenarios.
+Live task-source admission verifies the original registered Celery functions.
+
+The measured contract covers successful business work. Native Celery automatic
+SQL retries and task deadlines remain enabled. Equivalent DBWorker retry,
+deadline, outage, and crash behavior is not implemented or claimed by this suite;
+any observed retry or failure rejects the success-only experiment.
