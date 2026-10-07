@@ -26,7 +26,7 @@ jobs:
       fail-fast: false
       max-parallel: 6
       matrix:
-        suite: ${{ fromJSON(github.ref != 'refs/heads/main' && contains(github.event.head_commit.message, '[benchmark:sentry]') && '["sentry"]' || '["imagededup", "superset", "saleor", "paperless_ngx", "posthog", "sentry"]') }}
+        suite: ${{ fromJSON(github.ref != 'refs/heads/main' && contains(github.event.head_commit.message, '[benchmark:sentry]') && '["sentry"]' || github.ref != 'refs/heads/main' && contains(github.event.head_commit.message, '[benchmark:imagededup]') && '["imagededup"]' || '["imagededup", "superset", "saleor", "paperless_ngx", "posthog", "sentry"]') }}
     steps:
       - uses: actions/checkout@v5
       - name: Initialize only this experiment's pinned source
@@ -69,7 +69,7 @@ jobs:
           if-no-files-found: warn
 
   publish:
-    if: github.ref == 'refs/heads/main' || !contains(github.event.head_commit.message, '[benchmark:sentry]')
+    if: github.ref == 'refs/heads/main' || (!contains(github.event.head_commit.message, '[benchmark:sentry]') && !contains(github.event.head_commit.message, '[benchmark:imagededup]'))
     name: Validate and aggregate all experiments
     needs: experiment
     runs-on: ubuntu-24.04

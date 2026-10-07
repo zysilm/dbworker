@@ -11,8 +11,13 @@ class EvidenceTest(unittest.TestCase):
             operations += [("build", key, 1) for key in (1, 2, 3, 4)]
         for index, (stage, source_id, width) in enumerate(operations):
             record = {"attempt_id": str(index), "workspace_id": 1, "stage": stage, "source_id": source_id}
+            details = {}
+            if stage == "comparison":
+                offset = sum(item[2] for item in operations[:index] if item[0] == "comparison")
+                details = {"scored_rows": [[source_id, 2 + (offset + n) % 3] for n in range(width)],
+                           "page_accounting": "transaction_committed_orm_inserts"}
             rows += [{**record, "event": "started"},
-                     {**record, "event": "finished", "state": "SUCCESS", "page_items": width}]
+                     {**record, "event": "finished", "state": "SUCCESS", "page_items": width, **details}]
         return rows
 
     def check(self, rows, *, build=True):
@@ -44,3 +49,25 @@ class EvidenceTest(unittest.TestCase):
         evidence = self.check(self.records(widths=(0, 2, 1, 0), build=False), build=False)
         self.assertEqual(evidence["empty_comparison_attempts"], 2)
         self.assertEqual(evidence["scored_pairs"], 3)
+
+    def test_rejects_duplicate_candidate_identity_even_when_total_pair_count_matches(self):
+        rows = self.records()
+        rows[3]["scored_rows"] = [[9, 2]]
+        with self.assertRaisesRegex(AssertionError, "duplicated candidate identities"):
+            self.check(rows)
+
+    def test_rejects_counter_only_evidence_and_unknown_candidate_identity(self):
+        rows = self.records()
+        del rows[1]["scored_rows"]
+        with self.assertRaisesRegex(AssertionError, "transaction-attributed"):
+            self.check(rows)
+        rows = self.records()
+        rows[1]["scored_rows"][0][1] = 99
+        with self.assertRaisesRegex(AssertionError, "unknown input"):
+            self.check(rows)
+
+    def test_rejects_query_itself_replacing_a_candidate_even_when_counts_match(self):
+        rows = self.records()
+        rows[3]["scored_rows"] = [[9, 1]]
+        with self.assertRaisesRegex(AssertionError, "exact submitted candidate identities"):
+            self.check(rows)

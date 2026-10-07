@@ -43,17 +43,34 @@ def verify(records: list[dict], *, workspace: int, artifact_ids: list[int], requ
     if any(row["source_id"] not in expected_builds or row["page_items"] not in (0, 1) for row in build_rows):
         raise AssertionError("Unexpected or oversized image build execution")
     pages = {key: [] for key in request_ids}
+    scored = {key: [] for key in request_ids}
+    artifact_set = set(artifact_ids)
+    # The benchmark submits one comparison per imported artifact in this order.
+    query_artifacts = dict(zip(request_ids, artifact_ids))
+    if len(pages) != len(request_ids) or len(query_artifacts) != len(request_ids):
+        raise AssertionError("Comparison input identities are duplicate or unpaired")
     empty = 0
     for row in finishes:
         if row["stage"] != "comparison":
             continue
         key, width = row["source_id"], row["page_items"]
         if key not in pages or not 0 <= width <= page_size:
-            raise AssertionError("Unknown comparison identity or oversized scoring page")
+            raise AssertionError(f"Unknown comparison identity or oversized scoring page: request={key}, observed={width}, bound={page_size}")
+        rows = row.get("scored_rows")
+        if row.get("page_accounting") != "transaction_committed_orm_inserts" or not isinstance(rows, list) or len(rows) != width:
+            raise AssertionError("Individual scoring page lacks transaction-attributed work evidence")
+        for pair in rows:
+            if not isinstance(pair, list) or len(pair) != 2 or pair[0] != key or pair[1] not in artifact_set:
+                raise AssertionError("Scored candidate has unknown input or comparison identity")
+            scored[key].append(pair[1])
         pages[key].append(width)
         empty += int(width == 0)
     if any(sum(widths) != len(artifact_ids) - 1 for widths in pages.values()):
         raise AssertionError("Observed scoring work skipped or duplicated candidate pairs")
+    if any(len(set(candidates)) != len(candidates) for candidates in scored.values()):
+        raise AssertionError("Observed scoring work duplicated candidate identities")
+    if any(set(candidates) != artifact_set - {query_artifacts[key]} for key, candidates in scored.items()):
+        raise AssertionError("Observed scoring work differs from the exact submitted candidate identities")
     comparisons = [{"input_ordinal": index, "page_sizes": pages[key], "scored_pairs": sum(pages[key])}
                    for index, key in enumerate(request_ids)]
     normalized = {"build_inputs": list(range(len(expected_builds))),
