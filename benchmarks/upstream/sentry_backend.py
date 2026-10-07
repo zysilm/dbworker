@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import importlib.metadata
 import json
 import os
 import platform
+import re
 import socket
 import subprocess
 import sys
@@ -292,6 +294,12 @@ def main():
             seconds, graph = execute_batch(operations)
             metrics = sampler.finish()
             sampler = None
+        # Retain received bytes before validation, including failed-run evidence.
+        # Native Message-ID generation has a finite random range and can collide.
+        receipts = directory / "smtp-receipts.log"
+        write_json(receipts, [{"sender": sender, "destinations": destinations,
+            "raw_base64": base64.b64encode(raw).decode("ascii")}
+            for sender, destinations, raw in sink.messages])
         normalized = validate_messages(sink.messages, operations)
         if args.backend == "dbworker":
             from sqlalchemy import select
@@ -318,7 +326,12 @@ def main():
             "backend": args.backend, "repetition": args.repetition, "status": "passed",
             "metrics": {**metrics, "wall_seconds": seconds, "messages_per_second": len(normalized) / seconds},
             "validation": {"passed": True, "messages": len(normalized), "smtp_envelope_and_mime": True,
-                "missing_or_duplicate": 0, "output_digest": hashlib.sha256(json.dumps(normalized, sort_keys=True).encode()).hexdigest()},
+                "missing_or_duplicate": 0, "delivery_identity": "Exact unique operation ID and recipient pair",
+                "generated_message_ids": message_id_evidence(sink.messages),
+                "output_digest": hashlib.sha256(json.dumps(normalized, sort_keys=True).encode()).hexdigest()},
+            "smtp_receipts": {"storage": "Matrix artifact diagnostics; excluded from published result evidence",
+                              "path": str(receipts.relative_to(Path(config["output_directory"]).resolve())),
+                              "sha256": hashlib.sha256(receipts.read_bytes()).hexdigest()},
             "native_execution": native, "workflow_graph": graph,
             "workflow_trace": {"path": str(trace.relative_to(Path(config["output_directory"]).resolve())),
                                "sha256": hashlib.sha256(trace.read_bytes()).hexdigest()},
@@ -361,11 +374,24 @@ def main():
             engine.dispose()
 
 
+def message_id_evidence(messages):
+    """Report native random header collisions separately from delivery duplicates."""
+    from collections import Counter
+    from email import policy
+    from email.parser import BytesParser
+    identifiers = Counter(str(BytesParser(policy=policy.default).parsebytes(raw)["Message-Id"])
+                          for _, _, raw in messages)
+    return {"distinct": len(identifiers), "collisions": sum(count - 1 for count in identifiers.values()),
+            "duplicate_values": sorted(key for key, count in identifiers.items() if count > 1),
+            "generation": "Original MessageBuilder UTC second, producer PID, and randrange(100000)",
+            "normalization": "Generated Message-ID, Date, and MIME boundaries are excluded from the business digest"}
+
+
 def validate_messages(messages, operations):
     from email import policy
     from email.parser import BytesParser
     from lxml import html
-    normalized, observed, message_ids = [], set(), set()
+    normalized, observed = [], set()
     for sender, destinations, raw in messages:
         message = BytesParser(policy=policy.default).parsebytes(raw)
         operation_id = str(message["X-Benchmark"])
@@ -392,10 +418,9 @@ def validate_messages(messages, operations):
         if "color:red" not in style:
             raise AssertionError("Native CSS was not inlined")
         msgid = str(message["Message-Id"])
-        if msgid in message_ids or not msgid.startswith("<") or not msgid.endswith("@benchmark.invalid>"):
-            raise AssertionError("Native generated message identity is absent or duplicated")
+        if len(message.get_all("Message-Id", [])) != 1 or not re.fullmatch(r"<\d{14}\.\d+\.\d{1,5}@benchmark\.invalid>", msgid):
+            raise AssertionError("Native generated Message-ID header is absent or malformed")
         observed.add(identity)
-        message_ids.add(msgid)
         normalized.append({"operation_id": operation_id, "from": sender, "to": [to],
             "subject": str(message["Subject"]), "reply_to": other, "text": parts["text/plain"], "html": parts["text/html"]})
     expected = {(operation_id, recipient) for operation_id in operations for recipient in recipients(operation_id)}
