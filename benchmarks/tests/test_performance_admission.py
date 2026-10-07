@@ -123,8 +123,15 @@ class PerformanceAdmissionTests(unittest.TestCase):
                     start = {'backend': 'celery', 'stage': stage, 'source_id': identity,
                              'workspace_id': 1, 'attempt_id': f'{stage}-{identity}',
                              'task_id': f'original-{stage}-{identity}', 'items': 0, 'event': 'started'}
-                    records.extend([start, {**start, 'event': 'finished', 'state': 'SUCCESS',
-                                             'items_after': width, 'page_items': width}])
+                    finish = {**start, 'event': 'finished', 'state': 'SUCCESS',
+                              'items_after': width, 'page_items': width}
+                    if stage == 'comparison':
+                        # Continuations may finish before the current task's callback.
+                        finish['items_after'] = 99
+                        finish.update(page_accounting='transaction_committed_orm_inserts',
+                                      scored_rows=[[identity, candidate] for candidate in (1, 2, 3)
+                                                   if candidate != identity - 10])
+                    records.extend([start, finish])
             path = Path(temporary) / 'image.jsonl'
             path.write_text(''.join(json.dumps(record) + '\n' for record in records))
             spec = importlib.util.spec_from_file_location('test_image_verifier',
@@ -145,6 +152,13 @@ class PerformanceAdmissionTests(unittest.TestCase):
                 replay_image_workload(altered, temporary, 3)
             with self.assertRaises(WorkflowMismatch):
                 replay_image_workload(row, temporary, 1000)
+            forged = copy.deepcopy(records)
+            # Counts still match, but a query artifact replaces a real candidate.
+            forged[7]['scored_rows'] = [[11, 1], [11, 2]]
+            path.write_text(''.join(json.dumps(record) + '\n' for record in forged))
+            row['operation_trace']['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
+            with self.assertRaises(WorkflowMismatch):
+                replay_image_workload(row, temporary, 3)
             records.append(records[0])
             path.write_text(''.join(json.dumps(record) + '\n' for record in records))
             row['operation_trace']['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()

@@ -185,9 +185,15 @@ def replay_image_workload(row, directory, images):
         if any(start.get(key) != end.get(key) for key in ('task_id', 'source_id', 'workspace_id', 'stage', 'backend')):
             raise WorkflowMismatch('Image business attempt identity changed')
         if (type(start.get('items')) is not int or type(end.get('items_after')) is not int
-                or type(end.get('page_items')) is not int
-                or end['page_items'] != end['items_after'] - start['items']):
-            raise WorkflowMismatch('Image observed page delta differs from source counters')
+                or type(end.get('page_items')) is not int):
+            raise WorkflowMismatch('Image observed work counts must be integers')
+        if start['stage'] == 'build':
+            if end['page_items'] != end['items_after'] - start['items']:
+                raise WorkflowMismatch('Image build state differs from its source counters')
+        elif (end.get('page_accounting') != 'transaction_committed_orm_inserts'
+              or not isinstance(end.get('scored_rows'), list)
+              or len(end['scored_rows']) != end['page_items']):
+            raise WorkflowMismatch('Image page lacks transaction-attributed committed candidates')
         if backend == 'celery':
             if not isinstance(start.get('task_id'), str) or not start['task_id']:
                 raise WorkflowMismatch('Missing original Celery image task identity')
@@ -198,8 +204,11 @@ def replay_image_workload(row, directory, images):
     spec = importlib.util.spec_from_file_location('benchmark_image_artifact_verifier', verifier_path)
     verifier = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(verifier)
-    replayed = verifier.verify(records, workspace=trace['workspace'], artifact_ids=trace['artifact_ids'],
-        request_ids=trace['request_ids'], new_builds=trace['new_builds'], page_size=250, record_offset=0)
+    try:
+        replayed = verifier.verify(records, workspace=trace['workspace'], artifact_ids=trace['artifact_ids'],
+            request_ids=trace['request_ids'], new_builds=trace['new_builds'], page_size=250, record_offset=0)
+    except (AssertionError, ValueError, TypeError, KeyError) as error:
+        raise WorkflowMismatch(f'Image persisted work evidence is invalid: {error}') from error
     if replayed != row.get('operation_evidence'):
         raise WorkflowMismatch('Reported image work differs from persisted observations')
     validate_image_workload(row, images)
