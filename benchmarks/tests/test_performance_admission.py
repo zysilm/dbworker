@@ -192,6 +192,26 @@ class PerformanceAdmissionTests(unittest.TestCase):
                 'workspace': 1, 'artifact_ids': [1, 2, 3], 'request_ids': [11, 12, 13],
                 'new_builds': True, 'page_size': 250, 'record_offset': 0}
             self.assertEqual(replay_image_workload(row, temporary, 3)['completed_builds'], 3)
+            # Actual DBWorker snapshots use the normalized public backend name.
+            db_records = copy.deepcopy(records)
+            for record in db_records:
+                record['backend'] = 'dbworker'
+            db_path = Path(temporary) / 'dbworker-image.jsonl'
+            db_path.write_text(''.join(json.dumps(record) + '\n' for record in db_records))
+            db_row = copy.deepcopy(row)
+            db_row['backend'] = 'dbworker'
+            db_row['operation_trace'].update(path=db_path.name,
+                sha256=hashlib.sha256(db_path.read_bytes()).hexdigest())
+            self.assertEqual(replay_image_workload(db_row, temporary, 3)['completed_builds'], 3)
+            for incorrect_backend in ('dbwork', 'celery'):
+                with self.subTest(snapshot_backend=incorrect_backend):
+                    forged_backend = copy.deepcopy(db_records)
+                    for record in forged_backend:
+                        record['backend'] = incorrect_backend
+                    db_path.write_text(''.join(json.dumps(record) + '\n' for record in forged_backend))
+                    db_row['operation_trace']['sha256'] = hashlib.sha256(db_path.read_bytes()).hexdigest()
+                    with self.assertRaisesRegex(WorkflowMismatch, 'backend differs'):
+                        replay_image_workload(db_row, temporary, 3)
             altered = copy.deepcopy(row)
             altered['operation_evidence']['completed_builds'] = 2
             with self.assertRaises(WorkflowMismatch):

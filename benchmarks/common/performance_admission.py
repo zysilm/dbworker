@@ -168,7 +168,7 @@ def replay_image_workload(row, directory, images):
                 or len(set(values)) != count):
             raise WorkflowMismatch(f'Image submitted source identities differ from profile: {key}')
     records = read_trace(path)
-    backend = 'dbwork' if row['backend'] == 'dbworker' else 'celery'
+    backend = row['backend']
     attempts = {}
     for record in records:
         if record.get('backend') != backend:
