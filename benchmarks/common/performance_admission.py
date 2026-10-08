@@ -123,8 +123,10 @@ def validate_image_workload(row, images):
         widths = item.get('page_sizes')
         if not isinstance(widths, list) or any(type(width) is not int or not 0 <= width <= 250 for width in widths):
             raise WorkflowMismatch('Invalid image scoring page details')
-        if sorted(width for width in widths if width) != sorted(positive_pages) or item.get('scored_pairs') != images - 1:
-            raise WorkflowMismatch('Image scoring page work was omitted, duplicated or collapsed')
+        if sum(widths) != images - 1 or item.get('scored_pairs') != images - 1:
+            raise WorkflowMismatch('Image scoring page work was omitted or duplicated')
+        if scenario == 'comparison' and sorted(width for width in widths if width) != sorted(positive_pages):
+            raise WorkflowMismatch('Image ready-candidate scoring page granularity changed')
         ordinals.append(item.get('input_ordinal'))
         page_items.extend(widths)
     if any(type(ordinal) is not int for ordinal in ordinals) or sorted(ordinals) != list(range(comparisons)):
@@ -264,8 +266,8 @@ def validate_native_report(report, directory, *, expected_profile=None):
                     raise WorkflowMismatch('Missing image business-work evidence or quiescence')
                 if evidence.get('page_bound') != 250 or evidence.get('maximum_page_items', 251) > 250:
                     raise WorkflowMismatch('Image task page granularity changed')
-                if evidence.get('failed_attempts') or evidence.get('missing_attempts') or evidence.get('duplicate_build_deliveries'):
-                    raise WorkflowMismatch('Image task attempts contain failures or duplicates')
+                if evidence.get('failed_attempts') or evidence.get('missing_attempts'):
+                    raise WorkflowMismatch('Image task attempts contain failures or missing completions')
             names = ('submitted_builds', 'completed_builds', 'submitted_comparisons', 'completed_comparisons', 'scored_pairs', 'page_bound', 'workload_digest')
             for name in names:
                 if pair['celery']['operation_evidence'].get(name) != pair['dbworker']['operation_evidence'].get(name):

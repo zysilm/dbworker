@@ -86,18 +86,61 @@ class PerformanceAdmissionTests(unittest.TestCase):
         with self.assertRaises(NativeAdmissionError):
             validate_native_sample(row, 'posthog')
 
-    def image_fixture(self, images=3):
-        normalized = {'build_inputs': list(range(images)), 'comparison_inputs': list(range(images)),
-                      'scored_pairs': images * (images - 1), 'page_bound': 250}
-        evidence = {'submitted_builds': images, 'completed_builds': images,
-                    'submitted_comparisons': images, 'completed_comparisons': images,
-                    'scored_pairs': images * (images - 1), 'maximum_page_items': images - 1,
-                    'empty_comparison_attempts': 0, 'business_attempts': images * 2,
+    def image_fixture(self, images=3, scenario='mixed', duplicates=0):
+        builds = 0 if scenario == 'comparison' else images
+        comparisons = 0 if scenario == 'build' else images
+        normalized = {'build_inputs': list(range(builds)), 'comparison_inputs': list(range(comparisons)),
+                      'scored_pairs': comparisons * (images - 1), 'page_bound': 250}
+        evidence = {'submitted_builds': builds, 'completed_builds': builds,
+                    'submitted_comparisons': comparisons, 'completed_comparisons': comparisons,
+                    'scored_pairs': comparisons * (images - 1), 'maximum_page_items': images - 1 if comparisons else 0,
+                    'empty_comparison_attempts': 0, 'business_attempts': builds + duplicates + comparisons,
+                    'duplicate_build_deliveries': duplicates,
+                    'passed': True, 'quiescence_verified': True, 'page_bound': 250,
+                    'failed_attempts': 0, 'missing_attempts': 0,
                     'comparisons': [{'input_ordinal': n, 'page_sizes': [images - 1],
-                                     'scored_pairs': images - 1} for n in range(images)],
+                                     'scored_pairs': images - 1} for n in range(comparisons)],
                     'workload_digest': hashlib.sha256(json.dumps(normalized, sort_keys=True).encode()).hexdigest()}
-        return {'scenario': 'mixed', 'operation_evidence': evidence,
-                'validation': {'artifacts': images, 'requests': images, 'scored_pairs': images * (images - 1)}}
+        return {'scenario': scenario, 'operation_evidence': evidence,
+                'validation': {'passed': True, 'artifacts': images, 'requests': comparisons,
+                               'scored_pairs': comparisons * (images - 1)}}
+
+    def test_complete_paired_image_report_retains_zero_write_redeliveries(self):
+        rows = []
+        for scenario in ('build', 'comparison', 'mixed'):
+            for backend in ('celery', 'dbworker'):
+                duplicates = int(backend == 'celery' and scenario != 'comparison')
+                row = self.image_fixture(scenario=scenario, duplicates=duplicates)
+                row.update(backend=backend, status='passed', repetition=1)
+                rows.append(row)
+        report = {'suite_id': 'imagededup', 'status': 'passed', 'profile': 'full',
+                  'configuration': {'images': 3, 'repetitions': 1}, 'runs': rows}
+
+        def replay_summary(row, directory, images):
+            # Source origin and actual trace replay have separate direct tests.
+            # Preserve trusted workload/page/attempt checks in this report-level
+            # regression, including the extra zero-write delivery's overhead.
+            validate_image_workload(row, images)
+            return row['operation_evidence']
+
+        with patch('benchmarks.common.performance_admission.validate_native_sample'), \
+                patch('benchmarks.common.performance_admission.replay_image_workload', side_effect=replay_summary):
+            validate_native_report(report, '.', expected_profile={'images': 3, 'repetitions': 1})
+        self.assertTrue(report['admission']['passed'])
+        self.assertEqual(rows[0]['operation_evidence']['duplicate_build_deliveries'], 1)
+        self.assertEqual(rows[0]['operation_evidence']['business_attempts'], 4)
+        self.assertEqual(rows[1]['operation_evidence']['business_attempts'], 3)
+
+    def test_mixed_ready_candidate_fragmentation_is_valid_but_comparison_fragmentation_is_not(self):
+        mixed = self.image_fixture()
+        mixed['operation_evidence']['comparisons'][0]['page_sizes'] = [1, 1]
+        mixed['operation_evidence']['business_attempts'] += 1
+        validate_image_workload(mixed, 3)
+        comparison = self.image_fixture(scenario='comparison')
+        comparison['operation_evidence']['comparisons'][0]['page_sizes'] = [1, 1]
+        comparison['operation_evidence']['business_attempts'] += 1
+        with self.assertRaises(WorkflowMismatch):
+            validate_image_workload(comparison, 3)
 
     def test_paired_reduced_image_counts_and_collapsed_page_details_fail(self):
         row = self.image_fixture()
@@ -111,7 +154,7 @@ class PerformanceAdmissionTests(unittest.TestCase):
             with self.subTest(update=update), self.assertRaises(WorkflowMismatch):
                 validate_image_workload(modified, 3)
         modified = copy.deepcopy(row)
-        modified['operation_evidence']['comparisons'][0]['page_sizes'] = [1, 1]
+        modified['operation_evidence']['comparisons'][0]['page_sizes'] = [1]
         with self.assertRaises(WorkflowMismatch):
             validate_image_workload(modified, 3)
 
