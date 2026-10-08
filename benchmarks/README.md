@@ -124,8 +124,15 @@ must also have matching execution and successful completion evidence.
 Reports retain configuration, datasets, samples, validators, errors and artifacts.
 Admission also checks source pins, full profile coverage, matching backend repetition
 sets, normalized business-output digests and artifact checksums. Uncorrelated tasks,
-unexpected stages, duplicates, failed attempts, invalid identities and nonfinite
-metrics cannot become an official successful comparison.
+unexpected stages, duplicated business work, terminal failures, invalid identities
+and nonfinite metrics cannot become an official successful comparison. The image
+suite retains native zero-write redeliveries and proven recovered SQL retries as
+separate diagnostics. Attempts remain in the evidence, and recovery required
+before terminal business outcomes contributes to wall time. The image suite also
+uses an untimed final queue-drain barrier.
+Recovered retries require exception evidence and a subsequent successful attempt
+of the same original task. Exact committed input and candidate coverage remains
+mandatory.
 
 Timing begins with real submission and includes all required workflow stages and
 business effects. Superset includes async result retrieval; notification workflows

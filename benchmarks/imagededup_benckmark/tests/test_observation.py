@@ -33,6 +33,25 @@ if Session is not None:
         execution_status: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
+@unittest.skipIf(Session is None, "Run native retry diagnostic checks with SQLAlchemy")
+class RetryDiagnosticsTest(unittest.TestCase):
+    def test_captures_original_sql_exception_and_retry_delay_without_mutation(self):
+        from types import SimpleNamespace
+        from sqlalchemy.exc import OperationalError
+
+        exception = OperationalError("UPDATE comparison_request", {}, Exception("database is locked"))
+        reason = SimpleNamespace(exc=exception, when=3)
+        diagnostic = observation.retry_diagnostics(reason)
+        self.assertEqual(diagnostic["exception_class"], "sqlalchemy.exc.OperationalError")
+        self.assertIn("database is locked", diagnostic["exception_message"])
+        self.assertEqual(diagnostic["retry_delay"], 3)
+        self.assertIs(reason.exc, exception)
+        self.assertEqual(reason.when, 3)
+
+    def test_missing_retry_exception_remains_unproven(self):
+        self.assertIsNone(observation.retry_diagnostics(None)["exception_class"])
+
+
 @unittest.skipIf(Session is None, "Run commit observer checks in an application environment with SQLAlchemy")
 class ObservationTest(unittest.TestCase):
     def build_fixture(self, directory):

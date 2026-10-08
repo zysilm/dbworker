@@ -169,8 +169,18 @@ def observe_handler(stage: str, source_id: int, session):
         _current_attempt.reset(token)
 
 
+def retry_diagnostics(reason) -> dict:
+    """Serialize Celery's original retry exception without changing its policy."""
+    exception = getattr(reason, "exc", None)
+    delay = getattr(reason, "when", None)
+    return {"exception_class": (f"{type(exception).__module__}.{type(exception).__qualname__}"
+                                if exception is not None else None),
+            "exception_message": str(exception) if exception is not None else None,
+            "retry_delay": delay if isinstance(delay, (int, float, str)) or delay is None else str(delay)}
+
+
 if os.environ.get("IMAGE_OBSERVATION_BACKEND") == "celery":
-    from celery.signals import task_postrun, task_prerun
+    from celery.signals import task_postrun, task_prerun, task_retry
 
     _active: dict[str, dict] = {}
 
@@ -188,6 +198,12 @@ if os.environ.get("IMAGE_OBSERVATION_BACKEND") == "celery":
             end(record, state)
         _current_attempt.set(None)
 
+    def retry_task(request=None, reason=None, **kwargs):
+        record = _active.get(getattr(request, "id", None))
+        if record is not None:
+            record["retry_diagnostics"] = retry_diagnostics(reason)
+
+    task_retry.connect(retry_task, weak=False)
     task_prerun.connect(before_task, weak=False)
     task_postrun.connect(after_task, weak=False)
 

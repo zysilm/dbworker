@@ -118,4 +118,12 @@ Live task-source admission verifies the original registered Celery functions.
 The measured contract covers successful business work. Native Celery automatic
 SQL retries and task deadlines remain enabled. Equivalent DBWorker retry,
 deadline, outage, and crash behavior is not implemented or claimed by this suite;
-any observed retry or failure rejects the success-only experiment.
+Terminal failures reject the experiment. A native SQL OperationalError retry is
+admitted only with recorded exception diagnostics, no committed business work,
+and a later successful attempt of the same original task. All delivery attempts remain in the evidence; recovered retries are reported
+separately. Timing includes recovery required before terminal business outcomes;
+the final queue-drain barrier remains untimed.
+Builds are attributed to committed hash writes and comparisons to committed
+candidate inserts, rather than differences of shared counters. Mixed scenarios
+retain partial ready-candidate pages while enforcing the 250-item page bound
+and exact candidate coverage.

@@ -31,10 +31,41 @@ def verify(records: list[dict], *, workspace: int, artifact_ids: list[int], requ
         raise AssertionError("Missing or duplicate image attempt completion evidence")
     for row in finishes:
         start = starts[row["attempt_id"]]
-        if any(row.get(key) != start.get(key) for key in ("stage", "source_id", "workspace_id", "backend")):
+        if any(row.get(key) != start.get(key) for key in ("stage", "source_id", "workspace_id", "backend", "task_id")):
             raise AssertionError("Image attempt identity changed")
-    if any(row["state"] != "SUCCESS" for row in finishes):
-        raise AssertionError("Success-only image experiment observed a failure or retry")
+    if len({row["attempt_id"] for row in finishes}) != len(finishes):
+        raise AssertionError("Duplicate image attempt completion evidence")
+    recovered_retries = []
+    for row in finishes:
+        if row["state"] == "SUCCESS":
+            continue
+        diagnostics = row.get("retry_diagnostics", {})
+        if (row["state"] != "RETRY" or row.get("backend") != "celery"
+                or row.get("stage") not in ("build", "comparison")
+                or not row.get("task_id")
+                or not isinstance(diagnostics, dict)
+                or diagnostics.get("exception_class") != "sqlalchemy.exc.OperationalError"
+                or not isinstance(diagnostics.get("exception_message"), str)
+                or not diagnostics["exception_message"]
+                or row.get("page_items") != 0
+                or row.get("built_artifact_ids", []) != []
+                or row.get("scored_rows", []) != []
+                or any(write.get("matched_rows", 0) > 0 for write in row.get("hash_write_observations", []))):
+            raise AssertionError("Image experiment observed an unproven failure or retry")
+        retry_finished = row.get("timestamp")
+        successes = [candidate for candidate in finishes
+                     if candidate["state"] == "SUCCESS"
+                     and candidate["attempt_id"] != row["attempt_id"]
+                     and all(candidate.get(key) == row.get(key) for key in
+                             ("task_id", "stage", "source_id", "workspace_id", "backend"))]
+        if not isinstance(retry_finished, (int, float)) or not any(
+                isinstance(starts[candidate["attempt_id"]].get("timestamp"), (int, float))
+                and starts[candidate["attempt_id"]]["timestamp"] > retry_finished
+                and isinstance(candidate.get("timestamp"), (int, float))
+                and candidate["timestamp"] >= starts[candidate["attempt_id"]]["timestamp"]
+                for candidate in successes):
+            raise AssertionError("Native OperationalError retry lacks subsequent same-task recovery")
+        recovered_retries.append(row)
     expected_builds = artifact_ids if new_builds else []
     actual_builds = [row["source_id"] for row in finishes if row["stage"] == "build" and row["page_items"] == 1]
     if sorted(actual_builds) != sorted(expected_builds):
@@ -86,7 +117,8 @@ def verify(records: list[dict], *, workspace: int, artifact_ids: list[int], requ
         "completed_comparisons": len(comparisons), "scored_pairs": normalized["scored_pairs"],
         "maximum_page_items": max((width for widths in pages.values() for width in widths), default=0),
         "page_bound": page_size, "comparisons": comparisons,
-        "business_attempts": len(finishes), "empty_comparison_attempts": empty,
+        "business_attempts": len(finishes), "recovered_retry_attempts": len(recovered_retries),
+        "empty_comparison_attempts": empty,
         "duplicate_build_deliveries": len(build_rows) - len(actual_builds),
         "build_hash_update_attempts": sum(len(row.get("hash_write_observations", [])) for row in build_rows),
         "zero_match_hash_update_attempts": sum(write.get("matched_rows") == 0 for row in build_rows
