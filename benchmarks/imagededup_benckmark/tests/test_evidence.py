@@ -16,6 +16,9 @@ class EvidenceTest(unittest.TestCase):
                 offset = sum(item[2] for item in operations[:index] if item[0] == "comparison")
                 details = {"scored_rows": [[source_id, 2 + (offset + n) % 3] for n in range(width)],
                            "page_accounting": "transaction_committed_orm_inserts"}
+            if stage == "build":
+                details = {"built_artifact_ids": [source_id] if width else [],
+                           "build_accounting": "transaction_committed_hash_writes"}
             rows += [{**record, "event": "started"},
                      {**record, "event": "finished", "state": "SUCCESS", "page_items": width, **details}]
         return rows
@@ -71,3 +74,32 @@ class EvidenceTest(unittest.TestCase):
         rows[3]["scored_rows"] = [[9, 1]]
         with self.assertRaisesRegex(AssertionError, "exact submitted candidate identities"):
             self.check(rows)
+
+    def test_zero_write_duplicate_build_delivery_is_kept_as_diagnostic(self):
+        rows = self.records()
+        record = {"attempt_id": "stale-build", "workspace_id": 1, "stage": "build", "source_id": 1}
+        rows += [{**record, "event": "started"},
+                 {**record, "event": "finished", "state": "SUCCESS", "page_items": 0,
+                  "build_accounting": "transaction_committed_hash_writes", "built_artifact_ids": [],
+                  "hash_write_observations": [{"artifact_id": 1, "matched_rows": 0, "kind": "bulk_update"}]}]
+        checked = self.check(rows)
+        self.assertEqual(checked["completed_builds"], 4)
+        self.assertEqual(checked["duplicate_build_deliveries"], 1)
+        self.assertEqual(checked["zero_match_hash_update_attempts"], 1)
+
+    def test_actual_duplicate_positive_build_write_is_rejected(self):
+        rows = self.records()
+        record = {"attempt_id": "duplicate-positive-build", "workspace_id": 1, "stage": "build", "source_id": 1}
+        rows += [{**record, "event": "started"},
+                 {**record, "event": "finished", "state": "SUCCESS", "page_items": 1,
+                  "build_accounting": "transaction_committed_hash_writes", "built_artifact_ids": [1]}]
+        with self.assertRaisesRegex(AssertionError, "build work"):
+            self.check(rows)
+
+    def test_counter_only_or_forged_hash_identity_cannot_certify_build_work(self):
+        for built in (None, [99]):
+            with self.subTest(built=built):
+                rows = self.records()
+                rows[5]["built_artifact_ids"] = built
+                with self.assertRaisesRegex(AssertionError, "transaction-attributed hash"):
+                    self.check(rows)

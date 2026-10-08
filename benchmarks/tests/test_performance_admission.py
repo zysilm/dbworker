@@ -125,6 +125,9 @@ class PerformanceAdmissionTests(unittest.TestCase):
                              'task_id': f'original-{stage}-{identity}', 'items': 0, 'event': 'started'}
                     finish = {**start, 'event': 'finished', 'state': 'SUCCESS',
                               'items_after': width, 'page_items': width}
+                    if stage == 'build':
+                        finish.update(build_accounting='transaction_committed_hash_writes',
+                                      built_artifact_ids=[identity])
                     if stage == 'comparison':
                         # Continuations may finish before the current task's callback.
                         finish['items_after'] = 99
@@ -155,6 +158,22 @@ class PerformanceAdmissionTests(unittest.TestCase):
             forged = copy.deepcopy(records)
             # Counts still match, but a query artifact replaces a real candidate.
             forged[7]['scored_rows'] = [[11, 1], [11, 2]]
+            path.write_text(''.join(json.dumps(record) + '\n' for record in forged))
+            row['operation_trace']['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
+            with self.assertRaises(WorkflowMismatch):
+                replay_image_workload(row, temporary, 3)
+            # A redelivery sees another attempt's commit but writes nothing itself.
+            duplicate = {**records[0], 'attempt_id': 'stale-redelivery'}
+            records.extend([duplicate, {**duplicate, 'event': 'finished', 'state': 'SUCCESS',
+                'items_after': 1, 'page_items': 0, 'built_artifact_ids': [],
+                'build_accounting': 'transaction_committed_hash_writes'}])
+            path.write_text(''.join(json.dumps(record) + '\n' for record in records))
+            row['operation_trace']['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
+            row['operation_evidence'] = verifier.verify(records, workspace=1, artifact_ids=[1, 2, 3],
+                request_ids=[11, 12, 13], new_builds=True, page_size=250, record_offset=0)
+            self.assertEqual(replay_image_workload(row, temporary, 3)['duplicate_build_deliveries'], 1)
+            forged = copy.deepcopy(records)
+            forged[-1]['built_artifact_ids'] = [1]
             path.write_text(''.join(json.dumps(record) + '\n' for record in forged))
             row['operation_trace']['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
             with self.assertRaises(WorkflowMismatch):

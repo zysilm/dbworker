@@ -6,7 +6,7 @@ import json
 import os
 import sqlite3
 import time
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from contextvars import ContextVar
 from pathlib import Path
 from uuid import uuid4
@@ -17,7 +17,21 @@ _transaction_observers_installed = False
 
 def _flushed(session, flush_context):
     record = session.info.get("image_observation_attempt") or _current_attempt.get()
-    if record is None or record["stage"] != "comparison":
+    if record is None:
+        return
+    if record["stage"] == "build":
+        from sqlalchemy import inspect
+
+        for item in session.dirty:
+            if getattr(getattr(type(item), "__table__", None), "name", None) != "feature_artifact":
+                continue
+            history = inspect(item).attrs.hash_value.history
+            if history.has_changes() and history.added and history.added[-1] is not None:
+                session.info["image_observation_attempt"] = record
+                session.info.setdefault("image_observation_pending_hash_writes", []).append(
+                    {"artifact_id": int(item.id), "matched_rows": 1, "kind": "orm_flush"})
+        return
+    if record["stage"] != "comparison":
         return
     rows = [item for item in session.new
             if getattr(getattr(type(item), "__table__", None), "name", None) == "scored_candidate"]
@@ -27,15 +41,42 @@ def _flushed(session, flush_context):
             [[int(item.request_id), int(item.candidate_artifact_id)] for item in rows])
 
 
+def _executed(orm_execute_state):
+    """Observe the original bulk hash update and return its unchanged Result."""
+    session = orm_execute_state.session
+    record = session.info.get("image_observation_attempt") or _current_attempt.get()
+    if record is None or record["stage"] != "build" or not orm_execute_state.is_update:
+        return None
+    statement = orm_execute_state.statement
+    if getattr(getattr(statement, "table", None), "name", None) != "feature_artifact":
+        return None
+    values = getattr(statement, "_values", {}) or {}
+    hashes = [value for key, value in values.items() if getattr(key, "key", key) == "hash_value"]
+    if not hashes or getattr(hashes[0], "value", None) is None:
+        return None
+    # Both pinned handlers use Session.execute(update(...).values(hash_value=...)).
+    # invoke_statement executes that same statement once; rowcount is inspected
+    # without fetching results, replacing arguments, or changing SQL/transactions.
+    result = orm_execute_state.invoke_statement()
+    session.info["image_observation_attempt"] = record
+    session.info.setdefault("image_observation_pending_hash_writes", []).append(
+        {"artifact_id": record["source_id"], "matched_rows": result.rowcount, "kind": "bulk_update"})
+    return result
+
+
 def _committed(session):
     rows = session.info.pop("image_observation_pending_rows", [])
     record = session.info.get("image_observation_attempt")
     if rows and record is not None:
         record.setdefault("_committed_scored_rows", []).extend(rows)
+    hashes = session.info.pop("image_observation_pending_hash_writes", [])
+    if hashes and record is not None:
+        record.setdefault("_committed_hash_writes", []).extend(hashes)
 
 
 def _rolled_back(session):
     session.info.pop("image_observation_pending_rows", None)
+    session.info.pop("image_observation_pending_hash_writes", None)
 
 
 def install_transaction_observers():
@@ -46,13 +87,14 @@ def install_transaction_observers():
         from sqlalchemy.orm import Session
 
         event.listen(Session, "after_flush", _flushed)
+        event.listen(Session, "do_orm_execute", _executed, retval=True)
         event.listen(Session, "after_commit", _committed)
         event.listen(Session, "after_rollback", _rolled_back)
         _transaction_observers_installed = True
 
 
 def snapshot(stage: str, source_id: int) -> dict:
-    with sqlite3.connect(os.environ["IMAGE_OBSERVATION_DATABASE"], timeout=30) as connection:
+    with closing(sqlite3.connect(os.environ["IMAGE_OBSERVATION_DATABASE"], timeout=30)) as connection:
         if stage == "build":
             row = connection.execute("SELECT workspace_id, hash_value FROM feature_artifact WHERE id=?", (source_id,)).fetchone()
             return {"workspace_id": row[0], "items": int(row[1] is not None)}
@@ -84,6 +126,13 @@ def end(record: dict, state: str) -> None:
     observed = snapshot(record["stage"], record["source_id"]) if record["source_id"] is not None else {"items": 0}
     page_items = observed["items"] - record.get("items", 0)
     details = {}
+    if record["stage"] == "build":
+        writes = record.get("_committed_hash_writes", [])
+        built = [row["artifact_id"] for row in writes
+                 for _ in range(max(0, row["matched_rows"]))]
+        page_items = len(built)
+        details = {"built_artifact_ids": built, "build_accounting": "transaction_committed_hash_writes",
+                   "hash_write_observations": writes}
     if record["stage"] == "comparison":
         # A native task publishes its continuation before task_postrun. Another
         # worker may commit several pages before this task's signal executes, so

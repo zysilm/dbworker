@@ -131,7 +131,10 @@ def validate_image_workload(row, images):
         raise WorkflowMismatch('Image comparison identities are incomplete or duplicated')
     if evidence.get('maximum_page_items') != max(page_items, default=0):
         raise WorkflowMismatch('Image maximum page count differs from observed pages')
-    if evidence.get('empty_comparison_attempts') != page_items.count(0) or evidence.get('business_attempts') != builds + len(page_items):
+    duplicates = evidence.get('duplicate_build_deliveries', 0)
+    if type(duplicates) is not int or duplicates < 0:
+        raise WorkflowMismatch('Invalid duplicate image build delivery accounting')
+    if evidence.get('empty_comparison_attempts') != page_items.count(0) or evidence.get('business_attempts') != builds + duplicates + len(page_items):
         raise WorkflowMismatch('Image business attempt accounting differs from observed work')
     normalized = {'build_inputs': list(range(builds)), 'comparison_inputs': list(range(comparisons)),
                   'scored_pairs': counts['scored_pairs'], 'page_bound': 250}
@@ -165,7 +168,6 @@ def replay_image_workload(row, directory, images):
     records = read_trace(path)
     backend = 'dbwork' if row['backend'] == 'dbworker' else 'celery'
     attempts = {}
-    task_ids = []
     for record in records:
         if record.get('backend') != backend:
             raise WorkflowMismatch('Image snapshot backend differs from sample')
@@ -188,8 +190,11 @@ def replay_image_workload(row, directory, images):
                 or type(end.get('page_items')) is not int):
             raise WorkflowMismatch('Image observed work counts must be integers')
         if start['stage'] == 'build':
-            if end['page_items'] != end['items_after'] - start['items']:
-                raise WorkflowMismatch('Image build state differs from its source counters')
+            expected = [start['source_id']] if end['page_items'] == 1 else []
+            if (end['page_items'] not in (0, 1)
+                    or end.get('build_accounting') != 'transaction_committed_hash_writes'
+                    or end.get('built_artifact_ids') != expected):
+                raise WorkflowMismatch('Image build lacks transaction-attributed committed hash writes')
         elif (end.get('page_accounting') != 'transaction_committed_orm_inserts'
               or not isinstance(end.get('scored_rows'), list)
               or len(end['scored_rows']) != end['page_items']):
@@ -197,9 +202,6 @@ def replay_image_workload(row, directory, images):
         if backend == 'celery':
             if not isinstance(start.get('task_id'), str) or not start['task_id']:
                 raise WorkflowMismatch('Missing original Celery image task identity')
-            task_ids.append(start['task_id'])
-    if len(set(task_ids)) != len(task_ids):
-        raise WorkflowMismatch('Image native business task was delivered more than once')
     verifier_path = ROOT / 'benchmarks/imagededup_benckmark/src/imagededup_benckmark/evidence.py'
     spec = importlib.util.spec_from_file_location('benchmark_image_artifact_verifier', verifier_path)
     verifier = importlib.util.module_from_spec(spec)

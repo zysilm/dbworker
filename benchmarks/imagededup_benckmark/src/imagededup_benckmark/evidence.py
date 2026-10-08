@@ -42,6 +42,10 @@ def verify(records: list[dict], *, workspace: int, artifact_ids: list[int], requ
     build_rows = [row for row in finishes if row["stage"] == "build"]
     if any(row["source_id"] not in expected_builds or row["page_items"] not in (0, 1) for row in build_rows):
         raise AssertionError("Unexpected or oversized image build execution")
+    for row in build_rows:
+        expected = [row["source_id"]] if row["page_items"] else []
+        if row.get("build_accounting") != "transaction_committed_hash_writes" or row.get("built_artifact_ids") != expected:
+            raise AssertionError("Individual image build lacks transaction-attributed hash write evidence")
     pages = {key: [] for key in request_ids}
     scored = {key: [] for key in request_ids}
     artifact_set = set(artifact_ids)
@@ -84,6 +88,9 @@ def verify(records: list[dict], *, workspace: int, artifact_ids: list[int], requ
         "page_bound": page_size, "comparisons": comparisons,
         "business_attempts": len(finishes), "empty_comparison_attempts": empty,
         "duplicate_build_deliveries": len(build_rows) - len(actual_builds),
+        "build_hash_update_attempts": sum(len(row.get("hash_write_observations", [])) for row in build_rows),
+        "zero_match_hash_update_attempts": sum(write.get("matched_rows") == 0 for row in build_rows
+                                               for write in row.get("hash_write_observations", [])),
         "control_dispatch_attempts": sum(row["event"] == "finished" and row["stage"] == "dispatch"
                                          for row in records[record_offset:]),
         "failed_attempts": 0, "missing_attempts": 0,
