@@ -18,13 +18,14 @@ task entry points. DBWorker variations replace scheduling while preserving busin
 work and individual job granularity. No benchmark-defined Celery task wraps an
 extracted business function. Child jobs remain separate jobs on both backends.
 
-All six current native workflows passed full-profile execution and independent
+Earlier native workflows passed the previous full profile and independent
 aggregate admission in
 [GitHub Actions run 37906191421](https://github.com/zysilm/dbworker/actions/runs/37906191421).
 The run contains 80 measured samples at source revision
 `18321cb73b7ea6406e29877520cac6cbc97b6403`: five repetitions per backend and scenario.
-These measurements cover the expanded public producers and the input, worker,
-timing, SMTP, image-output and SQL-result evidence described below.
+These historical measurements cover the native public producers and their evidence,
+but do not establish the fixed concurrent profile below. Accepted current results
+are identified by their source revision and run ID in the main README and result index.
 The earlier run `37860143841` measured `7b9435d` and remains historical; it does
 not establish execution of the current producer or evidence format.
 Previously retained paired-callable and subprocess-bridge JSON files are historical
@@ -34,11 +35,11 @@ Capability research remains on the separate `extension1-research` branch.
 | Suite | Implemented native workflow | Per-backend full workload in each repetition |
 | --- | --- | --- |
 | `imagededup` | This repository's original Celery example; image hashing, bounded comparison pages and mixed workloads | 1,000 measured images per scenario; actual build and scoring-page jobs are checked against matching inputs and page bounds |
-| `superset` | Authenticated SQL Lab REST submission, original async task, result storage and authenticated retrieval | 100 query jobs against 10,000 fixture rows; one `sql_lab` job per query |
-| `saleor` | Authenticated original GraphQL export mutation, export lifecycle, upstream plugins and queued admin-email notification | 100 exports of 256 products plus 100 email jobs; one export-to-email edge per operation; no webhook subscriptions |
-| `paperless_ngx` | Authenticated original document-upload API and unsplit ingestion task, tracked lifecycle and real OCR pipeline | 100 scans and 100 ingestion jobs; original documents, OCR text, archives, thumbnails and search are checked |
-| `posthog` | Authenticated original 2FA validation handler, real device/session effects, notification and child delivery | 100 notification jobs plus 100 delivery jobs; API effects, rendering and SMTP delivery remain inside timing |
-| `sentry` | Historical original `MessageBuilder.send_async` and native email tasks with persistent workers | 100 operations, each with two distinct recipients, producing 200 individual delivery jobs |
+| `superset` | Authenticated SQL Lab REST submission, original async task, result storage and authenticated retrieval | 3,000 query jobs against 10,000 fixture rows; one `sql_lab` job per query |
+| `saleor` | Authenticated original GraphQL export mutation, export lifecycle, upstream plugins and queued admin-email notification | 1,000 exports of 256 products plus 1,000 email jobs; one export-to-email edge per operation; no webhook subscriptions |
+| `paperless_ngx` | Authenticated original document-upload API and unsplit ingestion task, tracked lifecycle and real OCR pipeline | 200 scans and 200 ingestion jobs; original documents, OCR text, archives, thumbnails and search are checked |
+| `posthog` | Authenticated original 2FA validation handler, real device/session effects, notification and child delivery | 5,000 notification jobs plus 5,000 delivery jobs; API effects, rendering and SMTP delivery remain inside timing |
+| `sentry` | Historical original `MessageBuilder.send_async` and native email tasks with persistent workers | 2,000 operations, each with two distinct recipients, producing 4,000 individual delivery jobs |
 
 The upstream suites use sibling `*_dbworker` packages without editing the pinned
 sources. Unexpected stages, unsupported continuations, missing jobs, duplicate
@@ -118,10 +119,10 @@ Override interpreter paths with `--interpreters PATH_TO_JSON`:
 }
 ```
 
-The registry is authoritative: only `full` is supported, with five repetitions,
-1,000 measured images and eight warmup images for the image suite, or 100 measured
-operations and two warmup operations for each upstream suite. Auxiliary jobs are
-additional work, not replacements for the top-level operation count.
+The registry is authoritative: only `full` is supported, with three repetitions
+per backend and the fixed measured quantities in the table. The image suite uses
+eight warmup images; upstream suites use two warmup operations. Auxiliary jobs
+are additional work, not replacements for the top-level operation count.
 
 ## Evidence, admission and measurement boundaries
 
@@ -193,7 +194,7 @@ evidence and persisted JSONL task traces. Only a complete admitted run replaces
 compact final README table with median timings and a bold faster backend. Published
 evidence includes result JSON, JSONL traces and independently replayable Sentry
 SMTP content receipts. Failure diagnostics are uploaded
-separately with seven-day artifact retention.
+separately with two-day artifact retention.
 
 Failed, blocked, incomplete or stale runs never update the official table. Publication
 skips a run if `main` has advanced and uses a normal push with `GITHUB_TOKEN` write
@@ -219,7 +220,7 @@ policies remain in use. DBWorker preserves task granularity and business effects
 Image building remains one native bulk import; comparison requests use pacing.
 
 Fixed measured quantities are 3,000 SQL Lab queries, 1,000 exports of 256 products,
-200 complete OCR ingestions, 5,000 two-factor operations and 20,000 two-recipient
+200 complete OCR ingestions, 5,000 two-factor operations and 2,000 two-recipient
 email sends. Image scenarios retain 1,000 images and 999,000 directed comparison
 pairs. No producer, worker, request-count or rate gradients are run.
 
@@ -238,7 +239,11 @@ Six fresh GitHub-hosted Docker jobs run in parallel, with the two backends
 sequential within each job. The target workflow duration is approximately one
 hour, not a performance guarantee; each experiment job has a 90-minute timeout.
 Timeouts or native failures fail the comparison without reducing either arm's
-workload. Branch runs aggregate artifacts without publishing results to main.
+workload. The email count is budgeted at 4,000 deliveries per sample: a 40,000-delivery
+sizing trial exceeded the 80-minute suite budget before finishing the first pair.
+That trial also exposed expensive completion observation, so its partial results
+do not establish scheduler-only capacity. The fixed profile never adapts counts
+during a run. Branch runs aggregate artifacts without publishing results to main.
 
 Method references: [BullMQ fixed concurrent insertion benchmark](https://bullmq.io/articles/benchmarks/bullmq-python-vs-rq/),
 [RabbitMQ load-generator and backlog methodology](https://www.rabbitmq.com/blog/2020/06/04/how-to-run-benchmarks),

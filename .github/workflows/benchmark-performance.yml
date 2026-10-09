@@ -21,9 +21,6 @@ jobs:
     name: ${{ matrix.label }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
-    permissions:
-      contents: read
-      actions: write
     strategy:
       fail-fast: false
       max-parallel: 6
@@ -40,17 +37,8 @@ jobs:
           - suite: posthog
             label: "2FA - 5,000 requests and 10,000 tasks, 8 producers, 60s"
           - suite: sentry
-            label: "Email - 20,000 requests and 40,000 deliveries, 8 producers, 60s"
+            label: "Email - 2,000 requests and 4,000 deliveries, 8 producers, 60s"
     steps:
-      - name: Cancel superseded temporary branch measurements
-        if: github.ref == 'refs/heads/feature/concurrent-sustained-benchmarks' && matrix.suite == 'imagededup'
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          for obsolete_run in 37966450214 37966815743; do
-            gh api --method POST "repos/${GITHUB_REPOSITORY}/actions/runs/${obsolete_run}/cancel" || true
-          done
       - uses: actions/checkout@v5
       - name: Initialize only this experiment's pinned source
         if: matrix.suite != 'imagededup'

@@ -22,7 +22,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "examples/posthog"))
 
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from dbworker import ExecutionStatus
 
@@ -42,6 +42,16 @@ def port():
     with socket.socket() as reservation:
         reservation.bind(("127.0.0.1", 0))
         return reservation.getsockname()[1]
+
+
+def durable_jobs_complete(session, runtime, operations, expected_jobs):
+    """Keep both durable completion predicates with two bounded SQL queries."""
+    jobs = session.query(Job).filter(Job.operation_id.in_(operations))
+    if jobs.filter(Job.complete.is_(True)).count() != expected_jobs:
+        return False
+    unfinished = ~runtime.has_execution_status(
+        worker="posthog_workflow", source_id=Job.id, statuses=[ExecutionStatus.FINISHED])
+    return jobs.filter(unfinished).count() == 0
 
 
 def wait_for(predicate, timeout=180):
@@ -227,11 +237,7 @@ def main():
                     return False
                 if args.backend == "dbworker":
                     with sessions() as session:
-                        if session.query(Job).filter(Job.operation_id.in_(ops), Job.complete.is_(True)).count() != 2 * len(values):
-                            return False
-                        jobs = session.scalars(select(Job).where(Job.operation_id.in_(ops))).all()
-                        if any(runtime.execution_status(session, worker="posthog_workflow", source_id=job.id)
-                               != ExecutionStatus.FINISHED for job in jobs):
+                        if not durable_jobs_complete(session, runtime, ops, 2 * len(values)):
                             return False
                 return graph
             try:

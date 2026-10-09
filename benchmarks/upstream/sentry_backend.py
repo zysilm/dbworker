@@ -25,7 +25,21 @@ from benchmarks.common.load import run_load
 from benchmarks.common.load_evidence import task_load_metrics
 from benchmarks.common.timing_evidence import begin_window, end_window, elapsed_seconds, validate_timing_window
 from benchmarks.common.smtp_evidence import observe_messages, replay_messages, business_digest
+from benchmarks.common.workflow_graph import SuccessTraceCursor, validate_graph
 TASKS = ["sentry.tasks.email.send_email", "sentry.tasks.email.send_email_control"]
+
+
+def delivery_completion(cursor, operations, message_count, warmup_operations):
+    """Use incremental readiness; the unchanged full graph remains authoritative."""
+    cursor.update()
+    expected = len(operations) * 2
+    if cursor.pending or cursor.succeeded < expected or message_count != expected:
+        return None
+    try:
+        return validate_graph(cursor.events, operations, {"delivery": 2}, [],
+                              warmup_operations=warmup_operations)
+    except (ValueError, FileNotFoundError):
+        return None
 
 
 def xml_library_linkage():
@@ -284,18 +298,10 @@ def main():
                 load.pop("results")
                 if publication_errors:
                     raise RuntimeError("Native safe_execute suppressed a DBWorker publication error") from publication_errors[0]
+                cursor = SuccessTraceCursor(trace, operation_ids)
                 def complete():
-                    events = read_trace(trace) if trace.exists() else []
-                    if any(row.get("event") in ("failed", "retried", "revoked", "unknown") for row in events):
-                        raise RuntimeError("Success-only native Sentry workflow observed a non-successful attempt")
-                    try:
-                        graph = validate_graph(events, operation_ids, {"delivery": 2}, [],
-                            warmup_operations=[] if operation_ids == ["warmup:-2", "warmup:-1"]
-                            else ["warmup:-2", "warmup:-1"])
-                    except (ValueError, FileNotFoundError):
-                        return None
-                    expected_messages = len(operation_ids) * 2
-                    return graph if len(sink.messages) == expected_messages else None
+                    return delivery_completion(cursor, operation_ids, len(sink.messages),
+                        [] if operation_ids == ["warmup:-2", "warmup:-1"] else ["warmup:-2", "warmup:-1"])
                 graph = wait_for(complete, children=children, timeout=max(120, len(operation_ids) * 5))
                 window = end_window(started)
                 seconds = elapsed_seconds(window)
