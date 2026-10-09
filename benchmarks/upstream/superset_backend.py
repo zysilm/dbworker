@@ -28,6 +28,8 @@ from benchmarks.common.reporting import write_json
 from benchmarks.common.native_observer import operation
 from benchmarks.common.timing_evidence import begin_window, end_window, elapsed_seconds
 
+METADATA_SQLITE_BUSY_TIMEOUT_SECONDS = 30
+
 SQL = "SELECT category, SUM(value) + {marker} AS total FROM facts GROUP BY category ORDER BY category"
 
 
@@ -74,7 +76,7 @@ def write_configuration(path, directory, port, *, results_capacity):
         # unchanged post-batch retrieval, rather than evicting at the default 500.
         f"RESULTS_BACKEND = FileSystemCache({str(cache)!r}, threshold={results_capacity})\n"
         "SECRET_KEY = 'isolated-benchmark-only-secret'\n"
-        f"SQLALCHEMY_DATABASE_URI = {'sqlite:///' + str(directory / 'metadata.db')!r}\n"
+        f"SQLALCHEMY_DATABASE_URI = {'sqlite:///' + str(directory / 'metadata.db') + '?timeout=' + str(METADATA_SQLITE_BUSY_TIMEOUT_SECONDS)!r}\n"
         "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE = 'aes-gcm'\n"
         "CONTENT_SECURITY_POLICY_WARNING = False\nTALISMAN_ENABLED = False\n"
         "WTF_CSRF_ENABLED = False\n"
@@ -163,7 +165,8 @@ def main():
             configuration={"upstream_config": "docker/pythonpath_dev/superset_config.py",
                            "source_sha256": hashlib.sha256((ROOT / "examples/superset/docker/pythonpath_dev/superset_config.py").read_bytes()).hexdigest(),
                            "overrides": "isolated Redis/cache/metadata/security fixture environment; result cache capacity retains all measured queries",
-                           "results_cache_capacity": results_capacity})
+                           "results_cache_capacity": results_capacity,
+                           "metadata_sqlite_busy_timeout_seconds": METADATA_SQLITE_BUSY_TIMEOUT_SECONDS})
         client = app.test_client()
         login = client.post("/login/", data={"username": "benchmark", "password": "isolated-fixture-password"})
         if login.status_code != 302:
@@ -320,10 +323,11 @@ def main():
                                  "submission": "authenticated original SQL Lab REST API",
                                  "completion": "native success + stored results + authenticated retrieval + scheduler terminal event",
                                  "timing": "first API submission through all result retrieval and scheduler completion",
-                                 "metadata_database": "sqlite", "warehouse_database": "sqlite",
+                                 "metadata_database": "sqlite", "metadata_sqlite_busy_timeout_seconds": METADATA_SQLITE_BUSY_TIMEOUT_SECONDS,
+                                 "warehouse_database": "sqlite",
                                  "results_backend": "upstream FileSystemCache", "results_cache_capacity": results_capacity, "redis_aof": "everysec",
                                  "environment_overrides": ["isolated Redis host/port", "isolated filesystem cache directory", "results cache entry capacity covers measured queries and warmups",
-                                     "isolated SQLite metadata URI", "fixture secret/encryption setting", "local test-client CSRF/TLS disabled"],
+                                     "isolated SQLite metadata URI with identical 30-second busy timeout", "fixture secret/encryption setting", "local test-client CSRF/TLS disabled"],
                                  "celery_acknowledgements": "upstream early acknowledgements",
                                  "dbworker_timeouts": "No equivalent native soft/hard task limits; normal completion only"},
                "capabilities": {"verified": ["native_sql_lab_submission", "native_task_dispatch", "async_results_storage",

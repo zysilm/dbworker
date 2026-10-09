@@ -11,7 +11,11 @@ class SupersetResultCapacityTests(unittest.TestCase):
         source = Path("benchmarks/upstream/superset_backend.py").read_text()
         tree = ast.parse(source)
         function = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "write_configuration")
-        namespace = {"ROOT": Path('/isolated/repository'), "os": __import__('os')}
+        timeout_setting = next(node for node in tree.body if isinstance(node, ast.Assign)
+                               and any(isinstance(target, ast.Name) and target.id == "METADATA_SQLITE_BUSY_TIMEOUT_SECONDS"
+                                       for target in node.targets))
+        namespace = {"ROOT": Path('/isolated/repository'), "os": __import__('os'),
+                     "METADATA_SQLITE_BUSY_TIMEOUT_SECONDS": ast.literal_eval(timeout_setting.value)}
         exec(compile(ast.Module(body=[function], type_ignores=[]), '<configuration factory>', 'exec'), namespace)
         class Cache:
             def __init__(self, path, threshold=500, default_timeout=300):
@@ -32,6 +36,16 @@ class SupersetResultCapacityTests(unittest.TestCase):
             self.assertEqual(backend.threshold, 1010)
             self.assertEqual(backend.default_timeout, 300)
             self.assertEqual(backend.path, str(directory / 'sql_lab_results'))
+            # Both arms and their native workers consume this one generated
+            # configuration. Exercise its actual SQLAlchemy connection options.
+            from sqlalchemy import create_engine
+            engine = create_engine(settings['SQLALCHEMY_DATABASE_URI'])
+            try:
+                with engine.connect() as connection:
+                    self.assertEqual(connection.exec_driver_sql('PRAGMA busy_timeout').scalar(), 30000)
+                    self.assertEqual(connection.exec_driver_sql('PRAGMA journal_mode').scalar(), 'delete')
+            finally:
+                engine.dispose()
 
     def test_capacity_budget_contains_every_request_and_warmup(self):
         source = Path('benchmarks/upstream/superset_backend.py').read_text()

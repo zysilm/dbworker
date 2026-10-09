@@ -3,10 +3,12 @@ import copy
 import hashlib
 import json
 import unittest
+from types import SimpleNamespace
 
 from benchmarks.common.argument_evidence import argument_digest
 from benchmarks.common.business_evidence import (
-    POSTHOG_API_SHA256, expected_operations, validate_business_binding as _validate_business_binding,
+    POSTHOG_API_SHA256, expected_operations, validate_posthog_delivery_records,
+    validate_business_binding as _validate_business_binding,
 )
 from benchmarks.common.workflow_graph import WorkflowMismatch
 
@@ -255,6 +257,39 @@ class BusinessEvidenceTests(unittest.TestCase):
                 row['producer_identities'][0]['recipient_sha256'] = sha('other@example.test')
             with self.subTest(mutation=mutation), self.assertRaises(WorkflowMismatch):
                 validate_business_binding(row, 'posthog', events, 2)
+
+
+class PostHogDeliveryTests(unittest.TestCase):
+    def fixture(self, count=5000):
+        users = [SimpleNamespace(email=f"recipient-{index}@benchmark.invalid", uuid=f"user-{index}")
+                 for index in range(count)]
+        records = [SimpleNamespace(email_hash="hash:" + user.email, sent_at=1,
+                                   campaign_key=f"2fa_enabled_{user.uuid}-native-suffix")
+                   for user in users]
+        return users, records
+
+    def test_large_ledger_hashes_each_user_once_and_checks_every_campaign(self):
+        users, records = self.fixture()
+        calls = []
+        def email_hash(value):
+            calls.append(value)
+            return "hash:" + value
+        validate_posthog_delivery_records(users, records, email_hash)
+        self.assertEqual(calls, [user.email for user in users])
+
+    def test_missing_duplicate_unsent_and_wrong_campaign_records_fail(self):
+        for mutation in ("missing", "duplicate", "unsent", "wrong_campaign"):
+            users, records = self.fixture()
+            if mutation == "missing":
+                records.pop()
+            elif mutation == "duplicate":
+                records[-1].email_hash = records[0].email_hash
+            elif mutation == "unsent":
+                records[-1].sent_at = None
+            else:
+                records[-1].campaign_key = "2fa_enabled_wrong-user-native-suffix"
+            with self.subTest(mutation=mutation), self.assertRaises(AssertionError):
+                validate_posthog_delivery_records(users, records, lambda value: "hash:" + value)
 
 
 if __name__ == '__main__':

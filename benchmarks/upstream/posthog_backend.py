@@ -27,6 +27,7 @@ from sqlalchemy.orm import sessionmaker
 from dbworker import ExecutionStatus
 
 from benchmarks.common.reporting import write_json
+from benchmarks.common.business_evidence import validate_posthog_delivery_records
 from benchmarks.common.load import run_load
 from benchmarks.common.load_evidence import task_load_metrics
 from examples.posthog_dbworker.runtime import Job, STAGES, coordinator, enqueue
@@ -275,13 +276,8 @@ def main():
         if len(sink.messages) != len(users) or sorted(row["recipient"] for row in normalized) != expected_recipients:
             raise AssertionError("Missing or duplicate SMTP acceptance")
         records = list(MessagingRecord.objects.order_by("campaign_key"))
-        if len(records) != len(users) or any(record.sent_at is None for record in records):
-            raise AssertionError("Native delivery ledger is incomplete")
         from posthog.models.messaging import get_email_hash
-        for user in users:
-            matching = [record for record in records if record.email_hash == get_email_hash(user.email)]
-            if len(matching) != 1 or not matching[0].campaign_key.startswith(f"2fa_enabled_{user.uuid}-"):
-                raise AssertionError("Native user/campaign mapping differs")
+        validate_posthog_delivery_records(users, records, get_email_hash)
         normalized.sort(key=lambda item: item["recipient"])
         source = ROOT / "examples/posthog/posthog"
         source_files = {relative: hashlib.sha256((source / relative).read_bytes()).hexdigest()

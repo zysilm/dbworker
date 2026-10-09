@@ -101,6 +101,19 @@ def _counts(values, expected):
                  'trusted business workload count differs: ' + name)
 
 
+def validate_posthog_delivery_records(users, records, email_hash):
+    """Validate the native ledger in linear time without changing its oracle."""
+    if len(records) != len(users) or any(record.sent_at is None for record in records):
+        raise AssertionError("Native delivery ledger is incomplete")
+    by_email_hash = {}
+    for record in records:
+        by_email_hash.setdefault(record.email_hash, []).append(record)
+    for user in users:
+        matching = by_email_hash.get(email_hash(user.email), [])
+        if len(matching) != 1 or not matching[0].campaign_key.startswith(f"2fa_enabled_{user.uuid}-"):
+            raise AssertionError("Native user/campaign mapping differs")
+
+
 def validate_business_binding(row, suite, events, expected_requests, *, expected_profile=None):
     """Reject missing, substituted or shortcut producer evidence before scoring."""
     _require(isinstance(row, dict) and isinstance(events, list) and all(isinstance(event, dict) and isinstance(event.get('operation_id'), str) for event in events), 'invalid evidence types')
