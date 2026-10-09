@@ -9,6 +9,7 @@ import shutil
 import sqlite3
 import tempfile
 import time
+from contextlib import ExitStack
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -16,8 +17,8 @@ from typing import Any
 import psutil
 
 from imagededup_benckmark.dataset import DEFAULT_DIRECTORY, download_dataset
-from imagededup_benckmark.measurement import Measurement, distribution
-from imagededup_benckmark.runtime import WORKERS, Stack
+from imagededup_benckmark.measurement import Measurement, business_capacity, distribution
+from imagededup_benckmark.runtime import WORKERS, Stack, SQLITE_BUSY_TIMEOUT_SECONDS, PRODUCER_HTTP_TIMEOUT_SECONDS
 from imagededup_benckmark.evidence import quiesce, verify
 from imagededup_benckmark.observation import read_records
 
@@ -101,9 +102,31 @@ def validate(stack: Stack, workspace: int, artifact_ids: list[int], request_ids:
             "artifacts": count, "requests": len(request_ids), "scored_pairs": len(request_ids) * (count - 1)}
 
 
+def submit_comparisons(stack: Stack, artifact_ids: list[int], *, producers: int,
+                       duration_seconds: float, top_k: int, max_distance: int,
+                       measured_start: float) -> dict[str, Any]:
+    """Submit the original public API using independent producer connections."""
+    from benchmarks.common.load import run_load
+    with ExitStack() as clients:
+        independent = [clients.enter_context(stack.producer_client()) for _ in range(producers)]
+
+        def producer_factory(producer_index: int):
+            client = independent[producer_index]
+            def submit(key: int, index: int) -> dict[str, Any]:
+                response = client.post(f"/comparisons/{key}", json={"retained_max_k": top_k,
+                                                                      "max_distance": max_distance})
+                response.raise_for_status()
+                return {"id": int(response.json()["id"]), "returned_seconds": time.perf_counter() - measured_start}
+            return submit
+
+        return run_load(artifact_ids, None, producers=producers,
+                        duration_seconds=duration_seconds, producer_factory=producer_factory)
+
+
 def scenario(stack: Stack, kind: str, directory: Path, count: int, *, page_size: int,
              top_k: int, max_distance: int, interval: float, timeout: float,
-             existing: tuple[int, list[int]] | None = None, trace_root: Path | None = None) -> tuple[dict[str, Any], tuple[int, list[int]]]:
+             existing: tuple[int, list[int]] | None = None, trace_root: Path | None = None,
+             producers: int = 8, submission_window_seconds: float = 60) -> tuple[dict[str, Any], tuple[int, list[int]]]:
     if existing is None:
         workspace = int(stack.request("POST", "/workspaces", {"name": kind})["id"])
         artifact_ids: list[int] = []
@@ -118,6 +141,8 @@ def scenario(stack: Stack, kind: str, directory: Path, count: int, *, page_size:
     meter.start()
     import_finished: float | None = None
     first_request_submitted: float | None = None
+    load: dict[str, Any] | None = None
+    submission_start = 0.0
     try:
         if existing is None:
             imported = stack.request("POST", f"/workspaces/{workspace}/imports", {"directory": str(directory), "limit": count})
@@ -126,11 +151,13 @@ def scenario(stack: Stack, kind: str, directory: Path, count: int, *, page_size:
                 raise AssertionError("Image import did not match selected dataset")
             import_finished = time.perf_counter() - meter.started
         if comparison_count:
-            for key in artifact_ids:
-                created = stack.request("POST", f"/comparisons/{key}", {"retained_max_k": top_k, "max_distance": max_distance})
-                request_ids.append(int(created["id"]))
-                if first_request_submitted is None:
-                    first_request_submitted = time.perf_counter() - meter.started
+            submission_start = time.perf_counter() - meter.started
+            load = submit_comparisons(stack, artifact_ids, producers=producers,
+                                      duration_seconds=submission_window_seconds if kind != "warmup" else 0,
+                                      top_k=top_k, max_distance=max_distance, measured_start=meter.started)
+            submitted = load.pop("results")
+            request_ids = [item["id"] for item in submitted]
+            first_request_submitted = min(item["returned_seconds"] for item in submitted)
         submission_finished_absolute = time.perf_counter()
         submission_finished = submission_finished_absolute - meter.started
         metrics = meter.finish(submission_finished=submission_finished_absolute)
@@ -146,6 +173,24 @@ def scenario(stack: Stack, kind: str, directory: Path, count: int, *, page_size:
         and first_request_submitted < metrics["builds_finished_seconds"]
     )
     metrics["images_per_second"] = count / metrics["wall_seconds"] if existing is None else None
+    if load is not None:
+        metrics["load"] = load
+        metrics["load"]["completion_observation"] = {
+            "scope": "persisted business comparison requests, not queue tasks",
+            "peak_unfinished_requests": max((point["unfinished_comparison_requests"] for point in metrics["progress"]), default=0),
+            "progress": metrics["progress"],
+            "post_submission_drain_seconds": metrics["post_submission_completion_seconds"],
+            "sql_probe_busy_count": metrics["sql_busy_probes"],
+            "lock_observation_scope": "read-only observer SQLite busy events; application write lock waits are not directly measured",
+            "capacity_scope": "one fixed offered load; no maximum sustainable capacity estimate",
+        }
+        metrics["load"]["capacity_observation"] = business_capacity(
+            metrics["progress"], submission_start=submission_start,
+            submission_window=load["duration_seconds"])
+    else:
+        metrics["load"] = {"mode": "native_bulk_import", "producer_count": 1,
+                           "business_requests": 1, "imported_images": count,
+                           "sustained_submission_tested": False}
     drain_started = time.perf_counter()
     observations = quiesce(stack, timeout=timeout)
     metrics["untimed_business_drain_seconds"] = time.perf_counter() - drain_started
@@ -214,6 +259,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--redis-server", default="redis-server")
     parser.add_argument("--poll-interval", type=float, default=.1)
     parser.add_argument("--timeout-seconds", type=float, default=300)
+    parser.add_argument("--producers", type=int, default=8)
+    parser.add_argument("--submission-window-seconds", type=float, default=60)
     args = parser.parse_args(argv)
     if not 2 <= args.images <= 25000 or args.repetitions < 1:
         parser.error("images must be 2–25000 and repetitions must be positive")
@@ -223,6 +270,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         parser.error("invalid page size, top-K or Hamming threshold")
     if args.poll_interval <= 0 or args.timeout_seconds <= 0:
         parser.error("poll interval and timeout must be positive")
+    if args.producers < 1 or args.submission_window_seconds <= 0 or args.submission_window_seconds >= args.timeout_seconds:
+        parser.error("producer count must be positive and submission window must be positive and shorter than the timeout")
     return args
 
 
@@ -252,6 +301,12 @@ def main(argv: list[str] | None = None) -> None:
                           "build_workers": WORKERS, "comparison_workers": WORKERS, "page_size": args.page_size,
                           "top_k": args.top_k, "max_distance": args.max_distance, "poll_interval": args.poll_interval,
                           "timeout_seconds": args.timeout_seconds, "sqlite_journal_mode": "delete",
+                          "sqlite_busy_timeout_seconds": SQLITE_BUSY_TIMEOUT_SECONDS,
+                          "producer_http_timeout_seconds": PRODUCER_HTTP_TIMEOUT_SECONDS,
+                          "producers": args.producers, "submission_window_seconds": (
+                              int(args.submission_window_seconds) if args.submission_window_seconds.is_integer()
+                              else args.submission_window_seconds),
+                          "worker_concurrency": WORKERS * 2,
                           "redis_appendonly": True, "redis_appendfsync": "everysec",
                           "hamming_kernel": "integer_xor_bit_count", "scientific_threads_per_process": 1,
                           "sequential": True, "order": "alternating backend order between repetitions"},
@@ -268,6 +323,9 @@ def main(argv: list[str] | None = None) -> None:
             "Redis/Celery includes Redis, worker parents, children, API and Beat; no existing Redis instance is touched.",
             "SQLite durability is the same for both apps; Redis AOF everysec is an additional, different durability boundary.",
             "Mixed overlap is observed, not forced: small workloads may finish builds before scoring starts.",
+            "Comparison and mixed requests use independent producer HTTP clients and one fixed paced submission window; bulk builds retain the native import API.",
+            "Business progress records persisted unfinished comparisons; observer SQL busy events do not measure application write lock waits.",
+            "Both application engines use a 30-second SQLite busy timeout, DELETE journal and unchanged durability; producer HTTP timeout is 60 seconds. No request retries or dropped work are permitted.",
         ],
         "dataset": {"directory": str(dataset_dir), "name": "MIRFLICKR-25K", "selection": manifest},
         "work_directory": str(work_dir), "stacks": [], "runs": [],
@@ -285,6 +343,7 @@ def main(argv: list[str] | None = None) -> None:
                                              "startup_seconds": stack.startup_seconds, "logs": str(stack.directory), "versions": stack.versions})
                     common = dict(page_size=args.page_size, top_k=args.top_k, max_distance=args.max_distance,
                                   interval=args.poll_interval, timeout=args.timeout_seconds, trace_root=output.parent)
+                    common.update(producers=args.producers, submission_window_seconds=args.submission_window_seconds)
                     if args.warmup_images:
                         scenario(stack, "warmup", warmup, args.warmup_images, **common)
                     built: tuple[int, list[int]] | None = None

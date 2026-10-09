@@ -1,8 +1,10 @@
 """Adversarial admission checks for task count, identity and workflow shape."""
+import json
 import tempfile
 import unittest
 from pathlib import Path
-from benchmarks.common.workflow_graph import WorkflowMismatch, compare_graphs, read_trace, validate_graph
+from unittest.mock import patch
+from benchmarks.common.workflow_graph import SuccessTraceCursor, WorkflowMismatch, compare_graphs, read_trace, validate_graph
 
 
 def events(backend='celery', operations=('0', '1')):
@@ -23,6 +25,55 @@ def validate(rows, operations=('0', '1')):
 
 
 class WorkflowGraphTests(unittest.TestCase):
+    def test_incremental_cursor_reads_each_record_once_and_buffers_partial_lines(self):
+        rows = events(operations=('0',))
+        content = b''.join(json.dumps(row).encode() + b'\n' for row in rows)
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / 'workflow.jsonl'
+            cursor = SuccessTraceCursor(path, ['0'])
+            cursor.update()
+            path.write_bytes(content[:-10])
+            with patch('benchmarks.common.workflow_graph.json.loads', wraps=json.loads) as loads:
+                cursor.update()
+                self.assertEqual(cursor.events, rows[:-1])
+                self.assertTrue(cursor.pending)
+                for _ in range(100):
+                    cursor.update()
+                self.assertEqual(loads.call_count, len(rows) - 1)
+                with path.open('ab') as stream:
+                    stream.write(content[-10:])
+                cursor.update()
+                self.assertEqual(loads.call_count, len(rows))
+            self.assertEqual(cursor.events, rows)
+            self.assertFalse(cursor.pending)
+            self.assertEqual(cursor.succeeded, 2)
+            self.assertEqual(validate(cursor.events, ('0',)), validate(rows, ('0',)))
+
+    def test_incremental_cursor_fails_fast_and_rejects_truncation(self):
+        for phase in ('failed', 'retried', 'revoked', 'unknown'):
+            with self.subTest(phase=phase), tempfile.TemporaryDirectory() as temporary:
+                path = Path(temporary) / 'workflow.jsonl'
+                cursor = SuccessTraceCursor(path, ['0'])
+                path.write_text(json.dumps({**events()[0], 'event': phase}) + '\n')
+                with self.assertRaisesRegex(RuntimeError, 'non-successful'):
+                    cursor.update()
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / 'workflow.jsonl'
+            path.write_text(json.dumps(events()[0]) + '\n')
+            cursor = SuccessTraceCursor(path, ['0'])
+            cursor.update()
+            path.write_bytes(b'')
+            with self.assertRaisesRegex(WorkflowMismatch, 'truncated'):
+                cursor.update()
+            replacement = Path(temporary) / 'replacement.jsonl'
+            replacement.write_text(json.dumps(events()[0]) + '\n')
+            path.unlink()
+            with self.assertRaisesRegex(WorkflowMismatch, 'disappeared'):
+                cursor.update()
+            replacement.rename(path)
+            with self.assertRaisesRegex(WorkflowMismatch, 'replaced'):
+                cursor.update()
+
     def test_backend_ids_differ_but_business_graph_matches(self):
         self.assertEqual(compare_graphs(validate(events()), validate(events('dbworker')))['nodes_per_backend'], 4)
 

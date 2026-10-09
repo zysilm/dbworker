@@ -56,12 +56,15 @@ def _indexed(values, operations):
 
 
 def _roots(events, stage, operations):
+    indexed = {}
+    for event in events:
+        if event.get('stage') == stage and event.get('event') in ('submitted', 'started'):
+            indexed.setdefault((event.get('operation_id'), event['event']), []).append(event)
     roots = {}
     for op in operations:
         phases = {}
         for phase in ('submitted', 'started'):
-            rows = [event for event in events if event.get('operation_id') == op
-                    and event.get('stage') == stage and event.get('event') == phase]
+            rows = indexed.get((op, phase), [])
             _require(len(rows) == 1, 'missing or duplicate root publication/execution')
             event = rows[0]
             _require(event.get('parent_id') is None and isinstance(event.get('details'), dict), 'invalid root task')
@@ -96,6 +99,19 @@ def _counts(values, expected):
     for name, count in expected.items():
         _require(type(values.get(name)) is int and values[name] == count,
                  'trusted business workload count differs: ' + name)
+
+
+def validate_posthog_delivery_records(users, records, email_hash):
+    """Validate the native ledger in linear time without changing its oracle."""
+    if len(records) != len(users) or any(record.sent_at is None for record in records):
+        raise AssertionError("Native delivery ledger is incomplete")
+    by_email_hash = {}
+    for record in records:
+        by_email_hash.setdefault(record.email_hash, []).append(record)
+    for user in users:
+        matching = by_email_hash.get(email_hash(user.email), [])
+        if len(matching) != 1 or not matching[0].campaign_key.startswith(f"2fa_enabled_{user.uuid}-"):
+            raise AssertionError("Native user/campaign mapping differs")
 
 
 def validate_business_binding(row, suite, events, expected_requests, *, expected_profile=None):

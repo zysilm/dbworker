@@ -73,19 +73,19 @@ failure handling, and configuration.
 <!-- benchmark-results:start -->
 ## Benchmark Results
 
-Median wall time in seconds; **bold** marks the faster backend. Each experiment runs in a fresh Docker container on its own GitHub-hosted Ubuntu VM.
+Median wall time in seconds; **bold** marks the faster backend. Each experiment runs in a fresh Docker container on its own GitHub-hosted Ubuntu VM. Fixed profile: 8 producers, a 60-second scheduled submission window and 8 total execution slots; image hash building uses one native bulk import. Three repetitions per backend. Actual schedule delays and backlog are recorded in JSON; this is one load point, not a maximum-capacity search.
 
-| Experiment | Scenario | Celery (s) | DBWorker (s) | Celery / DBWorker |
-|---|---|---:|---:|---:|
-| imagededup | build | **5.704** | 7.928 | 0.72 |
-| imagededup | comparison | 71.883 | **66.507** | 1.08 |
-| imagededup | mixed | 79.311 | **77.313** | 1.03 |
-| superset | sql_lab_group_by | **4.719** | 4.968 | 0.95 |
-| saleor | product_csv_export | **15.876** | 17.671 | 0.90 |
-| paperless_ngx | native_unsplit_scan_ingestion | 127.933 | **49.188** | 2.60 |
-| posthog | native_two_factor_notification | **3.425** | 4.504 | 0.76 |
-| sentry | historical_native_email_fanout | **0.808** | 1.887 | 0.43 |
+| Experiment | Workload | Celery wall (s) | DBWorker wall (s) | C / D | Task P95 / peak outstanding (C; D) |
+|---|---|---:|---:|---:|---|
+| imagededup | Build 1,000 image hashes (one bulk import) | **6.419** | 7.738 | 0.83 | n/a; n/a |
+| imagededup | Compare 1,000 images / 999,000 directed pairs | **79.678** | 81.481 | 0.98 | n/a; n/a |
+| imagededup | Build + compare 1,000 images / 999,000 directed pairs | 93.531 | **92.173** | 1.01 | n/a; n/a |
+| superset | SQL Lab: 3,000 queries / 10,000 rows | **149.052** | 170.703 | 0.87 | 40.015s / 1481; 48.919s / 1528 |
+| saleor | Export: 1,000 x 256 products + 1,000 emails | **102.714** | 123.925 | 0.83 | 21.632s / 431; 34.973s / 625 |
+| paperless_ngx | OCR: 200 scans, archive and index | 138.469 | **78.200** | 1.77 | 75.058s / 115; 56.645s / 57 |
+| posthog | 2FA: 5,000 requests / 10,000 tasks | **121.933** | 197.915 | 0.62 | 0.164s / 17; 60.420s / 4505 |
+| sentry | Email: 2,000 requests / 4,000 deliveries | **60.306** | 60.328 | 1.00 | 0.055s / 16; 0.376s / 147 |
 
-Run: `github-37916530400-1`. [Details and scope](doc/benchmark-results.md) · [JSON results](benchmarks/results/latest/index.json).
-Scoped application workloads; Sentry uses historical 24.1.0. Ratios above 1 favor DBWorker; no cross-project average is computed.
+Run: `github-37980453561-1`. [Details and scope](doc/benchmark-results.md) · [JSON results](benchmarks/results/latest/index.json).
+Scoped application workloads; Sentry uses historical 24.1.0. Wall time includes the fixed submission window, so a ratio near 1 does not prove equal processing capacity. Task P95 starts at publication; peak outstanding counts already published tasks. Ratios above 1 favor DBWorker; no cross-project average is computed.
 <!-- benchmark-results:end -->

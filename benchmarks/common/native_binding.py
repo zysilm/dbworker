@@ -10,6 +10,7 @@ from __future__ import annotations
 import ast
 import hashlib
 from collections.abc import Mapping
+from functools import lru_cache
 from pathlib import Path
 
 from benchmarks.common.native_admission import NativeAdmissionError
@@ -60,6 +61,12 @@ SOURCE_SHA256 = {
 }
 
 
+@lru_cache(maxsize=64)
+def _parsed_tree(content, filename):
+    """Reuse source syntax only; admission still verifies current bytes each time."""
+    return ast.parse(content, filename=filename)
+
+
 def _pinned_tree(suite, root, relative):
     root = Path(root).resolve()
     path = (root / relative).resolve()
@@ -69,7 +76,7 @@ def _pinned_tree(suite, root, relative):
     expected = SOURCE_SHA256.get((suite, relative))
     if expected is None or hashlib.sha256(content).hexdigest() != expected:
         raise NativeAdmissionError(f'{suite}: native registration source differs from reviewed pin: {relative}')
-    return ast.parse(content, filename=str(path))
+    return _parsed_tree(content, str(path))
 
 
 def _dotted(node):

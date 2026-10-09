@@ -22,9 +22,13 @@ sys.path.insert(0, str(ROOT / "examples/superset"))
 sys.path.insert(0, str(ROOT / "examples/superset/superset-core/src"))
 
 from sqlalchemy import select
+from benchmarks.common.load import run_load
+from benchmarks.common.load_evidence import task_load_metrics
 from benchmarks.common.reporting import write_json
 from benchmarks.common.native_observer import operation
 from benchmarks.common.timing_evidence import begin_window, end_window, elapsed_seconds
+
+METADATA_SQLITE_BUSY_TIMEOUT_SECONDS = 30
 
 SQL = "SELECT category, SUM(value) + {marker} AS total FROM facts GROUP BY category ORDER BY category"
 
@@ -59,7 +63,7 @@ def wait_for(predicate, *, timeout=120):
     raise TimeoutError("Native SQL Lab completion deadline exceeded")
 
 
-def write_configuration(path, directory, port):
+def write_configuration(path, directory, port, *, results_capacity):
     """Load upstream Docker settings; change only isolated fixture/environment paths."""
     upstream = ROOT / "examples/superset/docker/pythonpath_dev/superset_config.py"
     cache = directory / "sql_lab_results"
@@ -68,8 +72,11 @@ def write_configuration(path, directory, port):
         f"_source = Path({str(upstream)!r}).read_text()\n"
         f"exec(compile(_source.replace('/app/superset_home/sqllab', {str(cache)!r}), "
         f"{str(upstream)!r}, 'exec'))\n"
+        # Preserve the native backend and timeout. Retain every result until the
+        # unchanged post-batch retrieval, rather than evicting at the default 500.
+        f"RESULTS_BACKEND = FileSystemCache({str(cache)!r}, threshold={results_capacity})\n"
         "SECRET_KEY = 'isolated-benchmark-only-secret'\n"
-        f"SQLALCHEMY_DATABASE_URI = {'sqlite:///' + str(directory / 'metadata.db')!r}\n"
+        f"SQLALCHEMY_DATABASE_URI = {'sqlite:///' + str(directory / 'metadata.db') + '?timeout=' + str(METADATA_SQLITE_BUSY_TIMEOUT_SECONDS)!r}\n"
         "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE = 'aes-gcm'\n"
         "CONTENT_SECURITY_POLICY_WARNING = False\nTALISMAN_ENABLED = False\n"
         "WTF_CSRF_ENABLED = False\n"
@@ -103,7 +110,8 @@ def main():
     with socket.socket() as reservation:
         reservation.bind(("127.0.0.1", 0))
         port = reservation.getsockname()[1]
-    write_configuration(directory / "superset_config.py", directory, port)
+    results_capacity = profile["requests"] + 2 + 8
+    write_configuration(directory / "superset_config.py", directory, port, results_capacity=results_capacity)
     children, streams = [], []
     runtime = None
     engine = None
@@ -156,7 +164,9 @@ def main():
             expected_application="superset.tasks.celery_app:app",
             configuration={"upstream_config": "docker/pythonpath_dev/superset_config.py",
                            "source_sha256": hashlib.sha256((ROOT / "examples/superset/docker/pythonpath_dev/superset_config.py").read_bytes()).hexdigest(),
-                           "overrides": "isolated Redis/cache/metadata/security fixture environment"})
+                           "overrides": "isolated Redis/cache/metadata/security fixture environment; result cache capacity retains all measured queries",
+                           "results_cache_capacity": results_capacity,
+                           "metadata_sqlite_busy_timeout_seconds": METADATA_SQLITE_BUSY_TIMEOUT_SECONDS})
         client = app.test_client()
         login = client.post("/login/", data={"username": "benchmark", "password": "isolated-fixture-password"})
         if login.status_code != 302:
@@ -164,37 +174,56 @@ def main():
 
         if args.backend == "celery":
             launch([sys.executable, "-m", "celery", "--app=superset.tasks.celery_app:app", "worker",
-                    "-O", "fair", "-l", "WARNING", "--concurrency=2",
+                    "-O", "fair", "-l", "WARNING", f"--concurrency={profile.get('worker_concurrency', 8)}",
                     "--include=benchmarks.common.native_observer", "--hostname", f"superset-{port}@localhost"], "worker.log")
             from superset.extensions import celery_app
             wait_for(lambda: celery_app.control.ping(timeout=1))
             executor_context = nullcontext()
         else:
             from examples.superset_dbworker.executor import coordinator, use_dbworker_executor
-            runtime, sessions = coordinator(f"sqlite:///{directory / 'requests.db'}", concurrency=2)
+            runtime, sessions = coordinator(f"sqlite:///{directory / 'requests.db'}", concurrency=profile.get("worker_concurrency", 8))
             engine = sessions.kw["bind"]
             runtime.start()
             executor_context = use_dbworker_executor(sessions)
 
-        def execute_batch(operations):
+        producer_clients = []
+        for _ in range(profile.get("producers", 8)):
+            producer_client = app.test_client()
+            producer_login = producer_client.post("/login/", data={"username": "benchmark", "password": "isolated-fixture-password"})
+            if producer_login.status_code != 302:
+                raise AssertionError("Independent native producer authentication failed")
+            producer_clients.append(producer_client)
+
+        def execute_batch(operations, warmup=False):
             started = begin_window()
             query_ids = []
             bindings = []
-            for identity in operations:
-                sql = sql_for_operation(identity)
-                with operation(identity):
-                    response = client.post("/api/v1/sqllab/execute/", json={
-                        "database_id": database_id, "sql": sql, "client_id": identity,
-                        "queryLimit": 100, "runAsync": True, "select_as_cta": False,
-                        "expand_data": False, "templateParams": "{}",
-                    })
-                if response.status_code != 202:
-                    raise AssertionError(f"Native SQL Lab submission failed: {response.status_code} {response.get_data(as_text=True)}")
-                with app.app_context():
-                    query = db.session.query(Query).filter_by(client_id=identity).one()
+            def producer_factory(producer_index):
+                producer_client = producer_clients[producer_index]
+                def submit(identity, index):
+                    sql = sql_for_operation(identity)
+                    with operation(identity):
+                        response = producer_client.post("/api/v1/sqllab/execute/", json={
+                            "database_id": database_id, "sql": sql, "client_id": identity,
+                            "queryLimit": 100, "runAsync": True, "select_as_cta": False,
+                            "expand_data": False, "templateParams": "{}",
+                        })
+                    if response.status_code != 202:
+                        raise AssertionError(f"Native SQL Lab submission failed: {response.status_code} {response.get_data(as_text=True)}")
+                    return {"operation_id": identity, "http_status": response.status_code}
+                return submit
+            load = run_load(operations, None, producers=1 if warmup else profile.get("producers", 8),
+                            duration_seconds=0 if warmup else profile.get("submission_window_seconds", 60),
+                            producer_factory=producer_factory)
+            # Bind returned requests in one independent read after submission;
+            # avoid ORM inspection in the producer hot path.
+            with app.app_context():
+                queries = {query.client_id: query for query in db.session.query(Query).filter(Query.client_id.in_(operations)).all()}
+                for identity in operations:
+                    query = queries[identity]
                     query_ids.append(query.id)
-                    bindings.append({"operation_id": identity, "stage": "sql_lab",
-                                     "query_id": query.id, "sql_sha256": hashlib.sha256(sql.encode()).hexdigest(),
+                    bindings.append({"operation_id": identity, "stage": "sql_lab", "query_id": query.id,
+                                     "sql_sha256": hashlib.sha256(sql_for_operation(identity).encode()).hexdigest(),
                                      "username": "benchmark"})
 
             def complete():
@@ -252,13 +281,13 @@ def main():
                                argument_sha256=submitted[0]["details"]["argument_sha256"])
             for binding, receipt in zip(bindings, result_receipts):
                 receipt.update(node_id=binding["node_id"], argument_sha256=binding["argument_sha256"])
-            return elapsed_seconds(measurement_window), results, bindings, measurement_window, result_receipts
+            return elapsed_seconds(measurement_window), results, bindings, measurement_window, result_receipts, load
 
         warmups = [f"warmup:{i}" for i in range(2)]
         operations = [f"query-{i}" for i in range(profile["requests"])]
         with executor_context:
-            execute_batch(warmups)
-            seconds, results, bindings, measurement_window, result_receipts = execute_batch(operations)
+            execute_batch(warmups, warmup=True)
+            seconds, results, bindings, measurement_window, result_receipts, load = execute_batch(operations)
         evidence_path = directory / "sql-results-evidence.json"
         write_json(evidence_path, {"schema_version": 1, "fixture": fixture_evidence, "results": result_receipts})
         from benchmarks.common.workflow_graph import read_trace, validate_graph
@@ -273,7 +302,9 @@ def main():
         row = {"scenario": "sql_lab_group_by", "comparison_mode": "native_application_workflow",
                "backend": args.backend, "repetition": args.repetition, "status": "passed",
                "metrics": {"wall_seconds": seconds, "queries_per_second": len(operations) / seconds,
-                           "cpu_seconds": None, "peak_rss_bytes": None},
+                           "cpu_seconds": None, "peak_rss_bytes": None,
+                           "load": {key: value for key, value in load.items() if key != "results"},
+                           "task_load": task_load_metrics(events, operations)},
                "unavailable_metrics": {"cpu_seconds": "Total-stack CPU sampling is unavailable",
                                        "peak_rss_bytes": "Total-stack RSS sampling is unavailable"},
                "validation": {"passed": True, "output_digest": hashlib.sha256(json.dumps(results, sort_keys=True).encode()).hexdigest(),
@@ -287,15 +318,16 @@ def main():
                "workflow_trace": {"path": str(trace.relative_to(Path(config["output_directory"]).resolve())),
                                   "sha256": hashlib.sha256(trace.read_bytes()).hexdigest()},
                "native_execution": native_execution,
-               "configuration": {"concurrency": 2, "native_application": "superset.tasks.celery_app:app",
+               "configuration": {"concurrency": profile.get("worker_concurrency", 8), "native_application": "superset.tasks.celery_app:app",
                                  "native_configuration": "docker/pythonpath_dev/superset_config.py",
                                  "submission": "authenticated original SQL Lab REST API",
                                  "completion": "native success + stored results + authenticated retrieval + scheduler terminal event",
                                  "timing": "first API submission through all result retrieval and scheduler completion",
-                                 "metadata_database": "sqlite", "warehouse_database": "sqlite",
-                                 "results_backend": "upstream FileSystemCache", "redis_aof": "everysec",
-                                 "environment_overrides": ["isolated Redis host/port", "isolated filesystem cache directory",
-                                     "isolated SQLite metadata URI", "fixture secret/encryption setting", "local test-client CSRF/TLS disabled"],
+                                 "metadata_database": "sqlite", "metadata_sqlite_busy_timeout_seconds": METADATA_SQLITE_BUSY_TIMEOUT_SECONDS,
+                                 "warehouse_database": "sqlite",
+                                 "results_backend": "upstream FileSystemCache", "results_cache_capacity": results_capacity, "redis_aof": "everysec",
+                                 "environment_overrides": ["isolated Redis host/port", "isolated filesystem cache directory", "results cache entry capacity covers measured queries and warmups",
+                                     "isolated SQLite metadata URI with identical 30-second busy timeout", "fixture secret/encryption setting", "local test-client CSRF/TLS disabled"],
                                  "celery_acknowledgements": "upstream early acknowledgements",
                                  "dbworker_timeouts": "No equivalent native soft/hard task limits; normal completion only"},
                "capabilities": {"verified": ["native_sql_lab_submission", "native_task_dispatch", "async_results_storage",

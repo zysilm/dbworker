@@ -18,6 +18,8 @@ ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "examples/paperless_ngx"
 sys.path[:0] = [str(ROOT), str(ROOT / "src"), str(SOURCE / "src")]
 from benchmarks.common.reporting import write_json
+from benchmarks.common.load import run_load
+from benchmarks.common.load_evidence import task_load_metrics
 from benchmarks.common.native_observer import operation
 from benchmarks.common.workflow_graph import read_trace, validate_graph
 from benchmarks.common.timing_evidence import begin_window, end_window, elapsed_seconds
@@ -131,7 +133,7 @@ def main():
         "PAPERLESS_CONSUMPTION_DIR": str(directory / "consume"), "PAPERLESS_SCRATCH_DIR": str(directory / "scratch"),
         "PAPERLESS_OCR_LANGUAGE": "eng", "PAPERLESS_OCR_OUTPUT_TYPE": "pdf", "PAPERLESS_OCR_CLEAN": "none",
         "PAPERLESS_OCR_DESKEW": "false", "PAPERLESS_OCR_ROTATE_PAGES": "false", "PAPERLESS_OCR_MODE": "force",
-        "PAPERLESS_REDIS": redis_url, "PAPERLESS_TASK_WORKERS": "2", "PAPERLESS_THREADS_PER_WORKER": "1",
+        "PAPERLESS_REDIS": redis_url, "PAPERLESS_TASK_WORKERS": "8", "PAPERLESS_THREADS_PER_WORKER": "1",
         "DBWORKER_DATABASE_URL": url, "BENCHMARK_TRACE_PATH": str(trace), "BENCHMARK_BACKEND": args.backend,
         "BENCHMARK_TASK_STAGES": json.dumps({"documents.tasks.consume_file": "ingestion"}),
         "PYTHONPATH": os.pathsep.join((str(ROOT), str(ROOT / "src"), str(SOURCE / "src")))})
@@ -222,7 +224,7 @@ def main():
                 return app.control.ping(timeout=1)
             wait_for(worker_ready, 120)
         else:
-            runtime = coordinator(url, concurrency=2)
+            runtime = coordinator(url, concurrency=8)
             runtime.start()
 
         def execute_batch(batch):
@@ -231,21 +233,32 @@ def main():
             # validation, scratch persistence and publication remain timed.
             uploads = [SimpleUploadedFile(f["path"].name, f["path"].read_bytes(), content_type="image/png") for f in batch]
             window = begin_window()
-            for fixture, upload in zip(batch, uploads, strict=True):
-                with operation(fixture["operation"]):
-                    if args.backend == "celery":
-                        queued = submit_api_scan(api_client, fixture, upload)
-                    else:
-                        with route_tasks(fixture["operation"]):
-                            queued = submit_api_scan(api_client, fixture, upload)
-                fixture["task_id"] = queued
-                publications = [event for event in read_trace(trace)
-                                if event["operation_id"] == fixture["operation"]
-                                and event["stage"] == "ingestion" and event["event"] == "submitted"]
-                if len(publications) != 1 or publications[0]["node_id"] != queued:
-                    raise AssertionError("Upload API must publish exactly its returned task")
-                fixture["argument_sha256"] = publications[0]["details"]["argument_sha256"]
+            warmup = all(fixture["operation"].startswith("warmup:") for fixture in batch)
+            def producer_factory(producer_index):
+                from django.db import close_old_connections, connections
+                isolated_client = APIClient()
+                isolated_client.credentials(HTTP_AUTHORIZATION="Token " + token.key)
+                def submit(item, index):
+                    fixture, upload = item
+                    close_old_connections()
+                    try:
+                        with operation(fixture["operation"]):
+                            if args.backend == "celery":
+                                queued = submit_api_scan(isolated_client, fixture, upload)
+                            else:
+                                with route_tasks(fixture["operation"]):
+                                    queued = submit_api_scan(isolated_client, fixture, upload)
+                        fixture["task_id"] = queued
+                        return queued
+                    finally:
+                        connections.close_all()
+                return submit
+            load = run_load(list(zip(batch, uploads, strict=True)), None,
+                producer_factory=producer_factory, producers=1 if warmup else profile.get("producers", 8),
+                duration_seconds=0 if warmup else profile.get("submission_window_seconds", 60))
+            load.pop("results")
             ops = [fixture["operation"] for fixture in batch]
+            selected_operations = set(ops)
             native_terminal_since = None
             def completed():
                 nonlocal native_terminal_since
@@ -254,7 +267,7 @@ def main():
                 if args.backend == "celery":
                     assert_native_lifecycle_log(directory / "worker.log")
                 events = read_trace(trace) if trace.exists() else []
-                selected = [event for event in events if event["operation_id"] in ops]
+                selected = [event for event in events if event["operation_id"] in selected_operations]
                 if any(event["stage"] != "ingestion" or event["event"] in {"failed", "retried", "revoked"} for event in selected):
                     raise RuntimeError("The declared unsplit single-attempt ingestion graph changed")
                 submitted = [event for event in selected if event["event"] == "submitted"]
@@ -263,6 +276,9 @@ def main():
                 graph = validate_graph(selected, ops, {"ingestion": 1}, [], warmup_operations=[])
                 if {(e["operation_id"], e["node_id"]) for e in submitted} != {(f["operation"], f["task_id"]) for f in batch}:
                     raise AssertionError("API-returned task identity differs from observed publication")
+                publication_by_operation = {event["operation_id"]: event for event in submitted}
+                for fixture in batch:
+                    fixture["argument_sha256"] = publication_by_operation[fixture["operation"]]["details"]["argument_sha256"]
                 tasks = {task.task_id: task for task in PaperlessTask.objects.filter(task_id__in=[e["node_id"] for e in submitted])}
                 # Celery stores SUCCESS before native task_postrun tracking. Allow
                 # that signal to finish, but never synthesize its missing state.
@@ -310,12 +326,12 @@ def main():
                 return documents
             documents = wait_for(completed, max(300, len(batch) * 15))
             window = end_window(window)
-            return elapsed_seconds(window), documents, window
+            return elapsed_seconds(window), documents, window, load
 
         execute_batch(fixtures[:2])
         from benchmarks.upstream.paperless_ngx_metrics import StackMetrics
         with StackMetrics(os.getpid()) as resource_measurement:
-            seconds, documents, measurement_window = execute_batch(fixtures[2:])
+            seconds, documents, measurement_window, load_metrics = execute_batch(fixtures[2:])
         results = inspect_outputs(documents, fixtures[2:])
         if Document.objects.count() != len(fixtures) or PaperlessTask.objects.count() != len(fixtures):
             raise AssertionError("Missing or duplicate documents or tracked ingestion jobs")
@@ -328,7 +344,7 @@ def main():
         packages = {name: importlib.metadata.version(name) for name in ("django", "celery", "ocrmypdf", "tantivy", "sqlalchemy", "dbworker")}
         row = {"scenario": "native_unsplit_scan_ingestion", "comparison_mode": "native_application_workflow",
             "backend": args.backend, "repetition": args.repetition, "status": "passed",
-            "metrics": {"wall_seconds": seconds, "documents_per_second": len(results) / seconds, **resource_measurement.values()},
+            "metrics": {"load": load_metrics, "wall_seconds": seconds, "documents_per_second": len(results) / seconds, **resource_measurement.values()},
             "validation": {"passed": True, "documents": len(results), "native_lifecycle": True,
                            "output_digest": hashlib.sha256(json.dumps(results, sort_keys=True).encode()).hexdigest()},
             "workflow_graph": graph, "measurement_window": measurement_window,
@@ -338,18 +354,23 @@ def main():
             "workflow_trace": {"path": str(trace.relative_to(output)), "sha256": hashlib.sha256(trace.read_bytes()).hexdigest()},
             "native_execution": native_execution if args.backend == "celery" else None,
             "environment": {"python": platform.python_version(), "interpreter": sys.executable, "packages": packages},
-            "configuration": {"concurrency": 2, "application_database": "sqlite", "dbworker_job_database": "sqlite",
+            "configuration": {"concurrency": 8, "application_database": "sqlite", "dbworker_job_database": "sqlite",
                 "native_application": "paperless.celery:app", "native_settings": native_settings, "profile": profile,
                 "submission": "authenticated POST /api/documents/post_document/ via native APIClient routing", "completion": "all native-equivalent tracked task states/results, search readiness and scheduler terminal events",
                 "timing": "first authenticated API upload through final expected business and task completion; oracle hashing outside timer",
                 "warmup_documents": 2, "redis_aof": "everysec", "auxiliary_progress_redis_both": True,
-                "overrides": ["isolated paths/Redis/secret", "English forced OCR", "PDF output", "no clean/deskew/rotate", "2 worker slots, 1 OCR thread"],
+                "overrides": ["isolated paths/Redis/secret", "English forced OCR", "PDF output", "no clean/deskew/rotate", "8 worker slots, 1 OCR thread"],
                 "celery_pool": "native prefork with max_tasks_per_child=1", "dbworker_pool": "persistent spawn processes",
                 "lifecycle_limits": "DBWorker has no equivalent hard timeout, cancellation or child recycling; success contract only"},
             "dataset": {"documents": profile["requests"], "format": "raster-only PNG", "size": [1800, 700], "dpi": 200},
             "capabilities": {"verified": ["original_celery_app_and_task", "original_authenticated_api_upload", "tracked_lifecycle", "signed_results", "real_ocr", "originals_thumbnails_archives_search", "one_ingestion_job_per_scan"],
                 "untested": ["barcode_split", "workflow_webhook", "AI", "mail_chords", "index_retry", "crash_recovery", "timeouts", "cancellation", "cross_orm_atomicity"],
                 "scope": "Restricted successful unsplit API-upload scans; no configured workflows/AI. Any unexpected child graph fails admission."}}
+        row["metrics"]["task_load"] = task_load_metrics(read_trace(trace), [f["operation"] for f in fixtures[2:]])
+        row["configuration"]["producer_concurrency"] = profile.get("producers", 8)
+        row["configuration"]["submission_window_seconds"] = profile.get("submission_window_seconds", 60)
+        row["configuration"]["load_profile"] = "One fixed open-loop schedule; no concurrency or rate sweep"
+        row["configuration"]["contention_observation"] = "Concurrent API submission latency, lateness and task backlog; database lock wait duration unavailable"
         write_json(directory / "sample.json", row)
     finally:
         if runtime is not None:

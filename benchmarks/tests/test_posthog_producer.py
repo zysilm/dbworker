@@ -1,5 +1,7 @@
 """Socket-free tests of the original API publication seam and fixture identity."""
 import ast
+import threading
+from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import sys
 import types
@@ -15,6 +17,52 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class PostHogProducerTests(unittest.TestCase):
+    def test_bulk_durable_completion_requires_all_finished_and_uses_two_queries(self):
+        from sqlalchemy import create_engine, event, insert, update, delete
+        from sqlalchemy.orm import sessionmaker
+        from dbworker import Coordinator, ExecutionStatus
+        from examples.posthog_dbworker.runtime import Job
+        from benchmarks.upstream.posthog_backend import durable_jobs_complete
+        engine = create_engine('sqlite://')
+        self.addCleanup(engine.dispose)
+        sessions = sessionmaker(engine)
+        runtime = Coordinator(sessions, database_url='sqlite://')
+        runtime.transactional_worker(name='posthog_workflow', source=Job)(lambda job, session: None)
+        Job.metadata.create_all(engine)
+        ledger = runtime.workers['posthog_workflow'].table
+        operations = [f'notification-{index:04d}' for index in range(100)]
+        with sessions() as session:
+            jobs = [Job(operation_id=op, stage=stage, payload={}, complete=True)
+                    for op in operations for stage in ('notification', 'delivery')]
+            session.add_all(jobs)
+            session.flush()
+            ids = [job.id for job in jobs]
+            session.execute(insert(ledger), [{'source_id': value, 'execution_status': ExecutionStatus.FINISHED}
+                                             for value in ids])
+            session.commit()
+            queries = []
+            def observe(conn, cursor, statement, parameters, context, executemany):
+                queries.append(statement)
+            event.listen(engine, 'before_cursor_execute', observe)
+            try:
+                self.assertTrue(durable_jobs_complete(session, runtime, operations, 200))
+                self.assertEqual(len(queries), 2)
+            finally:
+                event.remove(engine, 'before_cursor_execute', observe)
+            for status in (ExecutionStatus.WORKING, ExecutionStatus.UNFINISHED, ExecutionStatus.FAILED):
+                session.execute(update(ledger).where(ledger.c.source_id == ids[-1]).values(execution_status=status))
+                self.assertFalse(durable_jobs_complete(session, runtime, operations, 200))
+            session.execute(delete(ledger).where(ledger.c.source_id == ids[-1]))
+            self.assertFalse(durable_jobs_complete(session, runtime, operations, 200))
+            session.execute(insert(ledger).values(source_id=ids[-1], execution_status=ExecutionStatus.FINISHED))
+            session.execute(update(Job).where(Job.id == ids[-1]).values(complete=False))
+            self.assertFalse(durable_jobs_complete(session, runtime, operations, 200))
+            session.execute(update(Job).where(Job.id == ids[-1]).values(complete=True))
+            self.assertTrue(durable_jobs_complete(session, runtime, operations, 200))
+            session.add(Job(operation_id=operations[-1], stage='delivery', payload={}, complete=True))
+            session.flush()
+            self.assertFalse(durable_jobs_complete(session, runtime, operations, 200))
+
     def setUp(self):
         self.app = Celery("posthog-producer-unit", broker="memory://")
 
@@ -62,6 +110,27 @@ class PostHogProducerTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "endpoint"):
             with route_notification(lambda user_id: 1, 17):
                 raise RuntimeError("endpoint failed")
+        self.assertEqual(self.task.apply_async, original)
+
+    def test_concurrent_notification_routes_do_not_cross_or_restore_early(self):
+        original = self.task.apply_async
+        both_entered = threading.Barrier(2)
+        first_exited = threading.Event()
+        observed = []
+        def run(user_id):
+            with route_notification(lambda actual: observed.append((user_id, actual)) or user_id, user_id):
+                both_entered.wait(timeout=5)
+                if user_id == 2:
+                    self.assertTrue(first_exited.wait(timeout=5))
+                result = self.task.delay(user_id)
+                self.assertEqual(result.id, str(user_id))
+            if user_id == 1:
+                first_exited.set()
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            futures = [pool.submit(run, user_id) for user_id in (1, 2)]
+            for future in futures:
+                future.result(timeout=10)
+        self.assertEqual(sorted(observed), [(1, 1), (2, 2)])
         self.assertEqual(self.task.apply_async, original)
 
     def test_operation_identity_does_not_publish_credentials(self):

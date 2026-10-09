@@ -29,6 +29,8 @@ def main() -> int:
     profile = config["suite"]["profiles"][config["profile"]]
     command = ["--images", str(profile["images"]), "--repetitions", str(profile["repetitions"]),
                "--warmup-images", str(profile["warmup_images"]), "--output", str(raw),
+               "--producers", str(profile["producers"]),
+               "--submission-window-seconds", str(profile["submission_window_seconds"]),
                "--dbwork-python", config["interpreters"]["dbworker_python"],
                "--celery-python", config["interpreters"]["celery_python"], "--download"]
     command.extend(["--work-dir", str(output / "imagededup-work")])

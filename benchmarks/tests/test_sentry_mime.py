@@ -1,33 +1,74 @@
 """Independent SMTP oracle checks for recipient fan-out and rendered content."""
 
 import ast
+import json
+import tempfile
 import time
 import unittest
 from email.message import EmailMessage
 from email import policy
 from email.parser import BytesParser
 from types import SimpleNamespace
-from unittest.mock import Mock
+from pathlib import Path
+from unittest.mock import Mock, patch
 
-from benchmarks.upstream.sentry_backend import SOURCE, message_id_evidence, recipients, validate_messages
+from benchmarks.upstream.sentry_backend import SOURCE, delivery_completion, message_id_evidence, recipients, validate_messages
+from benchmarks.common.workflow_graph import SuccessTraceCursor, validate_graph
 
 
 class SentryMimeTest(unittest.TestCase):
-    def messages(self, *, inline=True):
+    def test_completion_defers_full_graph_but_keeps_missing_and_duplicate_gates(self):
+        rows = [{'schema_version': 1, 'backend': 'celery', 'operation_id': '0',
+                 'node_id': f'job-{index}', 'stage': 'delivery', 'parent_id': None,
+                 'event': phase, 'timestamp_ns': timestamp}
+                for index in range(2)
+                for phase, timestamp in [('submitted', 10), ('started', 20), ('succeeded', 30)]]
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / 'workflow.jsonl'
+            def write(values):
+                path.write_text(''.join(json.dumps(row) + '\n' for row in values))
+            write(rows[:3])
+            cursor = SuccessTraceCursor(path, ['0'])
+            with patch('benchmarks.upstream.sentry_backend.validate_graph', wraps=validate_graph) as graph:
+                for _ in range(10):
+                    self.assertIsNone(delivery_completion(cursor, ['0'], 2, []))
+                self.assertEqual(graph.call_count, 0)
+                with path.open('a') as stream:
+                    stream.write(''.join(json.dumps(row) + '\n' for row in rows[3:]))
+                self.assertIsNone(delivery_completion(cursor, ['0'], 1, []))
+                self.assertEqual(graph.call_count, 0)
+                self.assertTrue(delivery_completion(cursor, ['0'], 2, []))
+                self.assertEqual(graph.call_count, 1)
+            write(rows + [rows[-1]])
+            with self.assertRaisesRegex(ValueError, 'Duplicate task phase'):
+                delivery_completion(SuccessTraceCursor(path, ['0']), ['0'], 2, [])
+            for invalid in (rows[1:], rows + [{**rows[-1], 'node_id': 'unexpected', 'operation_id': 'unexpected'}]):
+                write(invalid)
+                self.assertIsNone(delivery_completion(SuccessTraceCursor(path, ['0']), ['0'], 2, []))
+
+    def messages(self, *, inline=True, operation_id="0"):
         rows = []
-        for index, recipient in enumerate(recipients("0")):
+        for index, recipient in enumerate(recipients(operation_id)):
             message = EmailMessage()
             message["From"] = "sender@benchmark.invalid"
             message["To"] = recipient
-            message["Reply-To"] = recipients("0")[1 - index]
-            message["Subject"] = "Historical Sentry fixture 0"
+            message["Reply-To"] = recipients(operation_id)[1 - index]
+            message["Subject"] = f"Historical Sentry fixture {operation_id}"
             message["Message-Id"] = f"<20260102030405.1234.{index}@benchmark.invalid>"
-            message["X-Benchmark"] = "0"
-            message.set_content("Plain body 0 with unicode: café")
+            message["X-Benchmark"] = operation_id
+            message.set_content(f"Plain body {operation_id} with unicode: café")
             style = ' style="color: red"' if inline else ""
-            message.add_alternative(f'<html><body><p class="fixture"{style}>HTML body 0: café</p></body></html>', subtype="html")
+            message.add_alternative(f'<html><body><p class="fixture"{style}>HTML body {operation_id}: café</p></body></html>', subtype="html")
             rows.append(("sender@benchmark.invalid", [recipient], message.as_bytes()))
         return rows
+
+    def test_large_operation_identity_retains_exact_recipient_granularity(self):
+        rows = self.messages(operation_id="19999")
+        normalized = validate_messages(rows, ["19999"])
+        self.assertEqual(len(normalized), 2)
+        self.assertEqual([item["to"][0] for item in normalized], recipients("19999"))
+        with self.assertRaisesRegex(AssertionError, "unknown or duplicate"):
+            validate_messages(rows, ["19998"])
 
     def test_original_native_id_collision_does_not_duplicate_distinct_deliveries(self):
         # Execute the pristine upstream function without booting unrelated Sentry

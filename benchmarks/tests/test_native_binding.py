@@ -1,4 +1,5 @@
 """Regressions for false associations accepted by function-membership replay."""
+import ast
 import copy
 import hashlib
 import json
@@ -8,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from benchmarks.common.native_admission import NativeAdmissionError
-from benchmarks.common.native_binding import BINDINGS, SOURCE_SHA256, validate_task_binding
+from benchmarks.common.native_binding import BINDINGS, SOURCE_SHA256, _parsed_tree, validate_task_binding
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -27,6 +28,44 @@ def original_evidence(suite, task):
 
 
 class NativeBindingTests(unittest.TestCase):
+    def test_cached_syntax_preserves_fresh_source_and_evidence_checks(self):
+        source = b'@app.task(name="export-products")\ndef export_products_task():\n    pass\n'
+        relative = 'saleor/csv/tasks.py'
+        digest = hashlib.sha256(source).hexdigest()
+        evidence = {'source': relative, 'function': 'export_products_task', 'source_sha256': digest}
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = root / relative
+            path.parent.mkdir(parents=True)
+            path.write_bytes(source)
+            _parsed_tree.cache_clear()
+            self.addCleanup(_parsed_tree.cache_clear)
+            with patch.dict(SOURCE_SHA256, {('saleor', relative): digest}), \
+                    patch('benchmarks.common.native_binding.ast.parse', wraps=ast.parse) as parse:
+                for _ in range(100):
+                    validate_task_binding('saleor', 'export-products', evidence, root)
+                self.assertEqual(parse.call_count, 1)
+                for invalid in ({**evidence, 'function': 'another_function'},
+                                {**evidence, 'source_sha256': '0' * 64}):
+                    with self.assertRaises(NativeAdmissionError):
+                        validate_task_binding('saleor', 'export-products', invalid, root)
+                path.write_bytes(source + b'# source drift\n')
+                with self.assertRaises(NativeAdmissionError):
+                    validate_task_binding('saleor', 'export-products', evidence, root)
+                changed_digest = hashlib.sha256(path.read_bytes()).hexdigest()
+                with self.assertRaises(NativeAdmissionError):
+                    validate_task_binding('saleor', 'export-products',
+                                          {**evidence, 'source_sha256': changed_digest}, root)
+                # A reviewed pin change must inspect new syntax at this same path.
+                changed = source.replace(b'name="export-products"', b'name="wrong-task"')
+                path.write_bytes(changed)
+                changed_digest = hashlib.sha256(changed).hexdigest()
+                with patch.dict(SOURCE_SHA256, {('saleor', relative): changed_digest}), \
+                        self.assertRaises(NativeAdmissionError):
+                    validate_task_binding('saleor', 'export-products',
+                                          {**evidence, 'source_sha256': changed_digest}, root)
+                self.assertEqual(parse.call_count, 2)
+
     def test_all_pinned_declarations_are_proven_without_application_imports(self):
         for suite, tasks in BINDINGS.items():
             for task in tasks:

@@ -7,6 +7,7 @@ import inspect
 import os
 import pickle
 import uuid
+import threading
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
@@ -88,23 +89,39 @@ def enqueue(task, args=(), kwargs=None, *, headers=None, countdown=0, eta=None, 
     return SimpleNamespace(id=identity)
 
 
+_routing_lock = threading.Lock()
+_routing_users = 0
+_routing_originals = None
+
+
 @contextmanager
 def route_tasks(operation_id, parent_id=None):
-    """Replace only queue publication; never inline or discard business jobs."""
+    """Keep publication routing installed while concurrent contexts are active."""
+    global _routing_users, _routing_originals
     from celery.app.task import Task
     from kombu import Producer
     token = _current.set((str(operation_id), parent_id))
-    original_dispatch, original_publish, original_apply = Task.apply_async, Producer.publish, Task.apply
+
     def dispatch(task, args=None, kwargs=None, **options):
         return enqueue(task, args or (), kwargs or {}, **options)
+
     def reject(*args, **kwargs):
         raise RuntimeError("Unexpected broker publication or eager Celery execution in DBWorker")
-    Task.apply_async, Producer.publish, Task.apply = dispatch, reject, reject
+
+    with _routing_lock:
+        if _routing_users == 0:
+            _routing_originals = (Task.apply_async, Producer.publish, Task.apply)
+            Task.apply_async, Producer.publish, Task.apply = dispatch, reject, reject
+        _routing_users += 1
     try:
         yield
     finally:
-        Task.apply_async, Producer.publish, Task.apply = original_dispatch, original_publish, original_apply
         _current.reset(token)
+        with _routing_lock:
+            _routing_users -= 1
+            if _routing_users == 0:
+                Task.apply_async, Producer.publish, Task.apply = _routing_originals
+                _routing_originals = None
 
 
 def handle(job: Job, session: Session):

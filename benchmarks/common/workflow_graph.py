@@ -23,6 +23,61 @@ def read_trace(path):
     return records
 
 
+class SuccessTraceCursor:
+    """Read append-only completion evidence once without replacing final admission."""
+
+    def __init__(self, path, operations):
+        self.path = Path(path)
+        self.operations = set(operations)
+        self.events = []
+        self.succeeded = 0
+        self.offset = 0
+        self.pending = b''
+        self.identity = None
+        self.seen_phases = set()
+
+    def update(self):
+        import fcntl
+        import os
+        if not self.path.exists():
+            if self.identity is not None:
+                raise WorkflowMismatch('Append-only workflow trace disappeared')
+            return
+        with self.path.open('rb') as stream:
+            fcntl.flock(stream.fileno(), fcntl.LOCK_SH)
+            stat = os.fstat(stream.fileno())
+            identity = (stat.st_dev, stat.st_ino)
+            if self.identity is not None and identity != self.identity:
+                raise WorkflowMismatch('Append-only workflow trace was replaced')
+            self.identity = identity
+            stream.seek(0, 2)
+            if stream.tell() < self.offset:
+                raise WorkflowMismatch('Append-only workflow trace was truncated')
+            stream.seek(self.offset)
+            added = stream.read()
+            self.offset = stream.tell()
+        data = self.pending + added
+        lines = data.split(b'\n')
+        self.pending = lines.pop()
+        for line in lines:
+            if not line:
+                continue
+            record = json.loads(line)
+            if not isinstance(record, dict):
+                raise WorkflowMismatch('Workflow trace records must be objects')
+            if record.get('event') in ('failed', 'retried', 'revoked', 'unknown'):
+                raise RuntimeError('Success-only native workflow observed a non-successful attempt')
+            node, phase = record.get('node_id'), record.get('event')
+            if isinstance(node, str) and phase in ('submitted', 'started', 'succeeded'):
+                key = (node, phase)
+                if key in self.seen_phases:
+                    raise WorkflowMismatch('Duplicate task phase in append-only workflow trace')
+                self.seen_phases.add(key)
+            self.events.append(record)
+            if record.get('event') == 'succeeded' and record.get('operation_id') in self.operations:
+                self.succeeded += 1
+
+
 def validate_graph(events, expected_operations, expected_stages, expected_edges=(), *, warmup_operations=None):
     """Validate a successful-work contract using actual observed task identities.
 
@@ -32,6 +87,7 @@ def validate_graph(events, expected_operations, expected_stages, expected_edges=
     without operation identity are never silently ignored.
     """
     operations = list(expected_operations)
+    operation_set = set(operations)
     if any(not isinstance(value, str) or not value or value == 'None' for value in operations):
         raise WorkflowMismatch('Operation identities must be nonempty strings')
     if len(set(operations)) != len(operations) or not operations:
@@ -61,7 +117,7 @@ def validate_graph(events, expected_operations, expected_stages, expected_edges=
         op = row.get("operation_id")
         if not isinstance(op, str) or not op or op == 'None':
             raise WorkflowMismatch("Uncorrelated task in native workflow trace")
-        if op not in operations:
+        if op not in operation_set:
             if op in warmup_operations or (legacy_warmup and op.startswith("warmup:")):
                 warmup.append(row)
                 continue
@@ -103,8 +159,11 @@ def validate_graph(events, expected_operations, expected_stages, expected_edges=
         counts[stage] += 1
     phase_times = {node: {r["event"]: r["timestamp_ns"] for r in rows} for node, rows in jobs.items()}
     expected_edge_counts = Counter(tuple(edge) for edge in expected_edges)
+    by_operation = defaultdict(dict)
+    for node, row in normalized.items():
+        by_operation[row["operation_id"]][node] = row
     for op in operations:
-        selected = {node: row for node, row in normalized.items() if row['operation_id'] == op}
+        selected = by_operation[op]
         stages = Counter(row['stage'] for row in selected.values())
         if stages != Counter(expected_stages):
             raise WorkflowMismatch(f"Business job granularity differs for {op}: {dict(stages)}")

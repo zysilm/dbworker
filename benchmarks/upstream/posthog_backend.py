@@ -22,11 +22,14 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "examples/posthog"))
 
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from dbworker import ExecutionStatus
 
 from benchmarks.common.reporting import write_json
+from benchmarks.common.business_evidence import validate_posthog_delivery_records
+from benchmarks.common.load import run_load
+from benchmarks.common.load_evidence import task_load_metrics
 from examples.posthog_dbworker.runtime import Job, STAGES, coordinator, enqueue
 from benchmarks.common.native_observer import operation
 from benchmarks.common.native_admission import check_original_tasks
@@ -39,6 +42,16 @@ def port():
     with socket.socket() as reservation:
         reservation.bind(("127.0.0.1", 0))
         return reservation.getsockname()[1]
+
+
+def durable_jobs_complete(session, runtime, operations, expected_jobs):
+    """Keep both durable completion predicates with two bounded SQL queries."""
+    jobs = session.query(Job).filter(Job.operation_id.in_(operations))
+    if jobs.filter(Job.complete.is_(True)).count() != expected_jobs:
+        return False
+    unfinished = ~runtime.has_execution_status(
+        worker="posthog_workflow", source_id=Job.id, statuses=[ExecutionStatus.FINISHED])
+    return jobs.filter(unfinished).count() == 0
 
 
 def wait_for(predicate, timeout=180):
@@ -149,7 +162,7 @@ def main():
                     "OTEL_SDK_DISABLED": True, "OPT_OUT_CAPTURE": True, "TEST": False},
                 "autoretry": "original Exception max3 with backoff/jitter",
                 "worker_prefetch_multiplier": app.conf.worker_prefetch_multiplier,
-                "worker_total_concurrency": 2, "dbworker_shared_stage_pool": 2,
+                "worker_total_concurrency": 8, "dbworker_shared_stage_pool": 8,
                 "task_acks_late": app.conf.task_acks_late})
         users, expected, fixtures = [], {}, []
         for index in range(profile["requests"] + 2):
@@ -165,11 +178,11 @@ def main():
                           PYTHONPATH=os.pathsep.join((str(ROOT), str(ROOT / "src"), str(ROOT / "examples/posthog"))))
         engine = create_engine(url)
         sessions = sessionmaker(engine)
-        runtime = coordinator(url, concurrency=2) if args.backend == "dbworker" else None
+        runtime = coordinator(url, concurrency=8) if args.backend == "dbworker" else None
         if args.backend == "celery":
             launch([sys.executable, "-m", "celery", "-A", "posthog.celery:app", "worker",
                     "--include", "benchmarks.common.native_observer", "--queues", "email",
-                    "--concurrency", "2", "--loglevel", "WARNING", "--hostname", f"posthog-{redis_port}@localhost"], "worker.log")
+                    "--concurrency", "8", "--loglevel", "WARNING", "--hostname", f"posthog-{redis_port}@localhost"], "worker.log")
             wait_for(lambda: app.control.ping(timeout=1))
         else:
             runtime.start()
@@ -180,21 +193,32 @@ def main():
         def execute_batch(values, fixture_values, warmup=False):
             ops = [("warmup:" if warmup else "") + f"notification-{i:04d}" for i in range(len(values))]
             started = begin_window()
-            for op, user, fixture in zip(ops, values, fixture_values, strict=True):
-                # Capture identity before the original endpoint can publish work.
-                producer_identities.append(producer.identity(fixture, op))
-                with operation(op):
-                    if args.backend == "celery":
-                        outcome = producer.validate(fixture)
-                    else:
-                        def submit(user_id):
-                            with sessions.begin() as session:
-                                job = enqueue(session, op, user_id)
-                                session.flush()
-                                return job.id
-                        with producer.route_notification(submit, user.pk):
+            def submit(item, index):
+                from django.db import close_old_connections, connections
+                op, user, fixture = item
+                close_old_connections()
+                try:
+                    identity = producer.identity(fixture, op)
+                    with operation(op):
+                        if args.backend == "celery":
                             outcome = producer.validate(fixture)
-                api_outcomes.append({"operation_id": op, **outcome})
+                        else:
+                            def publish(user_id):
+                                with sessions.begin() as session:
+                                    job = enqueue(session, op, user_id)
+                                    session.flush()
+                                    return job.id
+                            with producer.route_notification(publish, user.pk):
+                                outcome = producer.validate(fixture)
+                    return {"identity": identity, "outcome": {"operation_id": op, **outcome}}
+                finally:
+                    connections.close_all()
+            load = run_load(list(zip(ops, values, fixture_values, strict=True)), submit,
+                producers=1 if warmup else profile.get("producers", 8),
+                duration_seconds=0 if warmup else profile.get("submission_window_seconds", 60))
+            for result in load.pop("results"):
+                producer_identities.append(result["identity"])
+                api_outcomes.append(result["outcome"])
             recipients = {user.email for user in values}
             latest_graph_error = None
             def complete():
@@ -213,11 +237,7 @@ def main():
                     return False
                 if args.backend == "dbworker":
                     with sessions() as session:
-                        if session.query(Job).filter(Job.operation_id.in_(ops), Job.complete.is_(True)).count() != 2 * len(values):
-                            return False
-                        jobs = session.scalars(select(Job).where(Job.operation_id.in_(ops))).all()
-                        if any(runtime.execution_status(session, worker="posthog_workflow", source_id=job.id)
-                               != ExecutionStatus.FINISHED for job in jobs):
+                        if not durable_jobs_complete(session, runtime, ops, 2 * len(values)):
                             return False
                 return graph
             try:
@@ -229,9 +249,9 @@ def main():
             window = end_window(started)
             seconds = elapsed_seconds(window)
             validate_timing_window(window, seconds, read_trace(trace), ops)
-            return seconds, graph, window
+            return seconds, graph, window, load
         execute_batch(users[:2], fixtures[:2], warmup=True)
-        seconds, graph, measurement_window = execute_batch(users[2:], fixtures[2:])
+        seconds, graph, measurement_window, load_metrics = execute_batch(users[2:], fixtures[2:])
         expected_recipients = sorted(user.email for user in users[2:])
         normalized, ids = [], set()
         for envelope in sink.messages:
@@ -262,13 +282,8 @@ def main():
         if len(sink.messages) != len(users) or sorted(row["recipient"] for row in normalized) != expected_recipients:
             raise AssertionError("Missing or duplicate SMTP acceptance")
         records = list(MessagingRecord.objects.order_by("campaign_key"))
-        if len(records) != len(users) or any(record.sent_at is None for record in records):
-            raise AssertionError("Native delivery ledger is incomplete")
         from posthog.models.messaging import get_email_hash
-        for user in users:
-            matching = [record for record in records if record.email_hash == get_email_hash(user.email)]
-            if len(matching) != 1 or not matching[0].campaign_key.startswith(f"2fa_enabled_{user.uuid}-"):
-                raise AssertionError("Native user/campaign mapping differs")
+        validate_posthog_delivery_records(users, records, get_email_hash)
         normalized.sort(key=lambda item: item["recipient"])
         source = ROOT / "examples/posthog/posthog"
         source_files = {relative: hashlib.sha256((source / relative).read_bytes()).hexdigest()
@@ -277,7 +292,7 @@ def main():
         packages = {name: importlib.metadata.version(name) for name in ("django", "celery", "css-inline", "sqlalchemy", "posthoganalytics")}
         row = {"scenario": "native_two_factor_notification", "comparison_mode": "native_execution",
                "backend": args.backend, "repetition": args.repetition, "status": "passed",
-               "metrics": {"wall_seconds": seconds, "messages_per_second": profile["requests"] / seconds,
+               "metrics": {"load": load_metrics, "wall_seconds": seconds, "messages_per_second": profile["requests"] / seconds,
                            "cpu_seconds": None, "peak_rss_bytes": None},
                "unavailable_metrics": {"cpu_seconds": "Not collected by this suite",
                                        "peak_rss_bytes": "Not collected by this suite"},
@@ -285,7 +300,7 @@ def main():
                               "messages": len(normalized), "warmup_messages": 2, "duplicate_acceptance": 0},
                "environment": {"python": platform.python_version(), "interpreter": sys.executable, "packages": packages,
                                "upstream_files": source_files},
-               "configuration": {"concurrency": 2, "database": "postgresql", "transport": "real_local_smtp",
+               "configuration": {"concurrency": 8, "database": "postgresql", "transport": "real_local_smtp",
                                  "rendering_timed": True, "rendering_validated": True,
                                  "application_scope": "original authenticated two_factor_validate DRF handler plus notification and delivery",
                                  "producer_api": "posthog.api.user.UserViewSet.two_factor_validate",
@@ -314,6 +329,11 @@ def main():
         row["workflow_graph"] = graph
         row["workflow_trace"] = {"path": str(trace.relative_to(Path(config["output_directory"]).resolve())),
                                  "sha256": hashlib.sha256(trace.read_bytes()).hexdigest()}
+        row["metrics"]["task_load"] = task_load_metrics(read_trace(trace), [f"notification-{i:04d}" for i in range(profile["requests"])])
+        row["configuration"]["producer_concurrency"] = profile.get("producers", 8)
+        row["configuration"]["submission_window_seconds"] = profile.get("submission_window_seconds", 60)
+        row["configuration"]["load_profile"] = "One fixed open-loop schedule; no concurrency or rate sweep"
+        row["configuration"]["contention_observation"] = "Concurrent API submission latency, lateness and task backlog; database lock wait duration unavailable"
         write_json(directory / "sample.json", row)
     except Exception as exc:
         write_json(directory / "admission.json", {"schema_version": 1, "suite_id": "posthog",

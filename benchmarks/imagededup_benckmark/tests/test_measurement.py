@@ -9,10 +9,28 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from imagededup_benckmark.measurement import Measurement
+from imagededup_benckmark.measurement import Measurement, business_capacity
 
 
 class MeasurementBoundaryTest(unittest.TestCase):
+    def test_capacity_reports_observed_growth_without_claiming_maximum(self):
+        result = business_capacity([
+            {"seconds": 1, "unfinished_comparison_requests": 1},
+            {"seconds": 2, "unfinished_comparison_requests": 3},
+            {"seconds": 8, "unfinished_comparison_requests": 20},
+            {"seconds": 9, "unfinished_comparison_requests": 24},
+            {"seconds": 12, "unfinished_comparison_requests": 0},
+        ], submission_start=0, submission_window=10)
+        self.assertEqual(result["sample_count"], 4)
+        self.assertEqual(result["late_minus_early_backlog"], 20)
+        self.assertTrue(result["backlog_growth_observed"])
+        self.assertFalse(result["maximum_capacity_measured"])
+
+    def test_capacity_without_full_window_does_not_invent_trend(self):
+        result = business_capacity([{"seconds": 1, "unfinished_comparison_requests": 0}],
+                                   submission_start=0, submission_window=10)
+        self.assertIsNone(result["backlog_growth_observed"])
+
     def test_terminal_probe_before_final_http_response_still_includes_submission(self):
         meter = Measurement(SimpleNamespace(processes={}), 1, 1, 0, interval=.01, timeout=1)
         meter.started = 1.0

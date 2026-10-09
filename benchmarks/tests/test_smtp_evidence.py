@@ -91,3 +91,27 @@ class SmtpEvidenceTest(unittest.TestCase):
             row['smtp_evidence']['path'] = '../smtp-evidence.json'
             with self.assertRaisesRegex(ValueError, 'escapes'):
                 validate_smtp_evidence(row, directory)
+
+
+class VariableTrustedSmtpCountTests(unittest.TestCase):
+    setUp = SmtpEvidenceTest.setUp
+
+    def test_nonhistorical_trusted_count_and_wrong_count_rejection(self):
+        manifest = copy.deepcopy(self.manifest)
+        manifest["deliveries"] = manifest["deliveries"][:6]
+        normalized, ids = replay_messages(manifest, ["0", "1", "2"])
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory, "smtp-evidence.json")
+            raw = json.dumps(manifest).encode()
+            path.write_bytes(raw)
+            row = {"dataset": {"operations": 3}, "smtp_evidence": {
+                "schema_version": 1, "path": path.name, "sha256": hashlib.sha256(raw).hexdigest()},
+                "validation": {"messages": 6, "output_digest": business_digest(normalized), "generated_message_ids": ids}}
+            self.assertEqual(validate_smtp_evidence(row, directory, expected_requests=3)["messages"], 6)
+            with self.assertRaisesRegex(ValueError, "missing distinct"):
+                validate_smtp_evidence(row, directory, expected_requests=4)
+            with self.assertRaisesRegex(ValueError, "missing distinct"):
+                validate_smtp_evidence(row, directory)
+            for count in (0, -1, True, 3.0):
+                with self.assertRaisesRegex(ValueError, "trusted SMTP request count"):
+                    validate_smtp_evidence(row, directory, expected_requests=count)

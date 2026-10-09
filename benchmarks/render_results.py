@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import statistics
 import sys
 from pathlib import Path
 
@@ -16,6 +17,51 @@ from benchmarks.common.reporting import digest, summarize, validate_report
 
 def escape(value: object) -> str:
     return str(value).replace("|", "\\|").replace("\n", " ").replace("\r", " ")
+
+
+def workload_label(report: dict, scenario: str) -> str:
+    """Name actual measured business quantities, not broad repository labels."""
+    profile = report.get("configuration", {}).get("profile", {})
+    rows = [row for row in report["runs"] if row["scenario"] == scenario]
+    config = rows[0].get("configuration", {}) if rows else {}
+    count = profile.get("requests", config.get("profile", {}).get("requests"))
+    if count is None:
+        count = rows[0].get("validation", {}).get("workflow", {}).get("operations") if rows else None
+        if isinstance(count, list):
+            count = len(count)
+    suite = report["suite_id"]
+    if suite == "imagededup":
+        images = report.get("configuration", {}).get("images", rows[0].get("images", 0))
+        if scenario == "build":
+            return f"Build {images:,} image hashes (one bulk import)"
+        pairs = images * (images - 1)
+        prefix = "Build + compare" if scenario == "mixed" else "Compare"
+        return f"{prefix} {images:,} images / {pairs:,} directed pairs"
+    if not isinstance(count, int):
+        return scenario
+    labels = {
+        "superset": f"SQL Lab: {count:,} queries / 10,000 rows",
+        "saleor": f"Export: {count:,} x {profile.get('products', 256)} products + {count:,} emails",
+        "paperless_ngx": f"OCR: {count:,} scans, archive and index",
+        "posthog": f"2FA: {count:,} requests / {count * 2:,} tasks",
+        "sentry": f"Email: {count:,} requests / {count * 2:,} deliveries",
+    }
+    return labels.get(suite, scenario)
+
+
+def load_cell(report: dict, scenario: str, backend: str) -> str:
+    values = []
+    for row in report["runs"]:
+        if row["scenario"] != scenario or row["backend"] != backend:
+            continue
+        measured = row.get("metrics", {}).get("task_load", {})
+        latency = measured.get("task_end_to_end", {}).get("p95_seconds")
+        peak = measured.get("peak_published_outstanding")
+        if latency is not None and peak is not None:
+            values.append((latency, peak))
+    if not values:
+        return "n/a"
+    return f"{statistics.median(v[0] for v in values):.3f}s / {statistics.median(v[1] for v in values):.0f}"
 
 
 def render(run_dir: Path, output: Path, *, allow_partial: bool = False) -> str:
@@ -53,7 +99,7 @@ def render(run_dir: Path, output: Path, *, allow_partial: bool = False) -> str:
             backends = summary["backends"]
             c, d = backends["celery"], backends["dbworker"]
             ratio = summary["celery_over_dbworker_wall_ratio"]
-            lines.append(f"| {escape(summary['scenario'])} | {escape(summary['comparison_mode'])} | {c['median_wall_seconds']:.6f} | {c['min_wall_seconds']:.6f}–{c['max_wall_seconds']:.6f} | {d['median_wall_seconds']:.6f} | {d['min_wall_seconds']:.6f}–{d['max_wall_seconds']:.6f} | {ratio:.3f} | {c['count']} |")
+            lines.append(f"| {escape(workload_label(report, summary['scenario']))} | {escape(summary['comparison_mode'])} | {c['median_wall_seconds']:.6f} | {c['min_wall_seconds']:.6f}–{c['max_wall_seconds']:.6f} | {d['median_wall_seconds']:.6f} | {d['min_wall_seconds']:.6f}–{d['max_wall_seconds']:.6f} | {ratio:.3f} | {c['count']} |")
         lines += ["", "Validation: all reported samples passed and comparable output digests agree.", "",
                   f"Environment: `{escape(json.dumps(report['environment'], sort_keys=True))}`", "",
                   f"Scope: `{escape(json.dumps(report['capabilities'], sort_keys=True))}`", "",
@@ -84,9 +130,9 @@ def update_readme(run_dir: Path, readme: Path) -> str:
         raise ValueError("Invalid README benchmark markers")
     lines = [start, "## Benchmark Results", "",
              "Median wall time in seconds; **bold** marks the faster backend. "
-             "Each experiment runs in a fresh Docker container on its own GitHub-hosted Ubuntu VM.", "",
-             "| Experiment | Scenario | Celery (s) | DBWorker (s) | Celery / DBWorker |",
-             "|---|---|---:|---:|---:|"]
+             "Each experiment runs in a fresh Docker container on its own GitHub-hosted Ubuntu VM. Fixed profile: 8 producers, a 60-second scheduled submission window and 8 total execution slots; image hash building uses one native bulk import. Three repetitions per backend. Actual schedule delays and backlog are recorded in JSON; this is one load point, not a maximum-capacity search.", "",
+             "| Experiment | Workload | Celery wall (s) | DBWorker wall (s) | C / D | Task P95 / peak outstanding (C; D) |",
+             "|---|---|---:|---:|---:|---|"]
     for entry in index["reports"]:
         report = json.loads((run_dir / entry["path"]).read_text())
         for summary in summarize(report["runs"]).values():
@@ -97,12 +143,12 @@ def update_readme(run_dir: Path, readme: Path) -> str:
                 c = f"**{c}**"
             elif dbworker < celery:
                 d = f"**{d}**"
-            lines.append(f"| {escape(entry['suite_id'])} | {escape(summary['scenario'])} | {c} | {d} | {celery / dbworker:.2f} |")
+            lines.append(f"| {escape(entry['suite_id'])} | {escape(workload_label(report, summary['scenario']))} | {c} | {d} | {celery / dbworker:.2f} | {load_cell(report, summary['scenario'], 'celery')}; {load_cell(report, summary['scenario'], 'dbworker')} |")
     detail = Path(os.path.relpath(ROOT / "doc/benchmark-results.md", readme.parent)).as_posix()
     raw = Path(os.path.relpath(run_dir / "index.json", readme.parent)).as_posix()
     lines += ["", f"Run: `{escape(index['run_id'])}`. [Details and scope]({detail}) · [JSON results]({raw}).",
               "Scoped application workloads; Sentry uses historical 24.1.0. "
-              "Ratios above 1 favor DBWorker; no cross-project average is computed.", end]
+              "Wall time includes the fixed submission window, so a ratio near 1 does not prove equal processing capacity. Task P95 starts at publication; peak outstanding counts already published tasks. Ratios above 1 favor DBWorker; no cross-project average is computed.", end]
     section = "\n".join(lines)
     if start in original:
         before, remainder = original.split(start, 1)

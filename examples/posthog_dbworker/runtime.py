@@ -100,7 +100,7 @@ def coordinator(url, concurrency=2):
     Base.metadata.create_all(engine)
     runtime = Coordinator(sessionmaker(engine, expire_on_commit=False), database_url=url,
         poll_seconds=.05, max_poll_seconds=.25, lease_seconds=300)
-    # Both stages share a two-process resource budget through one worker, but
+    # Both stages share the configured resource budget through one worker, but
     # each source row is a separate business job and the graph verifies fan-out.
     runtime.transactional_worker(name="posthog_workflow", source=Job, concurrency=concurrency,
                                  eligible=lambda: select(Job).where(Job.next_run <= time.time()))(handle)

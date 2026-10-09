@@ -82,3 +82,13 @@ class ReportingTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class LargeReplayReportTests(unittest.TestCase):
+    def test_large_report_keeps_every_receipt_without_indentation_expansion(self):
+        value = {"receipts": [{"index": index, "proof": "x" * 100} for index in range(10_000)]}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "report.json"
+            write_json(path, value)
+            self.assertEqual(json.loads(path.read_text()), value)
+            self.assertLess(path.stat().st_size, 1_400_000)

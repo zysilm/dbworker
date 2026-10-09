@@ -16,6 +16,13 @@ REPOSITORY = Path(__file__).resolve().parents[4]
 # The standalone image package also uses the repository-wide admission checks.
 sys.path.insert(0, str(REPOSITORY))
 WORKERS = 4
+SQLITE_BUSY_TIMEOUT_SECONDS = 30
+PRODUCER_HTTP_TIMEOUT_SECONDS = 60
+
+
+def sqlite_database_url(database: Path) -> str:
+    """Use identical bounded SQLite writer waiting in both application arms."""
+    return f"sqlite:///{database}?timeout={SQLITE_BUSY_TIMEOUT_SECONDS}"
 
 
 def free_port() -> int:
@@ -147,7 +154,7 @@ print(json.dumps(result))
                 [str(self.python), "-c", code], text=True,
             ))
             if self.backend == "dbwork":
-                env.update(DBWORKER_DATABASE_URL=f"sqlite:///{self.database}", DBWORKER_BUILD_WORKERS="4",
+                env.update(DBWORKER_DATABASE_URL=sqlite_database_url(self.database), DBWORKER_BUILD_WORKERS="4",
                            DBWORKER_COMPARISON_WORKERS="4", DBWORKER_COMPARISON_PAGE_SIZE=str(self.page_size),
                            DBWORKER_IMPORT_ROOT=str(self.import_root))
                 env["DBWORKER_OBSERVER_MODULE"] = "imagededup_benckmark.observation"
@@ -167,7 +174,7 @@ evidence = check_original_tasks(app, ['images.build', 'images.compare', 'images.
                    'task_time_limit': app.conf.task_time_limit})
 print(json.dumps(evidence))
 """
-                self.native_execution = json.loads(subprocess.check_output(
+                self.native_execution = json.loads(subprocess.check_output(  # nosec B603 -- fixed interpreter/code argument vector, shell=False.
                     [str(self.python), "-c", admission_code, str(example_source)],
                     env=env, cwd=self.directory, text=True, timeout=30))
                 redis_binary = shutil.which(self.redis_server)
@@ -179,7 +186,7 @@ print(json.dumps(evidence))
                 self.start_process("redis", [redis_binary, "--bind", "127.0.0.1", "--port", str(redis_port),
                                    "--dir", str(redis_directory), "--save", "", "--appendonly", "yes",
                                    "--appendfsync", "everysec"], env)
-                env.update(IMAGE_DATABASE_URL=f"sqlite:///{self.database}",
+                env.update(IMAGE_DATABASE_URL=sqlite_database_url(self.database),
                            IMAGE_BROKER_URL=f"redis://127.0.0.1:{redis_port}/0",
                            IMAGE_COMPARISON_PAGE_SIZE=str(self.page_size), IMAGE_DEPENDENCY_WAIT_SECONDS="1",
                            IMAGE_IMPORT_ROOT=str(self.import_root))
@@ -216,14 +223,24 @@ print(json.dumps(evidence))
         response.raise_for_status()
         return response.json()
 
+    def producer_client(self) -> Any:
+        """Give each concurrent producer an independent HTTP connection pool."""
+        import httpx
+        return httpx.Client(base_url=f"http://127.0.0.1:{self.api_port}", timeout=PRODUCER_HTTP_TIMEOUT_SECONDS)
+
     def business_idle_snapshot(self) -> dict:
         if self.backend == "dbwork":
             import sqlite3
             with sqlite3.connect(self.database, timeout=30) as connection:
                 connection.execute("PRAGMA query_only=ON")
-                counts = {table: connection.execute(
-                    f"SELECT COUNT(*) FROM {table} WHERE execution_status IS NULL OR execution_status!='finished'"
-                ).fetchone()[0] for table in ("artifact_build_work", "comparison_work")}
+                counts = {
+                    "artifact_build_work": connection.execute(
+                        "SELECT COUNT(*) FROM artifact_build_work WHERE execution_status IS NULL OR execution_status!='finished'"
+                    ).fetchone()[0],
+                    "comparison_work": connection.execute(
+                        "SELECT COUNT(*) FROM comparison_work WHERE execution_status IS NULL OR execution_status!='finished'"
+                    ).fetchone()[0],
+                }
             return {"backend": "dbworker", "observed_at": time.time(), "unfinished_work": counts,
                     "idle": not any(counts.values())}
         code = """import json
@@ -231,7 +248,7 @@ from imagededup_system_redis_celery.celery_app import app
 from imagededup_benckmark.runtime import native_celery_idle_snapshot
 print(json.dumps(native_celery_idle_snapshot(app)))
 """
-        result = subprocess.check_output([str(self.python), "-c", code], env=self.environment,
+        result = subprocess.check_output([str(self.python), "-c", code], env=self.environment,  # nosec B603 -- fixed local code and argument vector, shell=False.
                                          cwd=self.directory, text=True, timeout=30)
         snapshot = json.loads(result)
         import sqlite3
