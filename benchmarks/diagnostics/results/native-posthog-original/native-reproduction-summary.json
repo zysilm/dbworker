@@ -1,0 +1,216 @@
+{
+  "schema_version": 1,
+  "scope": "One unchanged native PostHog DBWorker reproduction on local macOS/PostgreSQL; diagnosis only; not an official paired score and not the user SQLite64 case",
+  "source": {
+    "dbworker_commit": "69d9fbd8442c714f361a5e9196bd314aed75f099",
+    "core_sha256": "07337100d945b0eccc00654138d15b954c3a546d5907482c30d5c7a05b2ce079",
+    "upstream_commit": "526d64dd82340b1bf4293d6d9baea7e965997048",
+    "environment": {
+      "interpreter": "/tmp/dbworker-posthog-native-repro-env/bin/python",
+      "packages": {
+        "celery": "5.6.3",
+        "css-inline": "0.18.0",
+        "django": "5.2.17",
+        "posthoganalytics": "7.62.1",
+        "sqlalchemy": "2.0.54"
+      },
+      "python": "3.14.7",
+      "upstream_files": {
+        "api/user.py": "4b7b7b5c24d8a5fa5014672060d3b0c1b66b20773e0fa0f88178b38af85579a9",
+        "celery.py": "9979508b3c3dfb9675a6109dd917c95a07c9df0ad7834da3766819d57b92a4e7",
+        "email.py": "6e47575cc000547ed7954230d0b3f3ce883119e99fb958758fb37f0113f2a557",
+        "helpers/session_cache.py": "2d67b2b8dc60b5ef79aa37224a9575a2af2f2f29890ef9f64bd10592300dfbed",
+        "session/activity.py": "bed967fba4f371fa2133eb8cf010ea46fca74993a155edac174deac359e66b10",
+        "settings/celery.py": "9b6cdc4f36e68021de8380f6bdb3544319ebf8013812990ced304588eb59cdb5",
+        "tasks/email.py": "fa988a5e7e993ce3fb08cdb3d3c8b2fa0d08d3a5966048b9786702aa14e60c4e"
+      }
+    },
+    "upstream_source_unchanged": true
+  },
+  "configuration": {
+    "operations": 5000,
+    "jobs": 10000,
+    "worker_slots": 8,
+    "producers": 8,
+    "planned_submission_seconds": 60,
+    "warmup_operations": 2,
+    "samples": 1,
+    "database": "PostgreSQL"
+  },
+  "validation": {
+    "duplicate_acceptance": 0,
+    "messages": 5000,
+    "output_digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15",
+    "passed": true,
+    "warmup_messages": 2
+  },
+  "metrics": {
+    "wall_seconds": 153.71257875,
+    "load": {
+      "dropped_operations": 0,
+      "duration_seconds": 60,
+      "mode": "fixed_open_loop_waves",
+      "offered_operations_per_second": 83.33333333333333,
+      "operations": 5000,
+      "peak_concurrent_calls": 8,
+      "producers": 8,
+      "schedule_epoch_timestamp_ns": 1791579365056902000,
+      "schedule_lateness_seconds": {
+        "count": 5000,
+        "max": 49.160688209,
+        "median": 48.15438475,
+        "min": 1.6709e-05,
+        "p95": 48.9098805,
+        "p99": 49.072623167
+      },
+      "schema_version": 1,
+      "submission_latency_seconds": {
+        "count": 5000,
+        "max": 4.744707125,
+        "median": 0.093946417,
+        "min": 0.02840625,
+        "p95": 0.580229,
+        "p99": 1.222003209
+      },
+      "submission_wall_seconds": 107.105247667,
+      "submitted_operations": 5000,
+      "waves": 625
+    },
+    "task_load": {
+      "contention_scope": "Concurrent native calls exercise connection and lock contention; database lock wait time is not directly measured.",
+      "peak_published_outstanding": 4498,
+      "queue_wait": {
+        "count": 10000,
+        "max_seconds": 61.824081,
+        "p50_seconds": 25.792386,
+        "p95_seconds": 45.085306,
+        "p99_seconds": 57.195474
+      },
+      "scope": "one_fixed_load_point_not_maximum_capacity",
+      "seconds_after_last_task_publication": 23.165745,
+      "task_count": 10000,
+      "task_end_to_end": {
+        "count": 10000,
+        "max_seconds": 61.835676,
+        "p50_seconds": 25.806238,
+        "p95_seconds": 45.097263,
+        "p99_seconds": 57.248732
+      },
+      "task_execution": {
+        "count": 10000,
+        "max_seconds": 2.870983,
+        "p50_seconds": 0.014343,
+        "p95_seconds": 0.044861,
+        "p99_seconds": 0.128749
+      }
+    },
+    "instantaneous_running_peak": 8,
+    "sampled_running_peak": 5,
+    "mean_running_during_execution_span": 1.4239356880154148,
+    "mean_running_during_wall": 1.4094841018337936
+  },
+  "startup_observations": {
+    "child_log_milestones": [
+      {
+        "pid": 62249,
+        "initialization_log_seconds_from_schedule_epoch": -20.030822038650513,
+        "initialized_before_measurement": true
+      },
+      {
+        "pid": 62248,
+        "initialization_log_seconds_from_schedule_epoch": -20.030820846557617,
+        "initialized_before_measurement": true
+      },
+      {
+        "pid": 62468,
+        "initialization_log_seconds_from_schedule_epoch": 3.8864200115203857,
+        "initialized_before_measurement": false
+      },
+      {
+        "pid": 62572,
+        "initialization_log_seconds_from_schedule_epoch": 3.8864519596099854,
+        "initialized_before_measurement": false
+      },
+      {
+        "pid": 62724,
+        "initialization_log_seconds_from_schedule_epoch": 6.028064012527466,
+        "initialized_before_measurement": false
+      },
+      {
+        "pid": 62755,
+        "initialization_log_seconds_from_schedule_epoch": 6.124397039413452,
+        "initialized_before_measurement": false
+      },
+      {
+        "pid": 62763,
+        "initialization_log_seconds_from_schedule_epoch": 6.303385972976685,
+        "initialized_before_measurement": false
+      },
+      {
+        "pid": 62797,
+        "initialization_log_seconds_from_schedule_epoch": 7.696746110916138,
+        "initialized_before_measurement": false
+      }
+    ],
+    "exact_running_peak_first_60_seconds": 2,
+    "exact_running_peak_after_60_seconds": 8,
+    "mean_running_by_window": [
+      {
+        "window": "0-60 seconds",
+        "mean_running": 0.8824303833333333
+      },
+      {
+        "window": "60-120 seconds",
+        "mean_running": 1.3482140416666666
+      },
+      {
+        "window": "120-153.712579 seconds",
+        "mean_running": 2.456554009532718
+      }
+    ],
+    "interpretation": "Original two-operation warmup did not initialize all eight spawned PostHog processes; six children performed full application initialization during measurement. Lifecycle started receipts occur after initialization and exclude that CPU/memory activity. Startup and candidate query work are distinct possible causes."
+  },
+  "limitations": [
+    "No local Celery comparison or repeated native sample; cannot quantify a native speedup or isolate causal contributions.",
+    "No native claim/dispatch timers or cProfile collected.",
+    "Read-only EXPLAIN captured during backlog, without ANALYZE or row locking execution.",
+    "Child logs identify initialization milestones, not exact first task start per PID; workflow receipts do not include PIDs.",
+    "Independent single-row admission replay is separate from mandatory full six-sample paired benchmark admission.",
+    "Configured PostgreSQL8 differs from user SQLite64; no claim of the same database bottleneck.",
+    "Local unrelated processes may influence diagnostic timings."
+  ],
+  "artifacts": {
+    "posthog-1-dbworker/sample.json": {
+      "sha256": "a3f652c2a24caad1d3f79a4d29161911815b5b31644875fa7351a5db606bd6aa",
+      "bytes": 5899890
+    },
+    "posthog-1-dbworker/workflow.jsonl": {
+      "sha256": "137ffd6040115e4fea2d12d4d744d616b433ed3f6f06d1822cbbce7ba2419fee",
+      "bytes": 16846946
+    },
+    "postgres-observations.jsonl": {
+      "sha256": "4f886c248643aff1bbef547575376868ea49363c009677196379f2e0a2dfdf05",
+      "bytes": 57877
+    },
+    "candidate-explain.json": {
+      "sha256": "85b27a1d34d51df96d55944a4cefe4aba99e6e5526a4ac847347a362d319f7f9",
+      "bytes": 2236
+    },
+    "single-sample-admission.json": {
+      "sha256": "b3c2163b046b58169c11d28852d6fe9281d77e8e6975c1da17edb00246412b60",
+      "bytes": 229
+    }
+  },
+  "independent_admission": {
+    "passed": true,
+    "scope": "Independent single-sample graph, native origin, argument, business input, timing and load replay; not a full paired benchmark report",
+    "requests": 5000,
+    "elapsed_seconds": 13.788463207893074
+  },
+  "shutdown": {
+    "parent_exit_code": 0,
+    "normal_shutdown_attempted": true,
+    "owned_children_terminated_after_successful_sample": 8,
+    "reason": "Python 3.14 module-finalization cyclic garbage collection caused sustained paging after all tasks and admission completed; owned children were terminated after several minutes, then parent performed normal SMTP and service cleanup. Timed results had already been written."
+  }
+}

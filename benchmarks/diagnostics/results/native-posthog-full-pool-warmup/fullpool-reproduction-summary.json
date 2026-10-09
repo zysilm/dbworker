@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "scope": "One diagnostic-only native full-pool warmup comparison; excluded from official benchmark tables",
+  "source": {
+    "dbworker_commit": "69d9fbd8442c714f361a5e9196bd314aed75f099",
+    "upstream_commit": "526d64dd82340b1bf4293d6d9baea7e965997048",
+    "core_sha256": "07337100d945b0eccc00654138d15b954c3a546d5907482c30d5c7a05b2ce079",
+    "diagnostic_backend_sha256": "8d3e18ec70625eac72c89a5fbbc2a671333244290d412cf5ad7783d51012a109",
+    "changed_scope": "Only eight warmup fixtures/operations and matching warmup declarations; original measured fixture indices 2..5001 (database user IDs 3..5002), original API, tasks, adapter and core unchanged",
+    "environment": {
+      "interpreter": "/tmp/dbworker-posthog-native-repro-env/bin/python",
+      "packages": {
+        "celery": "5.6.3",
+        "css-inline": "0.18.0",
+        "django": "5.2.17",
+        "posthoganalytics": "7.62.1",
+        "sqlalchemy": "2.0.54"
+      },
+      "python": "3.14.7",
+      "upstream_files": {
+        "api/user.py": "4b7b7b5c24d8a5fa5014672060d3b0c1b66b20773e0fa0f88178b38af85579a9",
+        "celery.py": "9979508b3c3dfb9675a6109dd917c95a07c9df0ad7834da3766819d57b92a4e7",
+        "email.py": "6e47575cc000547ed7954230d0b3f3ce883119e99fb958758fb37f0113f2a557",
+        "helpers/session_cache.py": "2d67b2b8dc60b5ef79aa37224a9575a2af2f2f29890ef9f64bd10592300dfbed",
+        "session/activity.py": "bed967fba4f371fa2133eb8cf010ea46fca74993a155edac174deac359e66b10",
+        "settings/celery.py": "9b6cdc4f36e68021de8380f6bdb3544319ebf8013812990ced304588eb59cdb5",
+        "tasks/email.py": "fa988a5e7e993ce3fb08cdb3d3c8b2fa0d08d3a5966048b9786702aa14e60c4e"
+      }
+    }
+  },
+  "configuration": {
+    "measured_operations": 5000,
+    "measured_jobs": 10000,
+    "warmup_operations": 8,
+    "warmup_jobs": 16,
+    "worker_slots": 8,
+    "producers": 8,
+    "planned_submission_seconds": 60,
+    "database": "PostgreSQL",
+    "schema_cache_reused": true
+  },
+  "validation": {
+    "duplicate_acceptance": 0,
+    "messages": 5000,
+    "output_digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15",
+    "passed": true,
+    "warmup_messages": 8
+  },
+  "independent_admission": {
+    "passed": true,
+    "scope": "Diagnostic single-row original native origin/arguments, eight-warmup graph, timing/load/task metrics, unchanged measured-user business bindings and output digest. Extra warmups explicitly excluded only for original two-warmup business binding projection; not full paired benchmark admission.",
+    "measured_operations": 5000,
+    "measured_tasks": 10000,
+    "warmup_operations": 8,
+    "warmup_tasks": 16,
+    "elapsed_seconds": 3.5518132080323994
+  },
+  "metrics": {
+    "wall_seconds": 133.867551458,
+    "load": {
+      "dropped_operations": 0,
+      "duration_seconds": 60,
+      "mode": "fixed_open_loop_waves",
+      "offered_operations_per_second": 83.33333333333333,
+      "operations": 5000,
+      "peak_concurrent_calls": 8,
+      "producers": 8,
+      "schedule_epoch_timestamp_ns": 1791580005224877000,
+      "schedule_lateness_seconds": {
+        "count": 5000,
+        "max": 30.773851792,
+        "median": 29.911002625,
+        "min": 1.8375e-05,
+        "p95": 30.524457458,
+        "p99": 30.649718458
+      },
+      "schema_version": 1,
+      "submission_latency_seconds": {
+        "count": 5000,
+        "max": 10.207794125,
+        "median": 0.095773375,
+        "min": 0.023294792,
+        "p95": 0.167360417,
+        "p99": 0.931270666
+      },
+      "submission_wall_seconds": 89.792976,
+      "submitted_operations": 5000,
+      "waves": 625
+    },
+    "task_load": {
+      "contention_scope": "Concurrent native calls exercise connection and lock contention; database lock wait time is not directly measured.",
+      "peak_published_outstanding": 4459,
+      "queue_wait": {
+        "count": 10000,
+        "max_seconds": 59.95488,
+        "p50_seconds": 25.061011,
+        "p95_seconds": 47.838779,
+        "p99_seconds": 55.513772
+      },
+      "scope": "one_fixed_load_point_not_maximum_capacity",
+      "seconds_after_last_task_publication": 21.68149,
+      "task_count": 10000,
+      "task_end_to_end": {
+        "count": 10000,
+        "max_seconds": 59.967671,
+        "p50_seconds": 25.072573,
+        "p95_seconds": 47.86976,
+        "p99_seconds": 55.524875
+      },
+      "task_execution": {
+        "count": 10000,
+        "max_seconds": 10.164824,
+        "p50_seconds": 0.013726,
+        "p95_seconds": 0.053158,
+        "p99_seconds": 0.170331
+      }
+    },
+    "instantaneous_running_peak": 8,
+    "sampled_running_peak": 8,
+    "mean_running_during_execution_span": 2.1002426746973355,
+    "mean_running_during_wall": 2.082815088221571
+  },
+  "startup_observations": {
+    "all_eight_native_application_processes_initialized_before_measurement": true,
+    "native_initialization_log_milestones": [
+      {
+        "pid": 78119,
+        "native_app_initialization_log_seconds_before_window_start": 1.8127985000610352
+      },
+      {
+        "pid": 78131,
+        "native_app_initialization_log_seconds_before_window_start": 1.8118164539337158
+      },
+      {
+        "pid": 78127,
+        "native_app_initialization_log_seconds_before_window_start": 1.807124376296997
+      },
+      {
+        "pid": 78126,
+        "native_app_initialization_log_seconds_before_window_start": 1.812882423400879
+      },
+      {
+        "pid": 78129,
+        "native_app_initialization_log_seconds_before_window_start": 1.807633399963379
+      },
+      {
+        "pid": 78132,
+        "native_app_initialization_log_seconds_before_window_start": 1.8117835521697998
+      },
+      {
+        "pid": 78124,
+        "native_app_initialization_log_seconds_before_window_start": 1.8080253601074219
+      },
+      {
+        "pid": 78125,
+        "native_app_initialization_log_seconds_before_window_start": 1.431410551071167
+      }
+    ],
+    "limitation": "Log milestones identify native app startup completion paths, not exact per-PID first task start; workflow receipts omit PIDs."
+  },
+  "comparison": {
+    "original_wall_seconds": 153.71257875,
+    "fullpool_wall_reduction_percent": 12.910477108237306,
+    "original_peak_backlog": 4498,
+    "fullpool_peak_backlog": 4459,
+    "output_digest_equal": true,
+    "interpretation": "Full application warmup improved wall/API latency in this single local pair, but approximately 4,500 published unfinished jobs still accumulated. Application initialization is an additional contributor, not the entire backlog explanation."
+  },
+  "limitations": [
+    "Single local unpaired-with-Celery sample per warmup variant; no statistically established speedup.",
+    "No native claim or dispatch timers collected; do not infer exact query contribution.",
+    "Original eight-warmup graph and measured-user business binding replay are explicit diagnostics, not full paired-report admission.",
+    "User SQLite64 has different database/worker configuration; no claim of the same cause.",
+    "Unrelated local processes, memory paging and process shutdown may affect diagnostic timings."
+  ],
+  "artifacts": {
+    "posthog-2-dbworker/sample.json": {
+      "sha256": "bf4b3221a5272edeeaf4bc50d7d514a6bfe76c9992398052c3655550b73c3e99",
+      "bytes": 5899466
+    },
+    "posthog-2-dbworker/workflow.jsonl": {
+      "sha256": "297890337ef3858f1f3b98e94d19ca86774cc1e0daabe8f9c7879696300a5b5f",
+      "bytes": 16867784
+    },
+    "postgres-observations-fullpool.jsonl": {
+      "sha256": "1f708439c4e739e44bd969f8ebfbae32e9bfd72bc5ca413107703a21ca2bcaf8",
+      "bytes": 32492
+    },
+    "candidate-explain-fullpool.json": {
+      "sha256": "a8e2ddd67d272e572f15075d92343caf6bd73c2231da0e00d84350b30a3778fc",
+      "bytes": 2068
+    },
+    "fullpool-single-sample-admission.json": {
+      "sha256": "ae8c651d0d63da36e750574ecb1ee6fcd2710e24540fb4a378cb7e95ffa303c6",
+      "bytes": 474
+    },
+    "posthog_backend_fullpool_diagnostic.py": {
+      "sha256": "8d3e18ec70625eac72c89a5fbbc2a671333244290d412cf5ad7783d51012a109",
+      "bytes": 21895
+    }
+  },
+  "shutdown": {
+    "normal_shutdown_attempted": true,
+    "owned_children_terminated_after_successful_sample": 8,
+    "reason": "After all measured tasks and independent admission completed, Python3.14 native-module finalization again paged for several minutes; only owned completed child processes were terminated so the parent could clean service resources. Outside timing."
+  }
+}

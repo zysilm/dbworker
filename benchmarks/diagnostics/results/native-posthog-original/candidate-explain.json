@@ -1,0 +1,24 @@
+{
+  "wall_time": 1791579444.321677,
+  "source_counts": [
+    3389,
+    1069
+  ],
+  "sql": "SELECT posthog_notification_job.id \nFROM posthog_notification_job \nWHERE posthog_notification_job.next_run <= 1791579443.6611872 AND posthog_notification_job.id IN (SELECT posthog_notification_job.id \nFROM posthog_notification_job LEFT OUTER JOIN posthog_workflow_work ON posthog_workflow_work.source_id = posthog_notification_job.id \nWHERE posthog_workflow_work.source_id IS NULL OR posthog_workflow_work.execution_status = 'unfinished' OR posthog_workflow_work.execution_status = 'working' AND posthog_workflow_work.lease_expires_at < '2026-10-09 20:57:23.660872') \n LIMIT 1 FOR UPDATE OF posthog_notification_job SKIP LOCKED",
+  "plan": [
+    "Limit  (cost=129.25..129.39 rows=1 width=22)",
+    "  ->  LockRows  (cost=129.25..129.39 rows=1 width=22)",
+    "        ->  Nested Loop  (cost=129.25..129.38 rows=1 width=22)",
+    "              ->  HashAggregate  (cost=128.97..128.98 rows=1 width=16)",
+    "                    Group Key: posthog_notification_job_1.id",
+    "                    ->  Hash Left Join  (cost=32.44..128.97 rows=1 width=16)",
+    "                          Hash Cond: (posthog_notification_job_1.id = posthog_workflow_work.source_id)",
+    "                          Filter: ((posthog_workflow_work.source_id IS NULL) OR ((posthog_workflow_work.execution_status)::text = 'unfinished'::text) OR (((posthog_workflow_work.execution_status)::text = 'working'::text) AND (posthog_workflow_work.lease_expires_at < '2026-10-09 20:57:23.660872'::timestamp without time zone)))",
+    "                          ->  Seq Scan on posthog_notification_job posthog_notification_job_1  (cost=0.00..88.71 rows=2971 width=10)",
+    "                          ->  Hash  (cost=21.64..21.64 rows=864 width=26)",
+    "                                ->  Seq Scan on posthog_workflow_work  (cost=0.00..21.64 rows=864 width=26)",
+    "              ->  Index Scan using posthog_notification_job_pkey on posthog_notification_job  (cost=0.28..0.40 rows=1 width=10)",
+    "                    Index Cond: (id = posthog_notification_job_1.id)",
+    "                    Filter: (next_run <= '1791579443.6611872'::double precision)"
+  ]
+}

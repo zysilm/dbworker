@@ -18,7 +18,7 @@ task entry points. DBWorker variations replace scheduling while preserving busin
 work and individual job granularity. No benchmark-defined Celery task wraps an
 extracted business function. Child jobs remain separate jobs on both backends.
 
-The fixed concurrent profile passed all six experiments and independent aggregate
+The fixed concurrent profile first passed all six experiments and independent aggregate
 admission in
 [GitHub Actions run 37980453561](https://github.com/zysilm/dbworker/actions/runs/37980453561).
 The accepted run contains 48 measured samples at source revision
@@ -26,7 +26,7 @@ The accepted run contains 48 measured samples at source revision
 across eight business scenarios. Each task graph, native source binding, timing
 receipt and business output was independently replayed. The complete workflow,
 including provisioning and aggregation, finished in approximately 45 minutes.
-The main README and result index identify this accepted source revision and run.
+The main README and result index identify the most recently admitted source revision and run.
 Earlier five-repetition or sequential-profile runs remain historical; they do not
 establish performance of this fixed concurrent profile. Historical wrapper results
 must not be relabeled or published as native workflow measurements.
@@ -68,6 +68,13 @@ environments under `benchmarks/environments/`; it does not activate shells. A pr
 orchestrator environment is bootstrapped when needed. Omit `--provision` to reuse
 already provisioned environments. Installation, migrations, fixture generation,
 worker startup and warmup are outside workload timing on both arms.
+PostHog is an important exception to complete process readiness: its original
+warmup uses two operations, and the spawned DBWorker pool initializes processes
+lazily. The retained native local diagnostic shows six of eight application
+processes initializing during measurement. Accepted PostHog results therefore
+include some application cold-start cost; they do not isolate a fully warmed
+steady-state scheduler comparison. See
+[the startup and handoff diagnosis](diagnostics/README.md).
 
 Native prerequisites include Redis, PostgreSQL (`initdb`, `postgres`, `psql`),
 Tesseract with English and OSD data, Ghostscript, ImageMagick, Poppler and libmagic.

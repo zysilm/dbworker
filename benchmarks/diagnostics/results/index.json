@@ -29,6 +29,30 @@
       "files": {
         "sqlite-history-100k.json": "9c29b06387e27626b8a773d0d4f71ffddabb033ad0d3ccd8cb4d1f2b67b3085f"
       }
+    },
+    {
+      "variant": "native-posthog-original-single-dbworker-sample",
+      "files": {
+        "native-posthog-original/native-reproduction-summary.json": "afe55800ea94ddb01f57bd1c327830558ede387ad2a914791343cf0dfbf97570",
+        "native-posthog-original/single-sample-admission.json": "b3c2163b046b58169c11d28852d6fe9281d77e8e6975c1da17edb00246412b60",
+        "native-posthog-original/candidate-explain.json": "85b27a1d34d51df96d55944a4cefe4aba99e6e5526a4ac847347a362d319f7f9",
+        "native-posthog-original/postgres-observations.jsonl": "4f886c248643aff1bbef547575376868ea49363c009677196379f2e0a2dfdf05",
+        "native-posthog-original/posthog-1-dbworker/sample.json": "a3f652c2a24caad1d3f79a4d29161911815b5b31644875fa7351a5db606bd6aa",
+        "native-posthog-original/posthog-1-dbworker/workflow.jsonl": "137ffd6040115e4fea2d12d4d744d616b433ed3f6f06d1822cbbce7ba2419fee"
+      }
+    },
+    {
+      "variant": "native-posthog-full-pool-warmup-single-dbworker-sample",
+      "files": {
+        "native-posthog-full-pool-warmup/fullpool-reproduction-summary.json": "48acde0151dd240e24c234bb31daf8044992c1fbb735a8bc4e2a816e429fab5a",
+        "native-posthog-full-pool-warmup/fullpool-single-sample-admission.json": "ae8c651d0d63da36e750574ecb1ee6fcd2710e24540fb4a378cb7e95ffa303c6",
+        "native-posthog-full-pool-warmup/candidate-explain-fullpool.json": "a8e2ddd67d272e572f15075d92343caf6bd73c2231da0e00d84350b30a3778fc",
+        "native-posthog-full-pool-warmup/postgres-observations-fullpool.jsonl": "1f708439c4e739e44bd969f8ebfbae32e9bfd72bc5ca413107703a21ca2bcaf8",
+        "native-posthog-full-pool-warmup/posthog-2-dbworker/sample.json": "bf4b3221a5272edeeaf4bc50d7d514a6bfe76c9992398052c3655550b73c3e99",
+        "native-posthog-full-pool-warmup/posthog-2-dbworker/workflow.jsonl": "297890337ef3858f1f3b98e94d19ca86774cc1e0daabe8f9c7879696300a5b5f",
+        "native-posthog-full-pool-warmup/experimental-backend.py.txt": "8d3e18ec70625eac72c89a5fbbc2a671333244290d412cf5ad7783d51012a109",
+        "native-posthog-full-pool-warmup/warmup-only.diff": "3425b5a4575ed12c6c593788d965b894ebf22a7194a3b6cbadc3edbb2a4ebd0a"
+      }
     }
   ]
 }

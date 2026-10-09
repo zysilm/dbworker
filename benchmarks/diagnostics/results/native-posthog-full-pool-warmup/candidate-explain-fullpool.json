@@ -1,0 +1,21 @@
+{
+  "wall_time": 1791580092.8922,
+  "source_counts": [
+    6494,
+    2203
+  ],
+  "sql": "SELECT posthog_notification_job.id \nFROM posthog_notification_job \nWHERE posthog_notification_job.next_run <= 1791580092.806172 AND posthog_notification_job.id IN (SELECT posthog_notification_job.id \nFROM posthog_notification_job LEFT OUTER JOIN posthog_workflow_work ON posthog_workflow_work.source_id = posthog_notification_job.id \nWHERE posthog_workflow_work.source_id IS NULL OR posthog_workflow_work.execution_status = 'unfinished' OR posthog_workflow_work.execution_status = 'working' AND posthog_workflow_work.lease_expires_at < '2026-10-09 21:08:12.805902') \n LIMIT 1 FOR UPDATE OF posthog_notification_job SKIP LOCKED",
+  "plan": [
+    "Limit  (cost=0.84..200.94 rows=1 width=22)",
+    "  ->  LockRows  (cost=0.84..801.21 rows=4 width=22)",
+    "        ->  Merge Semi Join  (cost=0.84..801.17 rows=4 width=22)",
+    "              Merge Cond: (posthog_notification_job.id = posthog_notification_job_1.id)",
+    "              ->  Index Scan using posthog_notification_job_pkey on posthog_notification_job  (cost=0.28..319.02 rows=6089 width=10)",
+    "                    Filter: (next_run <= '1791580092.806172'::double precision)",
+    "              ->  Merge Left Join  (cost=0.56..466.88 rows=4 width=16)",
+    "                    Merge Cond: (posthog_notification_job_1.id = posthog_workflow_work.source_id)",
+    "                    Filter: ((posthog_workflow_work.source_id IS NULL) OR ((posthog_workflow_work.execution_status)::text = 'unfinished'::text) OR (((posthog_workflow_work.execution_status)::text = 'working'::text) AND (posthog_workflow_work.lease_expires_at < '2026-10-09 21:08:12.805902'::timestamp without time zone)))",
+    "                    ->  Index Scan using posthog_notification_job_pkey on posthog_notification_job posthog_notification_job_1  (cost=0.28..303.80 rows=6089 width=10)",
+    "                    ->  Index Scan using posthog_workflow_work_pkey on posthog_workflow_work  (cost=0.28..113.68 rows=1709 width=26)"
+  ]
+}

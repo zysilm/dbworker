@@ -111,6 +111,71 @@ PYTHONPATH=.:src python -m benchmarks.diagnostics.candidate_history \
   --output /tmp/handoff-history
 ```
 
+## Unchanged native 2FA reproduction
+
+The original PostHog DBWorker arm also completed locally with the original 5,000
+authenticated 2FA calls, 5,000 notification jobs, 5,000 separate delivery jobs and
+5,000 SMTP acceptances. This uses PostgreSQL, eight execution slots and the unchanged
+two-operation warmup. The frozen complete native environment uses Python 3.14.7;
+the application, API, adapters and core were not edited. The output digest matches
+the accepted CI sample. Independent native graph, argument, origin, timing and
+load replay passed. [Summary](results/native-posthog-original/native-reproduction-summary.json)
+and its original sample, task trace and admission receipts are retained.
+
+Wall time was 153.713 seconds. Actual submission took 107.105 seconds against the
+60-second schedule. Published-task backlog peaked at 4,498; queue-wait P95 was
+45.085 seconds. Instantaneous execution concurrency peaked at eight, but its mean
+over the execution span was 1.424. Sampled snapshots reached only five. This
+reproduces accumulating backlog with low average execution utilization, without
+establishing a hard five-worker limit or matching the reported SQLite application.
+
+The original warmup initialized two spawned application processes. Six additional
+processes initialized the full native application during measurement. Only two
+handlers overlapped in the first 60 seconds; later instantaneous concurrency
+reached eight. Average execution concurrency was 0.882 in seconds 0-60, 1.348 in
+seconds 60-120, and 2.457 after second 120. Lifecycle start receipts occur after
+application initialization, so they omit those processes' initialization activity.
+Cold initialization and expensive candidate selection are separate factors; the
+whole native performance gap cannot be attributed to the synthetic SQL result.
+
+Initialization log milestones support the process-startup observation but do not
+provide exact per-PID handler start times. The native reproduction did not collect
+claim timers. Read-only EXPLAIN during backlog identifies source and ledger scans,
+but does not measure their actual latency. Full application migrations were untimed.
+Python 3.14 child finalization required terminating only completed owned children
+after a normal shutdown grace; the successful sample was durable before cleanup,
+and cleanup was outside workload timing. This is one local DBWorker sample without
+a local Celery arm, so it is not a new official paired score.
+
+The diagnostic-only full-pool warmup comparison preserves the same 5,000 measured
+users and operations. It adds six separate warmup users and warms all eight
+application processes before timing; core, adapters, task bodies, APIs, worker
+count, measured job count and offered load remain unchanged. Its exact backend
+source and [warmup-only diff](results/native-posthog-full-pool-warmup/warmup-only.diff)
+are retained. This variation is not the official full profile. Independent graph,
+origin, argument and timing replay passed; the existing measured-user business
+binding validator used an explicitly documented projection because its original
+warmup fixture convention assumes two users. No measured task or output was omitted.
+
+| Native local DBWorker metric | Original warmup | Full-pool warmup |
+| --- | ---: | ---: |
+| Wall time | 153.713 s | 133.868 s |
+| Actual submission duration | 107.105 s | 89.793 s |
+| API P95 | 580.229 ms | 167.360 ms |
+| Peak published-task backlog | 4,498 | 4,459 |
+| Queue-wait P95 | 45.085 s | 47.839 s |
+| Mean executing concurrency | 1.424 | 2.100 |
+| Instantaneous executing peak | 8 | 8 |
+
+All eight process initialization milestones precede the second measurement; all
+16 warmup-stage tasks succeed before the timed workload. Both samples produce the
+same business digest and exact measured task counts with no drops or duplicates.
+Full warmup reduces local wall time by 12.9%, but leaves nearly the same peak
+backlog. Startup therefore contributes to this diagnosis without explaining the
+whole accumulation. Native claim latency still needs direct instrumentation;
+synthetic claim measurements cannot be substituted for it. These are two single
+local samples, with no repeated native comparison or local Celery measurement.
+
 ## Next investigation
 
 First instrument the unchanged native 2FA workflow to verify the same claim-time

@@ -1,0 +1,24 @@
+--- original-posthog-backend.py
++++ full-pool-diagnostic-backend.py
+@@ -168 +168 @@
+-        for index in range(profile["requests"] + 2):
++        for index in range(profile["requests"] + 8):
+@@ -190 +190 @@
+-        warmup_operations = [f"warmup:notification-{i:04d}" for i in range(2)]
++        warmup_operations = [f"warmup:notification-{i:04d}" for i in range(8)]
+@@ -253,3 +253,3 @@
+-        execute_batch(users[:2], fixtures[:2], warmup=True)
+-        seconds, graph, measurement_window, load_metrics = execute_batch(users[2:], fixtures[2:])
+-        expected_recipients = sorted(user.email for user in users[2:])
++        execute_batch(users[:2] + users[profile["requests"] + 2:], fixtures[:2] + fixtures[profile["requests"] + 2:], warmup=True)
++        seconds, graph, measurement_window, load_metrics = execute_batch(users[2:profile["requests"] + 2], fixtures[2:profile["requests"] + 2])
++        expected_recipients = sorted(user.email for user in users[2:profile["requests"] + 2])
+@@ -300 +300 @@
+-                              "messages": len(normalized), "warmup_messages": 2, "duplicate_acceptance": 0},
++                              "messages": len(normalized), "warmup_messages": 8, "duplicate_acceptance": 0},
+@@ -311 +311 @@
+-               "dataset": {"template": "2fa_enabled", "requests": profile["requests"], "warmup_requests": 2,
++               "dataset": {"template": "2fa_enabled", "requests": profile["requests"], "warmup_requests": 8,
+@@ -324 +324 @@
+-            "measured_calls": profile["requests"], "warmup_calls": 2,
++            "measured_calls": profile["requests"], "warmup_calls": 8,
