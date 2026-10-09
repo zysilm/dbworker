@@ -77,15 +77,15 @@ Median wall time in seconds; **bold** marks the faster backend. Each experiment 
 
 | Experiment | Scenario | Celery (s) | DBWorker (s) | Celery / DBWorker |
 |---|---|---:|---:|---:|
-| imagededup | build | **5.681** | 7.499 | 0.76 |
-| imagededup | comparison | 83.828 | **81.913** | 1.02 |
-| imagededup | mixed | **95.483** | 96.080 | 0.99 |
-| superset | sql_lab_group_by | **3.482** | 3.587 | 0.97 |
-| saleor | product_csv_export | **9.557** | 10.930 | 0.87 |
-| paperless_ngx | native_unsplit_scan_ingestion | 128.512 | **46.870** | 2.74 |
-| posthog | native_two_factor_notification | **1.195** | 1.595 | 0.75 |
-| sentry | historical_native_email_fanout | **1.069** | 2.049 | 0.52 |
+| imagededup | build | **6.103** | 7.905 | 0.77 |
+| imagededup | comparison | 84.197 | **80.809** | 1.04 |
+| imagededup | mixed | 95.319 | **95.009** | 1.00 |
+| superset | sql_lab_group_by | **4.518** | 4.788 | 0.94 |
+| saleor | product_csv_export | **16.877** | 18.457 | 0.91 |
+| paperless_ngx | native_unsplit_scan_ingestion | 133.848 | **49.836** | 2.69 |
+| posthog | native_two_factor_notification | **2.427** | 3.095 | 0.78 |
+| sentry | historical_native_email_fanout | **1.356** | 2.376 | 0.57 |
 
-Run: `github-37860143841-1`. [Details and scope](doc/benchmark-results.md) · [JSON results](benchmarks/results/latest/index.json).
+Run: `github-37906191421-1`. [Details and scope](doc/benchmark-results.md) · [JSON results](benchmarks/results/latest/index.json).
 Scoped application workloads; Sentry uses historical 24.1.0. Ratios above 1 favor DBWorker; no cross-project average is computed.
 <!-- benchmark-results:end -->

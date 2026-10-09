@@ -2,7 +2,7 @@ name: Full application benchmarks
 
 on:
   push:
-    branches: [main, feature/native-celery-benchmarks]
+    branches: [main]
     paths-ignore:
       - README.md
       - 'doc/**'

@@ -1,7 +1,7 @@
 {
   "backend": "dbworker",
   "capabilities": {
-    "scope": "Native Saleor export and separate admin-email workflow; upstream plugins restored, no webhook subscriptions",
+    "scope": "Original authenticated GraphQL ExportProducts mutation and separate admin-email workflow; upstream plugins restored, no webhook subscriptions",
     "untested": [
       "crash_recovery",
       "replica_lag",
@@ -10,6 +10,8 @@
       "outbox_recovery"
     ],
     "verified": [
+      "authenticated_graphql_export_producer",
+      "real_manage_products_permission",
       "native_export_task",
       "real_product_csv_export",
       "independent_csv_oracle",
@@ -56,7 +58,7 @@
     "replica": "same primary",
     "retry": "upstream export and email tasks do not declare automatic retry",
     "setup": "complete upstream migrations; eager maintenance tasks on empty database outside timing",
-    "timing_boundary": "task publication through export, SMTP acceptance, email event and both completed jobs",
+    "timing_boundary": "authenticated GraphQL request including producer normalization, permissions, export creation and publication through export, SMTP acceptance, email event and both completed jobs",
     "warmup_requests": 2
   },
   "dataset": {
@@ -83,9 +85,1009 @@
     "postgres": "postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
     "python": "3.12.3"
   },
+  "measurement_window": {
+    "clock_domain": "unix_time_ns",
+    "end": {
+      "monotonic_ns": 1947576720808,
+      "timestamp_ns": 1791537014289168615,
+      "uncertainty_ns": 301
+    },
+    "schema_version": 1,
+    "start": {
+      "monotonic_ns": 1929120004403,
+      "timestamp_ns": 1791536995832452279,
+      "uncertainty_ns": 171
+    }
+  },
   "metrics": {
-    "exports_per_second": 8.692709536777786,
-    "wall_seconds": 11.503892955000083
+    "exports_per_second": 5.418081841085751,
+    "wall_seconds": 18.456716405
+  },
+  "operation_binding": {
+    "bindings": [
+      {
+        "export_file_id": 1,
+        "operation_id": "warmup:0",
+        "root_argument_sha256": "8f73a6fb10973c88e2f7e4af0787adca180d033ee98b36775ff43dbae21553fe",
+        "root_node_id": "3ffcf111-65fc-43d0-89b6-5390ba56d4ec",
+        "user_email": "export-0@example.test"
+      },
+      {
+        "export_file_id": 2,
+        "operation_id": "warmup:1",
+        "root_argument_sha256": "ec6c5936a690c91c8eab16408d0d9fed925a50f32243cb1b72e7413792c5fa0c",
+        "root_node_id": "4fd29261-73d9-443c-833c-daca9872e58f",
+        "user_email": "export-1@example.test"
+      },
+      {
+        "export_file_id": 3,
+        "operation_id": "0",
+        "root_argument_sha256": "700232256e97739e5350039ed6c6836a4f68682cac5667f81cd06f936c467609",
+        "root_node_id": "9d3d3b61-83d9-4cee-862f-7be22bcc4395",
+        "user_email": "export-2@example.test"
+      },
+      {
+        "export_file_id": 4,
+        "operation_id": "1",
+        "root_argument_sha256": "1580f35d3fb164ee778f69ba4818a616edbb9d742b7929cd41c43d2f1953e0ed",
+        "root_node_id": "5694a251-e3ce-4d36-9be7-7fbda8bbfa0b",
+        "user_email": "export-3@example.test"
+      },
+      {
+        "export_file_id": 5,
+        "operation_id": "2",
+        "root_argument_sha256": "4e868dea752b468d171002084f5f1a6d7605c67483e503b803514c432078b358",
+        "root_node_id": "d4e6e5c2-b18f-4781-9e94-105e57a585f8",
+        "user_email": "export-4@example.test"
+      },
+      {
+        "export_file_id": 6,
+        "operation_id": "3",
+        "root_argument_sha256": "ff78dcc80c7b4f6995503f120bc74ba3846d3ddaa999dd68443b024d74df8863",
+        "root_node_id": "f63db969-98ed-4887-a23e-57a679f75a9c",
+        "user_email": "export-5@example.test"
+      },
+      {
+        "export_file_id": 7,
+        "operation_id": "4",
+        "root_argument_sha256": "53321f4c4348e9458bdb3a535a9b8ad84f84a335435aabbefe6ed44413a3002c",
+        "root_node_id": "513182bc-74bc-427f-b354-d1b8440e242a",
+        "user_email": "export-6@example.test"
+      },
+      {
+        "export_file_id": 8,
+        "operation_id": "5",
+        "root_argument_sha256": "94ac4dc5eb4d601c252a79ae83db0f691c4d7c63b1a6ded970dc6cf4c3ceb5f2",
+        "root_node_id": "8e46ea21-2f7d-4b64-99d8-275722dbc429",
+        "user_email": "export-7@example.test"
+      },
+      {
+        "export_file_id": 9,
+        "operation_id": "6",
+        "root_argument_sha256": "ba0111ffaf88e845415d6026c4afa67ddf917c8940cf0b0632ca38b6789c49c9",
+        "root_node_id": "79baadf9-4c0c-44f7-bc7d-a7a99845945b",
+        "user_email": "export-8@example.test"
+      },
+      {
+        "export_file_id": 10,
+        "operation_id": "7",
+        "root_argument_sha256": "51a7ee9b93e784aab98ccdb1a85cf5afe36d899f57429e5f0c131451d2f6f24d",
+        "root_node_id": "29654d42-14f5-4780-9f50-2e4e5da0991c",
+        "user_email": "export-9@example.test"
+      },
+      {
+        "export_file_id": 11,
+        "operation_id": "8",
+        "root_argument_sha256": "8e603ec1047335efce9c0c7f7b2d8ace4163c64d7b9222e6ca08b27f126f326c",
+        "root_node_id": "4857c46d-fde9-4534-ada4-dc8854ca9fa4",
+        "user_email": "export-10@example.test"
+      },
+      {
+        "export_file_id": 12,
+        "operation_id": "9",
+        "root_argument_sha256": "9ac3018f667be926ec827461dfb7ca6eb727b0dbe0b0b7a02a6fe01153379ca9",
+        "root_node_id": "9fdaf818-26fa-404d-b04c-3e340a8dd9d1",
+        "user_email": "export-11@example.test"
+      },
+      {
+        "export_file_id": 13,
+        "operation_id": "10",
+        "root_argument_sha256": "1a4d2ca1536e5ec4633330515fea92ab2086cc3f3bdb9ad80595303e16da12b0",
+        "root_node_id": "1013d9c8-4f1b-469e-ac47-7ee0d6e6e2d8",
+        "user_email": "export-12@example.test"
+      },
+      {
+        "export_file_id": 14,
+        "operation_id": "11",
+        "root_argument_sha256": "9b58f54a6828aaf0b93f850f97f4729ee79b50513234f7de29154b3996797fea",
+        "root_node_id": "ffebf6d8-758c-4417-b9d3-f3934512292a",
+        "user_email": "export-13@example.test"
+      },
+      {
+        "export_file_id": 15,
+        "operation_id": "12",
+        "root_argument_sha256": "af74d4162ae11ed0f5c3e631bd8749ce27731ac55c1b5dab31bc907462e8ac56",
+        "root_node_id": "b439e079-1e19-4107-92e6-f287b43b324b",
+        "user_email": "export-14@example.test"
+      },
+      {
+        "export_file_id": 16,
+        "operation_id": "13",
+        "root_argument_sha256": "9bdd751f6c6c5327319cb9ebf5ff662f8c7824558cc8c4ac0423083e421bd055",
+        "root_node_id": "58693211-3120-460b-8c82-2187895d93ce",
+        "user_email": "export-15@example.test"
+      },
+      {
+        "export_file_id": 17,
+        "operation_id": "14",
+        "root_argument_sha256": "45c814b662ea8a51efbae71d2145e231dc6cdef3de48d53b96fe1dc86b97416b",
+        "root_node_id": "615fe1a7-6a8d-44fe-b2c5-5c69237326d0",
+        "user_email": "export-16@example.test"
+      },
+      {
+        "export_file_id": 18,
+        "operation_id": "15",
+        "root_argument_sha256": "1521098ef4ae93d0659e269aab9ecca97d26fb2e80f9559c2ec4da4a000bf05d",
+        "root_node_id": "d07da4ac-2982-4ea0-984f-95750783a89b",
+        "user_email": "export-17@example.test"
+      },
+      {
+        "export_file_id": 19,
+        "operation_id": "16",
+        "root_argument_sha256": "b3960f3875104776e8c9d42ee7baf2e7ab1b006ab3a4cc0066bebe79b1499775",
+        "root_node_id": "cc653722-45d8-4004-bad9-329cb91dff18",
+        "user_email": "export-18@example.test"
+      },
+      {
+        "export_file_id": 20,
+        "operation_id": "17",
+        "root_argument_sha256": "01ff1b30b8b48e45878b0c36bd393ddb68a88ae50581f2cbbad27f42b9e467ab",
+        "root_node_id": "983cc349-4634-47e4-ba93-9bf976631dc4",
+        "user_email": "export-19@example.test"
+      },
+      {
+        "export_file_id": 21,
+        "operation_id": "18",
+        "root_argument_sha256": "f470150277a3ff60435225ac48a88367bc47d5907edfb840a405445b22fbf43f",
+        "root_node_id": "453b3cce-a9ac-45bf-9035-21ed6e1e148b",
+        "user_email": "export-20@example.test"
+      },
+      {
+        "export_file_id": 22,
+        "operation_id": "19",
+        "root_argument_sha256": "b298e2212853163657b0663c798affe85e7ae9268526746ff932dd9f4a7d9489",
+        "root_node_id": "bb4ec0d2-9454-4338-836e-56b3ea65037c",
+        "user_email": "export-21@example.test"
+      },
+      {
+        "export_file_id": 23,
+        "operation_id": "20",
+        "root_argument_sha256": "c9689227f3a1b9edb6656b2a5fb8638a77cf6649d2252f363581ba6bbd6d90d3",
+        "root_node_id": "200e0679-61ae-4a27-8871-7edd9bfff66b",
+        "user_email": "export-22@example.test"
+      },
+      {
+        "export_file_id": 24,
+        "operation_id": "21",
+        "root_argument_sha256": "6fe6f081be2c266e40c76bbac9f48b66045feb4462233cf6b4b13fb014a9b8d7",
+        "root_node_id": "4a280903-82db-4f53-ba64-fdd6b713f7e5",
+        "user_email": "export-23@example.test"
+      },
+      {
+        "export_file_id": 25,
+        "operation_id": "22",
+        "root_argument_sha256": "aeff6863ac4324572958dd9ed3f0969fb73303de1aeee39d0f39c19d07f080cc",
+        "root_node_id": "53070d88-91cd-468d-86b1-69c3ba6f9ad5",
+        "user_email": "export-24@example.test"
+      },
+      {
+        "export_file_id": 26,
+        "operation_id": "23",
+        "root_argument_sha256": "5c82134af68cba43e3b145eeb38ca8010ab84f05be0d011e209dafdf827ac5b6",
+        "root_node_id": "83394ebb-fc6d-40b9-949c-2004436e9dc5",
+        "user_email": "export-25@example.test"
+      },
+      {
+        "export_file_id": 27,
+        "operation_id": "24",
+        "root_argument_sha256": "fbbb82e910795517d2bdbbb5dcf4d1dcd1c600d2254406b8b0ddadaca3857edc",
+        "root_node_id": "a743d919-956d-40cc-b5c7-4c7d39e6f56b",
+        "user_email": "export-26@example.test"
+      },
+      {
+        "export_file_id": 28,
+        "operation_id": "25",
+        "root_argument_sha256": "94cd57308393138855e7c0c0a6e216f2afec3da9a90ef01a1c4579228f671158",
+        "root_node_id": "bf95ceae-2064-4695-b1b7-1a81df5c427a",
+        "user_email": "export-27@example.test"
+      },
+      {
+        "export_file_id": 29,
+        "operation_id": "26",
+        "root_argument_sha256": "3e3ddbfa32d53bc4fd8133fe7b4ebbbf5089d3e50835e5f1c801a0229fd3dd78",
+        "root_node_id": "8d1f5850-4e64-4602-bf0c-ce92ecc90727",
+        "user_email": "export-28@example.test"
+      },
+      {
+        "export_file_id": 30,
+        "operation_id": "27",
+        "root_argument_sha256": "38fac2a15f01fccd35afbf1bf97d58a406aa221d4ad25af55d9c5f2acafbbb7f",
+        "root_node_id": "3343667c-2fc8-4712-ba60-3db73c053ddd",
+        "user_email": "export-29@example.test"
+      },
+      {
+        "export_file_id": 31,
+        "operation_id": "28",
+        "root_argument_sha256": "2ed4ecce97cb94c91ac6bce1b52eb698f34da6df5b7d278dadd08bc4d60f510c",
+        "root_node_id": "1204a336-7d33-4cce-86eb-85b02f519611",
+        "user_email": "export-30@example.test"
+      },
+      {
+        "export_file_id": 32,
+        "operation_id": "29",
+        "root_argument_sha256": "7e397679f4f5e43751f4f6e7aa632fbf8491365c33665adf0e233b1ca7bdae9d",
+        "root_node_id": "f54ebb0f-a597-409d-8f41-cf7335108b0f",
+        "user_email": "export-31@example.test"
+      },
+      {
+        "export_file_id": 33,
+        "operation_id": "30",
+        "root_argument_sha256": "dad07a6dea373f0d6afccc607de7236720cb4b0c2eac893068ab3e4e4e3670fd",
+        "root_node_id": "046575ef-b8b5-44ba-b18c-25af116d37b8",
+        "user_email": "export-32@example.test"
+      },
+      {
+        "export_file_id": 34,
+        "operation_id": "31",
+        "root_argument_sha256": "bb5bd3f3671635dbd7e41d7766ddc0947b813c08fd31bbb0aa6024af32db996a",
+        "root_node_id": "a0861857-fd7c-4492-b08f-19c85d62d8fa",
+        "user_email": "export-33@example.test"
+      },
+      {
+        "export_file_id": 35,
+        "operation_id": "32",
+        "root_argument_sha256": "a3255e27c8de8b4fa2e9a8865a9f7f6d1fd99b3f6cec7e207e39323af785bb50",
+        "root_node_id": "6d0d37e6-5545-461c-abb1-e54c5db99d2c",
+        "user_email": "export-34@example.test"
+      },
+      {
+        "export_file_id": 36,
+        "operation_id": "33",
+        "root_argument_sha256": "1224b56ddf224f16df43e609cba24910a8eed54a7a9a155ec683cafb4be0181c",
+        "root_node_id": "b3c63da1-aaa1-448d-86f0-db27a7f025ac",
+        "user_email": "export-35@example.test"
+      },
+      {
+        "export_file_id": 37,
+        "operation_id": "34",
+        "root_argument_sha256": "b360420e796518d4262db138b5d3adf6bdb51ed71ec53064b491065b4c49b2e2",
+        "root_node_id": "714639b7-f676-4561-a864-9cc777d3b89e",
+        "user_email": "export-36@example.test"
+      },
+      {
+        "export_file_id": 38,
+        "operation_id": "35",
+        "root_argument_sha256": "1062f7c421bd9046ac9609386dd95c4d051006a5aca3119a554ee0c8d63d80cb",
+        "root_node_id": "cfdd4dbc-6a3e-4a4f-915b-f6ae74605760",
+        "user_email": "export-37@example.test"
+      },
+      {
+        "export_file_id": 39,
+        "operation_id": "36",
+        "root_argument_sha256": "af1a8a15b6002674099db025cc92471a78a1cf5b2e4720a160700a1749823343",
+        "root_node_id": "9babf2c7-70b3-4efb-a043-56e5717a7c96",
+        "user_email": "export-38@example.test"
+      },
+      {
+        "export_file_id": 40,
+        "operation_id": "37",
+        "root_argument_sha256": "61b9d7ad3f9914da2645bca9c7bb413a13500a162a441f0dc185974991ea145c",
+        "root_node_id": "02b42ce4-3cb5-41e0-90ba-f1ef06668258",
+        "user_email": "export-39@example.test"
+      },
+      {
+        "export_file_id": 41,
+        "operation_id": "38",
+        "root_argument_sha256": "7c75673a532693ce2deeb83c9cbef216d2b29f9a27b59aefdac412c2736627fd",
+        "root_node_id": "7eaee6c6-75eb-4509-ae53-a94be41029c0",
+        "user_email": "export-40@example.test"
+      },
+      {
+        "export_file_id": 42,
+        "operation_id": "39",
+        "root_argument_sha256": "8d11dddf2c50490693bf0e569fdf58aea0dd6f041d97bb43af24787e34d55210",
+        "root_node_id": "13076a39-52d3-4445-918a-b880c1e221ee",
+        "user_email": "export-41@example.test"
+      },
+      {
+        "export_file_id": 43,
+        "operation_id": "40",
+        "root_argument_sha256": "b9e00e200efc92897a2f556d5c136e2256e6c20fcb18c78c8cbe82248994d337",
+        "root_node_id": "435dba4e-803d-4554-af80-568370acbdd9",
+        "user_email": "export-42@example.test"
+      },
+      {
+        "export_file_id": 44,
+        "operation_id": "41",
+        "root_argument_sha256": "988a411df5da3eefef9d2a30b9a521559d160bc0a56c505fc4c985ee338faecd",
+        "root_node_id": "5a96231b-bfac-48b0-92a7-cc3ab1747299",
+        "user_email": "export-43@example.test"
+      },
+      {
+        "export_file_id": 45,
+        "operation_id": "42",
+        "root_argument_sha256": "d147e9e7457bb487a5f864433858842d7e6ddcb6759cfde302e677a9ea7eb694",
+        "root_node_id": "16c64e8e-763b-48e8-af76-ed7ceebb4ca8",
+        "user_email": "export-44@example.test"
+      },
+      {
+        "export_file_id": 46,
+        "operation_id": "43",
+        "root_argument_sha256": "f4a535ddbaadbb49e755810d26f432bcdac7afccac331d8e9e4867d957e48c0a",
+        "root_node_id": "ea91d4dd-a773-4920-9f64-8d189030e93d",
+        "user_email": "export-45@example.test"
+      },
+      {
+        "export_file_id": 47,
+        "operation_id": "44",
+        "root_argument_sha256": "502371373608cef3f0ae649079b12e8ebcdc9bc96dbdbdd0248e50eac229e441",
+        "root_node_id": "25449073-26d9-4546-9522-59cf29a89170",
+        "user_email": "export-46@example.test"
+      },
+      {
+        "export_file_id": 48,
+        "operation_id": "45",
+        "root_argument_sha256": "a26321a0c41c690968e3f324edcc19b8e38eac10212dee0da2bb311588037146",
+        "root_node_id": "30843fcc-716b-4d4f-8af2-ed33cdbbcc9f",
+        "user_email": "export-47@example.test"
+      },
+      {
+        "export_file_id": 49,
+        "operation_id": "46",
+        "root_argument_sha256": "6538081997b2d128c630d61633e34a5a8134c7edf3b143b5500f5cac9d05341d",
+        "root_node_id": "6d8762ee-2f3a-4b96-b235-8896b8f7effd",
+        "user_email": "export-48@example.test"
+      },
+      {
+        "export_file_id": 50,
+        "operation_id": "47",
+        "root_argument_sha256": "61635793f1d6fae131d316a79cc376d84c801f50f6d135742bc7f36d1e35619a",
+        "root_node_id": "7411dd52-5168-460c-bf4e-0cf5dfec30e5",
+        "user_email": "export-49@example.test"
+      },
+      {
+        "export_file_id": 51,
+        "operation_id": "48",
+        "root_argument_sha256": "aec62e8575149c1ba5e1d8b0f135fe35a18e65f9c8ca5da187044d65d31072de",
+        "root_node_id": "e6c391e6-be29-4876-8799-fd5d2a7335b5",
+        "user_email": "export-50@example.test"
+      },
+      {
+        "export_file_id": 52,
+        "operation_id": "49",
+        "root_argument_sha256": "922d21b95df02a3c27a46bfaaa7400f17ac04b9096121ee395116a9346847994",
+        "root_node_id": "e97d625f-482d-42d9-87a5-a6abc5e44116",
+        "user_email": "export-51@example.test"
+      },
+      {
+        "export_file_id": 53,
+        "operation_id": "50",
+        "root_argument_sha256": "18bd1f0e0f9cb9080506125d416e0fa195393888224c6469f1634c938f2c9374",
+        "root_node_id": "52fb83da-ba44-4e37-9705-1ecb4a664036",
+        "user_email": "export-52@example.test"
+      },
+      {
+        "export_file_id": 54,
+        "operation_id": "51",
+        "root_argument_sha256": "adbb67898edcc0c372b438fb371663f0260d7cc06b926b01b406cd70f6c3d8da",
+        "root_node_id": "e913bdfd-b883-4d82-b659-09d349e1f31a",
+        "user_email": "export-53@example.test"
+      },
+      {
+        "export_file_id": 55,
+        "operation_id": "52",
+        "root_argument_sha256": "6a958c58d3c451fdd73c472dbc899685810f8a57a58ffbe6bb59b3520ae286a9",
+        "root_node_id": "38783a48-94c4-47ca-9439-1001bba11c4b",
+        "user_email": "export-54@example.test"
+      },
+      {
+        "export_file_id": 56,
+        "operation_id": "53",
+        "root_argument_sha256": "cce681e66c4b627ae95d5459abb78f53af4a0a27700b2495e0912d260be20042",
+        "root_node_id": "26f535da-b896-4e5f-a180-36004a8cd14a",
+        "user_email": "export-55@example.test"
+      },
+      {
+        "export_file_id": 57,
+        "operation_id": "54",
+        "root_argument_sha256": "dd2369c247b7afd96ff22cbc202008e4c33b92ea37989eb145ca8dbf26ae9f00",
+        "root_node_id": "d2675ddf-dada-493a-9efa-09132fe2234c",
+        "user_email": "export-56@example.test"
+      },
+      {
+        "export_file_id": 58,
+        "operation_id": "55",
+        "root_argument_sha256": "a589a80a5f4acf8e2f6179c5628c24a6e51dae3c2f144d62daa83eec83cd15f9",
+        "root_node_id": "6e99c8d7-6b0e-43b8-aeb6-8779cab13fc3",
+        "user_email": "export-57@example.test"
+      },
+      {
+        "export_file_id": 59,
+        "operation_id": "56",
+        "root_argument_sha256": "32acbd58b499782dd9f46c8f8ccccfe8e5df7f7b0abbff0faa67adf6bd1a5bc5",
+        "root_node_id": "e5585df5-920d-429e-827d-e7d58bfdcdcf",
+        "user_email": "export-58@example.test"
+      },
+      {
+        "export_file_id": 60,
+        "operation_id": "57",
+        "root_argument_sha256": "018505f84185d2e2a02d806d09b2b4010844e7183ffa221ebe8bc1287ff1a9b4",
+        "root_node_id": "8dcad65a-7bf6-4edb-abcc-bd0d07161c15",
+        "user_email": "export-59@example.test"
+      },
+      {
+        "export_file_id": 61,
+        "operation_id": "58",
+        "root_argument_sha256": "48eb95588cfc32db08b0e8c8bbcd6bed563f6c1cb7d1fefc5f9ebd2753b7f0c9",
+        "root_node_id": "85ed8ffc-7fc7-4c92-a860-7d34406ae0ec",
+        "user_email": "export-60@example.test"
+      },
+      {
+        "export_file_id": 62,
+        "operation_id": "59",
+        "root_argument_sha256": "1c821e3d99beaeaea375b62c1dc0e4950e9a582ba7a2101df1104798369f8e1e",
+        "root_node_id": "bbed2f27-d282-479e-82da-c2df87ecc75e",
+        "user_email": "export-61@example.test"
+      },
+      {
+        "export_file_id": 63,
+        "operation_id": "60",
+        "root_argument_sha256": "e02decfb6cd796fd36fc029d13317720dc8d8364639d66496737b0889a1fb905",
+        "root_node_id": "d5be2f6b-f5d4-4451-92fb-296afa7d4830",
+        "user_email": "export-62@example.test"
+      },
+      {
+        "export_file_id": 64,
+        "operation_id": "61",
+        "root_argument_sha256": "40da6a4de906d886bb7fed43583d5f75ffa7dab21628c1202493bd0c0445c90a",
+        "root_node_id": "6cd9242f-5373-4c76-b10c-3f8036910a33",
+        "user_email": "export-63@example.test"
+      },
+      {
+        "export_file_id": 65,
+        "operation_id": "62",
+        "root_argument_sha256": "87d243c3303abab64b227c856abfb59df29c9da54f00d02966eb14c98c6e1eff",
+        "root_node_id": "cbce0ff8-868d-4e0a-b080-ca38e61953dc",
+        "user_email": "export-64@example.test"
+      },
+      {
+        "export_file_id": 66,
+        "operation_id": "63",
+        "root_argument_sha256": "4be31a1d3c3faabd9ce200ea5ae14ea4b5f1313b272556522e14ca8e26627150",
+        "root_node_id": "202fd37b-860d-4da2-a60c-686c433e31df",
+        "user_email": "export-65@example.test"
+      },
+      {
+        "export_file_id": 67,
+        "operation_id": "64",
+        "root_argument_sha256": "080f0d1051a182430e41d7cd6d544056896e86f31bbbea2a769d70fccfabf229",
+        "root_node_id": "119bfd23-49c2-47dd-a26c-133ba38f301c",
+        "user_email": "export-66@example.test"
+      },
+      {
+        "export_file_id": 68,
+        "operation_id": "65",
+        "root_argument_sha256": "9474d583947dd3596431cd6d70bb453fd77e88347c8166a873d30bd9cbd1ebfe",
+        "root_node_id": "0de00ed4-df29-49b8-aa16-2ac1d6fcfc22",
+        "user_email": "export-67@example.test"
+      },
+      {
+        "export_file_id": 69,
+        "operation_id": "66",
+        "root_argument_sha256": "b8ac48883a6cdebbd0c8c83bfa71e30f69d53a49e14d0634673878f4426d4660",
+        "root_node_id": "f121f4ec-003a-4eb8-973a-e4d4eb6cab68",
+        "user_email": "export-68@example.test"
+      },
+      {
+        "export_file_id": 70,
+        "operation_id": "67",
+        "root_argument_sha256": "40161c84644658df0aa4c11aa42e1607c0afd1a2f473535db0722c3901d67fa4",
+        "root_node_id": "e77b83bc-53a2-463b-8a48-ea3aea49b68c",
+        "user_email": "export-69@example.test"
+      },
+      {
+        "export_file_id": 71,
+        "operation_id": "68",
+        "root_argument_sha256": "fe2e356f6de593df5bc62f4bc8820e17d942394c0bd65ad1ce6099e5faf4196a",
+        "root_node_id": "f2e582a8-4880-4f5b-a7c1-d0e91cedc847",
+        "user_email": "export-70@example.test"
+      },
+      {
+        "export_file_id": 72,
+        "operation_id": "69",
+        "root_argument_sha256": "9ddedfcf61845303b41f962421c07b7105710e990b04b2c99b79519ee688c847",
+        "root_node_id": "6d5e1679-ef5a-4c65-ad89-1dc396de386b",
+        "user_email": "export-71@example.test"
+      },
+      {
+        "export_file_id": 73,
+        "operation_id": "70",
+        "root_argument_sha256": "c6b7d1bad2c62c866a8eeb07cfe5304fd0346357a56d04f12299776bf52d1c37",
+        "root_node_id": "7b352a0f-9a24-4777-8db0-602b3810c5c2",
+        "user_email": "export-72@example.test"
+      },
+      {
+        "export_file_id": 74,
+        "operation_id": "71",
+        "root_argument_sha256": "4c1a8cac9f76e1f1268f85e58e87870daa5e6e505441bfd0aa9a471a5862342f",
+        "root_node_id": "bb6c7392-9f7e-40c1-82c6-852d07ffc9a5",
+        "user_email": "export-73@example.test"
+      },
+      {
+        "export_file_id": 75,
+        "operation_id": "72",
+        "root_argument_sha256": "c3bcd46e0404c395080763fa2e76de4f7bb53d45c610b514144d322219085d8e",
+        "root_node_id": "4444999d-f909-4969-984a-22be199bfa55",
+        "user_email": "export-74@example.test"
+      },
+      {
+        "export_file_id": 76,
+        "operation_id": "73",
+        "root_argument_sha256": "93e1342c94833def06410f8302ced5a3c4e320e48464bde01d170f983978256b",
+        "root_node_id": "0a02d9f7-5469-4ccf-885c-91ffa43a2e83",
+        "user_email": "export-75@example.test"
+      },
+      {
+        "export_file_id": 77,
+        "operation_id": "74",
+        "root_argument_sha256": "ccdde2bbd16479ddb874ed941439b048675b1643452dbb1775996c4d8c4fe37b",
+        "root_node_id": "591947d4-8dab-4ffe-b57a-7d8a3b014231",
+        "user_email": "export-76@example.test"
+      },
+      {
+        "export_file_id": 78,
+        "operation_id": "75",
+        "root_argument_sha256": "c5b4875a3bf8bfa76028eaf612e6af20f8f797855e4c038f04406cc2a592b86b",
+        "root_node_id": "af659b88-c1bb-4515-883e-84b323f5bbed",
+        "user_email": "export-77@example.test"
+      },
+      {
+        "export_file_id": 79,
+        "operation_id": "76",
+        "root_argument_sha256": "2187a3b9279cf35d041c989b01b9350f88625678fa07a7098cdb6d0705df3d75",
+        "root_node_id": "2692f56f-1525-49ff-b433-fb46f8b540e0",
+        "user_email": "export-78@example.test"
+      },
+      {
+        "export_file_id": 80,
+        "operation_id": "77",
+        "root_argument_sha256": "de54032df1edd1d1a6ea12c393206a814d315f789c39e027af42d56c6c650639",
+        "root_node_id": "b8aadee4-92ef-463e-b448-407ce1c4c81f",
+        "user_email": "export-79@example.test"
+      },
+      {
+        "export_file_id": 81,
+        "operation_id": "78",
+        "root_argument_sha256": "abaa057acaacad2ed1a2b8d7c7a08ba2ae2995259af34f17eaa205897879e3c1",
+        "root_node_id": "2d61253a-245f-4b02-a487-fbb7fa99f4d0",
+        "user_email": "export-80@example.test"
+      },
+      {
+        "export_file_id": 82,
+        "operation_id": "79",
+        "root_argument_sha256": "2e453c60aaf2f9e28515e2b9432f0c7cfe9030ba02ef20c3cceee61e5afc691e",
+        "root_node_id": "d9f6d11d-ef33-4106-a3c1-96f41d2740ed",
+        "user_email": "export-81@example.test"
+      },
+      {
+        "export_file_id": 83,
+        "operation_id": "80",
+        "root_argument_sha256": "6c6d445dd82987ab2c8e01cff4884994fbc1775273e00cf39e83280c5936ac71",
+        "root_node_id": "e9bbf043-dfc8-4ded-9d3c-19ce6506d0f5",
+        "user_email": "export-82@example.test"
+      },
+      {
+        "export_file_id": 84,
+        "operation_id": "81",
+        "root_argument_sha256": "8ed6662cc13f3b8caae71f988d8509d61d2fdf43014092c96689c3a7c6cee485",
+        "root_node_id": "6c5de93e-f30b-46c6-b97c-9f2a47ae4857",
+        "user_email": "export-83@example.test"
+      },
+      {
+        "export_file_id": 85,
+        "operation_id": "82",
+        "root_argument_sha256": "d91cc2b2525044a69668ce3f9393f5691a22065afdd9ba968b31981c82bff30b",
+        "root_node_id": "a0e71b19-5a84-4c39-b10c-ab46809eb786",
+        "user_email": "export-84@example.test"
+      },
+      {
+        "export_file_id": 86,
+        "operation_id": "83",
+        "root_argument_sha256": "ebfcea58b1b0422f55d9e276a1596f840bd63a7534cf4fb6bcd4c2a4a3416549",
+        "root_node_id": "9c25b40b-bdea-4969-b5a1-d7f2fe335f4a",
+        "user_email": "export-85@example.test"
+      },
+      {
+        "export_file_id": 87,
+        "operation_id": "84",
+        "root_argument_sha256": "b83ea1ea03241e3020d380b0fe97e448ba515be35e6ebeddaebd6a7837974316",
+        "root_node_id": "13482c79-1195-480b-9c0e-53df9f47b1e7",
+        "user_email": "export-86@example.test"
+      },
+      {
+        "export_file_id": 88,
+        "operation_id": "85",
+        "root_argument_sha256": "fcbbd79337aa9437c6105fd765568ee852072ac6a2ab2c7e65bc85c927724693",
+        "root_node_id": "4c857eb3-1a5c-4386-9a1a-fc9bf9ccdbf0",
+        "user_email": "export-87@example.test"
+      },
+      {
+        "export_file_id": 89,
+        "operation_id": "86",
+        "root_argument_sha256": "4d41fe6a9690e6e4a98c3650ffb976c6b25be61a10d7205b41788d8a11ac7023",
+        "root_node_id": "8d1dbaab-938e-4b3d-9fd9-e584fc68439f",
+        "user_email": "export-88@example.test"
+      },
+      {
+        "export_file_id": 90,
+        "operation_id": "87",
+        "root_argument_sha256": "4d43914514e54445e9682c8b72b8f55ba0ce4ff376950478273159a93fffbaca",
+        "root_node_id": "2d0690a7-0fe8-48bd-ab00-03ec694d55fd",
+        "user_email": "export-89@example.test"
+      },
+      {
+        "export_file_id": 91,
+        "operation_id": "88",
+        "root_argument_sha256": "e73f16fce57c9f420ad206b99c9ea9c476931c3cc416982bdc24a8978889436d",
+        "root_node_id": "22806214-1e6e-4e49-b171-f157d6d05893",
+        "user_email": "export-90@example.test"
+      },
+      {
+        "export_file_id": 92,
+        "operation_id": "89",
+        "root_argument_sha256": "e3ec5a8a535957a2fcb109ac330a0017e9dc856228765aea36ca7bd00edc06b8",
+        "root_node_id": "759b2966-c3bb-41f5-a831-b146c00aa54c",
+        "user_email": "export-91@example.test"
+      },
+      {
+        "export_file_id": 93,
+        "operation_id": "90",
+        "root_argument_sha256": "b74fca29b7b53e1597e6583bbe1b36085547364edb4bc88f1acd21fda9f8361a",
+        "root_node_id": "95f9ae15-59d3-4207-85c9-1b7b16372ffb",
+        "user_email": "export-92@example.test"
+      },
+      {
+        "export_file_id": 94,
+        "operation_id": "91",
+        "root_argument_sha256": "af2d79d833744d5abdfac6a11b8c0f29b2f031e76be7f6733045b5001a2f14a0",
+        "root_node_id": "2d1520bc-0250-46dc-b98a-8b931b82cd44",
+        "user_email": "export-93@example.test"
+      },
+      {
+        "export_file_id": 95,
+        "operation_id": "92",
+        "root_argument_sha256": "380fb59028d94404704cb1d51c4850d55836ff52e5f253f0422d6c2315b560fe",
+        "root_node_id": "5dde6dc9-f9c5-4066-ba0a-1a1106c9fc7a",
+        "user_email": "export-94@example.test"
+      },
+      {
+        "export_file_id": 96,
+        "operation_id": "93",
+        "root_argument_sha256": "a2d5ab3bf238f16833bbd204569e2705c200da57942188a82b463100d3d38a88",
+        "root_node_id": "ec345391-8829-4cba-b421-854d81d8a9b1",
+        "user_email": "export-95@example.test"
+      },
+      {
+        "export_file_id": 97,
+        "operation_id": "94",
+        "root_argument_sha256": "f4825c9456c19f590b6e491b9818545d8de3126ddce805dabf79eaaa61ff7868",
+        "root_node_id": "e0df8d46-bbd3-4d1c-a68b-f000407e1d04",
+        "user_email": "export-96@example.test"
+      },
+      {
+        "export_file_id": 98,
+        "operation_id": "95",
+        "root_argument_sha256": "06323238fac03c71c6beaaecb0a5ca84dfe30ca50837205be524c72d7b5efd2f",
+        "root_node_id": "7701e829-627f-419d-ad54-8cdb16925ce0",
+        "user_email": "export-97@example.test"
+      },
+      {
+        "export_file_id": 99,
+        "operation_id": "96",
+        "root_argument_sha256": "01aecdebd0a4f8c6b0cf9ce0c5e981459d97800606074677aaa04b6ef4e029c6",
+        "root_node_id": "6eb83dea-6c3e-42d8-93aa-06fde93038b8",
+        "user_email": "export-98@example.test"
+      },
+      {
+        "export_file_id": 100,
+        "operation_id": "97",
+        "root_argument_sha256": "3b364161c859c83deba57bb8791e970ee41a0140311800bcdff4994dfc802810",
+        "root_node_id": "b345e65f-5357-48e1-ae60-d75332b23130",
+        "user_email": "export-99@example.test"
+      },
+      {
+        "export_file_id": 101,
+        "operation_id": "98",
+        "root_argument_sha256": "b8e4070342b6bb6a42c48cd63a578f7827a6b12ace78bc7d649e81fd271ce8ba",
+        "root_node_id": "96e106a0-dc40-4679-969f-e2764efdaa89",
+        "user_email": "export-100@example.test"
+      },
+      {
+        "export_file_id": 102,
+        "operation_id": "99",
+        "root_argument_sha256": "e1b32846278d846cefc8b8ee435dedc8c047f552838677ca5d2184e583ddbb7c",
+        "root_node_id": "e51120cf-5886-48bd-9300-af06f7b3dfdb",
+        "user_email": "export-101@example.test"
+      }
+    ],
+    "entrypoint": "authenticated POST /graphql/ exportProducts",
+    "producer": "saleor.graphql.csv.mutations.export_products.ExportProducts",
+    "public_input": {
+      "fields": [
+        "name",
+        "product type",
+        "variant sku"
+      ],
+      "file_type": "csv",
+      "product_ids": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "29",
+        "30",
+        "31",
+        "32",
+        "33",
+        "34",
+        "35",
+        "36",
+        "37",
+        "38",
+        "39",
+        "40",
+        "41",
+        "42",
+        "43",
+        "44",
+        "45",
+        "46",
+        "47",
+        "48",
+        "49",
+        "50",
+        "51",
+        "52",
+        "53",
+        "54",
+        "55",
+        "56",
+        "57",
+        "58",
+        "59",
+        "60",
+        "61",
+        "62",
+        "63",
+        "64",
+        "65",
+        "66",
+        "67",
+        "68",
+        "69",
+        "70",
+        "71",
+        "72",
+        "73",
+        "74",
+        "75",
+        "76",
+        "77",
+        "78",
+        "79",
+        "80",
+        "81",
+        "82",
+        "83",
+        "84",
+        "85",
+        "86",
+        "87",
+        "88",
+        "89",
+        "90",
+        "91",
+        "92",
+        "93",
+        "94",
+        "95",
+        "96",
+        "97",
+        "98",
+        "99",
+        "100",
+        "101",
+        "102",
+        "103",
+        "104",
+        "105",
+        "106",
+        "107",
+        "108",
+        "109",
+        "110",
+        "111",
+        "112",
+        "113",
+        "114",
+        "115",
+        "116",
+        "117",
+        "118",
+        "119",
+        "120",
+        "121",
+        "122",
+        "123",
+        "124",
+        "125",
+        "126",
+        "127",
+        "128",
+        "129",
+        "130",
+        "131",
+        "132",
+        "133",
+        "134",
+        "135",
+        "136",
+        "137",
+        "138",
+        "139",
+        "140",
+        "141",
+        "142",
+        "143",
+        "144",
+        "145",
+        "146",
+        "147",
+        "148",
+        "149",
+        "150",
+        "151",
+        "152",
+        "153",
+        "154",
+        "155",
+        "156",
+        "157",
+        "158",
+        "159",
+        "160",
+        "161",
+        "162",
+        "163",
+        "164",
+        "165",
+        "166",
+        "167",
+        "168",
+        "169",
+        "170",
+        "171",
+        "172",
+        "173",
+        "174",
+        "175",
+        "176",
+        "177",
+        "178",
+        "179",
+        "180",
+        "181",
+        "182",
+        "183",
+        "184",
+        "185",
+        "186",
+        "187",
+        "188",
+        "189",
+        "190",
+        "191",
+        "192",
+        "193",
+        "194",
+        "195",
+        "196",
+        "197",
+        "198",
+        "199",
+        "200",
+        "201",
+        "202",
+        "203",
+        "204",
+        "205",
+        "206",
+        "207",
+        "208",
+        "209",
+        "210",
+        "211",
+        "212",
+        "213",
+        "214",
+        "215",
+        "216",
+        "217",
+        "218",
+        "219",
+        "220",
+        "221",
+        "222",
+        "223",
+        "224",
+        "225",
+        "226",
+        "227",
+        "228",
+        "229",
+        "230",
+        "231",
+        "232",
+        "233",
+        "234",
+        "235",
+        "236",
+        "237",
+        "238",
+        "239",
+        "240",
+        "241",
+        "242",
+        "243",
+        "244",
+        "245",
+        "246",
+        "247",
+        "248",
+        "249",
+        "250",
+        "251",
+        "252",
+        "253",
+        "254",
+        "255",
+        "256"
+      ]
+    }
   },
   "repetition": 5,
   "scenario": "product_csv_export",
@@ -98,6 +1100,10 @@
     "passed": true,
     "products_per_export": 256
   },
+  "warmup_operations": [
+    "warmup:0",
+    "warmup:1"
+  ],
   "workflow_graph": {
     "contract": "successful_business_workflow",
     "edge_counts": [
@@ -110,1207 +1116,1210 @@
     "nodes": 200,
     "observed_jobs": [
       {
-        "node_id": "0054a885-9227-4fa9-acf7-edf8183f6fe8",
-        "operation_id": "18",
-        "parent_id": "e10b7c2e-84eb-410a-a57b-252bcdceb385",
-        "stage": "email"
-      },
-      {
-        "node_id": "00dddcb2-a396-4344-9d0e-67745ef653b4",
-        "operation_id": "87",
-        "parent_id": "67ae6b29-4a64-41ec-b64a-910691d05b81",
-        "stage": "email"
-      },
-      {
-        "node_id": "01a51669-6342-4674-ada8-aaec858259b3",
-        "operation_id": "83",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "03432a3d-fe82-47f1-89c4-25fec0c6b6c0",
-        "operation_id": "99",
-        "parent_id": "4d09a054-23fc-4007-b750-b98733004992",
-        "stage": "email"
-      },
-      {
-        "node_id": "05e789b8-349f-4f2e-a5e6-67c9e62312d4",
-        "operation_id": "52",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "06aa5d96-e7d2-49a0-9109-e919b902b84f",
-        "operation_id": "51",
-        "parent_id": "9219f693-bf3d-4507-beeb-288598abf721",
-        "stage": "email"
-      },
-      {
-        "node_id": "07934713-48c5-4800-9b43-c175464504ac",
-        "operation_id": "53",
-        "parent_id": "85fb5cab-2c2b-4447-835e-6eb60ea651e7",
-        "stage": "email"
-      },
-      {
-        "node_id": "09740dcd-2194-4946-9388-2c95bd4efbe1",
-        "operation_id": "75",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "0a595612-34eb-4b5b-ab36-80c1015de8be",
-        "operation_id": "20",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "0bf81e7f-52cb-45c4-bb52-3d8a2f7e15d5",
-        "operation_id": "10",
-        "parent_id": "bb175058-b162-486c-8b90-c5b3cc92e908",
-        "stage": "email"
-      },
-      {
-        "node_id": "0c83298d-d39b-439b-a05f-0dd316a527b8",
-        "operation_id": "48",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "0d284c7c-a540-4049-a5e2-36802dc7cc42",
-        "operation_id": "73",
-        "parent_id": "3694bc15-4834-481a-95f6-013b90154759",
-        "stage": "email"
-      },
-      {
-        "node_id": "0f06228c-adbb-444d-b351-3375708557d4",
-        "operation_id": "80",
-        "parent_id": "124ef958-cf77-4c56-91bd-b3be2a68292f",
-        "stage": "email"
-      },
-      {
-        "node_id": "0f7d81d0-4b14-4641-8de9-ff1546c47c34",
-        "operation_id": "12",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "124ef958-cf77-4c56-91bd-b3be2a68292f",
-        "operation_id": "80",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "13a57153-b755-4e65-842c-1e97cf4bde73",
-        "operation_id": "13",
-        "parent_id": "f5767ff6-ee64-4ec6-984f-112e331a691d",
-        "stage": "email"
-      },
-      {
-        "node_id": "14799813-a14d-4cf0-a29c-fe1533d9a4f5",
-        "operation_id": "17",
-        "parent_id": "18f0de17-2ead-4db4-a655-9019a2042549",
-        "stage": "email"
-      },
-      {
-        "node_id": "1583e6b4-fa98-4e8b-9ba4-ee41e613de3c",
-        "operation_id": "72",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "15c0fad2-65bf-4ca1-af25-95bc771ce699",
-        "operation_id": "9",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "167c2ab0-8d11-43be-8044-81d17da7440b",
-        "operation_id": "6",
-        "parent_id": "e401eeb2-c007-45d7-b9b2-01c5501ee0f8",
-        "stage": "email"
-      },
-      {
-        "node_id": "1704123e-b70d-4dfb-8480-521630d5a46e",
-        "operation_id": "85",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "18f0de17-2ead-4db4-a655-9019a2042549",
-        "operation_id": "17",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "18f83171-9f6e-4255-82cf-db855d1c41b9",
-        "operation_id": "85",
-        "parent_id": "1704123e-b70d-4dfb-8480-521630d5a46e",
-        "stage": "email"
-      },
-      {
-        "node_id": "1b044c90-548b-4622-aebf-587e817f8b9d",
-        "operation_id": "64",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "1b4844b9-b33d-4d26-bfd4-30ae1d82b590",
-        "operation_id": "29",
-        "parent_id": "c2edb9d1-ebbe-4832-ac6f-85cb6f20527b",
-        "stage": "email"
-      },
-      {
-        "node_id": "1bba2898-ec0d-4ca4-9d35-75fda1171f50",
-        "operation_id": "30",
-        "parent_id": "8e15fba4-8181-47d9-be1e-c9f8d6166cb7",
-        "stage": "email"
-      },
-      {
-        "node_id": "1c9f0872-40ae-4a9a-91f7-518da3d94fd0",
-        "operation_id": "63",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "1f88d5ef-fbaf-4077-855f-16a9222a6a54",
-        "operation_id": "27",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "21a36d56-5b90-43bf-89d5-d93dfe19d37d",
-        "operation_id": "36",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "2250c8e0-6ec0-479b-a140-77113ffc572f",
-        "operation_id": "77",
-        "parent_id": "ee838133-95df-43b2-a736-7afd67f15f0a",
-        "stage": "email"
-      },
-      {
-        "node_id": "266bae5c-ae53-4e18-9dd2-93dc1ee5db52",
-        "operation_id": "33",
-        "parent_id": "9108491f-b14e-41e4-93f0-91287a541dc2",
-        "stage": "email"
-      },
-      {
-        "node_id": "2bc15f28-a06f-46de-a200-259d60cf2c86",
-        "operation_id": "4",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "2c87e225-a0ad-4c3b-8c09-574fd787d55e",
-        "operation_id": "5",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "2c8a2aee-a6ae-437c-af17-b1e0309a4a5d",
-        "operation_id": "68",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "2e8c78c5-26ef-461b-a6c0-9869f9b30ab7",
-        "operation_id": "56",
-        "parent_id": "3fd67b74-9574-4b79-9027-14cf46ae591a",
-        "stage": "email"
-      },
-      {
-        "node_id": "2fb7ed60-d747-441a-aa78-fb106ffd4995",
-        "operation_id": "89",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "31ff7a06-c87d-449b-853f-3117b2f40253",
-        "operation_id": "75",
-        "parent_id": "09740dcd-2194-4946-9388-2c95bd4efbe1",
-        "stage": "email"
-      },
-      {
-        "node_id": "3448c74f-7a02-4618-9989-7634be67d2e7",
-        "operation_id": "44",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "3479b9dd-b056-4135-8d24-142fd04aca82",
-        "operation_id": "68",
-        "parent_id": "2c8a2aee-a6ae-437c-af17-b1e0309a4a5d",
-        "stage": "email"
-      },
-      {
-        "node_id": "34800730-d81f-4bb3-9af4-65cebee61530",
-        "operation_id": "40",
-        "parent_id": "d39349ed-67bb-47c1-bd6c-68df7ce97b3a",
-        "stage": "email"
-      },
-      {
-        "node_id": "3694bc15-4834-481a-95f6-013b90154759",
-        "operation_id": "73",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "38fb7bcf-4f30-4455-9029-f309d047fe48",
-        "operation_id": "61",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "399e7fc8-4587-4d60-86ce-be4e3d7dc741",
-        "operation_id": "60",
-        "parent_id": "92807765-f4c7-462b-8d97-d6981dcc694d",
-        "stage": "email"
-      },
-      {
-        "node_id": "3c8264c7-a71f-4174-a873-6dd40754cf15",
-        "operation_id": "76",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "3fd67b74-9574-4b79-9027-14cf46ae591a",
-        "operation_id": "56",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "4178b663-d216-4c4c-abc7-acacc26677a3",
-        "operation_id": "97",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "42d21426-a80f-40bb-9cd4-b18f3d40989c",
-        "operation_id": "48",
-        "parent_id": "0c83298d-d39b-439b-a05f-0dd316a527b8",
-        "stage": "email"
-      },
-      {
-        "node_id": "42d36feb-ff18-4a8c-9fbe-5cc617dfd052",
-        "operation_id": "38",
-        "parent_id": "75c74504-d003-42d1-9a45-b857cda3f32e",
-        "stage": "email"
-      },
-      {
-        "node_id": "441da2c6-ee56-4c39-be41-c545f8ee86af",
-        "operation_id": "41",
-        "parent_id": "85fee199-b92d-4d9e-8128-d47c631e9fb9",
-        "stage": "email"
-      },
-      {
-        "node_id": "448fe19a-eb33-47dd-a4b9-503900c9772d",
-        "operation_id": "67",
-        "parent_id": "bfcc788a-53c3-46ea-b345-6a570789b2c3",
-        "stage": "email"
-      },
-      {
-        "node_id": "45280040-f957-4bb5-945e-5b8bda1cc213",
-        "operation_id": "28",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "47759536-c869-42e3-b542-64a41ed1ff79",
-        "operation_id": "9",
-        "parent_id": "15c0fad2-65bf-4ca1-af25-95bc771ce699",
-        "stage": "email"
-      },
-      {
-        "node_id": "4ad40944-f99f-432f-8078-2515d57db775",
-        "operation_id": "90",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "4bbf2aea-80e4-466e-aa0f-f891fa5d3681",
-        "operation_id": "32",
-        "parent_id": "f4e184ba-94f9-493d-a5df-7049c8096761",
-        "stage": "email"
-      },
-      {
-        "node_id": "4d09a054-23fc-4007-b750-b98733004992",
-        "operation_id": "99",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "4de9e5cd-0548-4b53-aa4c-07a63c8997c5",
-        "operation_id": "31",
-        "parent_id": "f5c693c1-930f-4d6b-9520-560e6fa046aa",
-        "stage": "email"
-      },
-      {
-        "node_id": "4f70f534-0b16-4434-9b41-ab0996b78896",
-        "operation_id": "16",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "50f37035-4795-463e-a37b-4a7ebb573218",
-        "operation_id": "88",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "513076e4-04b6-4eff-9404-7909a498deff",
-        "operation_id": "84",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "524114de-57a8-491f-bd7c-3f2855d71bd1",
-        "operation_id": "98",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "524bf494-399f-4dd5-88dc-2650cf4fe131",
-        "operation_id": "97",
-        "parent_id": "4178b663-d216-4c4c-abc7-acacc26677a3",
-        "stage": "email"
-      },
-      {
-        "node_id": "531ce7f9-5e3b-4c21-94fe-5231b92ebe03",
-        "operation_id": "26",
-        "parent_id": "cdc98c36-c685-4c5c-abf5-2dd6ea22bf60",
-        "stage": "email"
-      },
-      {
-        "node_id": "56b77b01-008d-47a7-9731-4dc134352832",
-        "operation_id": "15",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "570c07f4-97cf-4cd1-91f4-aaf38938ed5a",
-        "operation_id": "81",
-        "parent_id": "64e0867d-7cb4-4c9e-a2da-020dfc57f936",
-        "stage": "email"
-      },
-      {
-        "node_id": "575fd8b1-0450-4da8-9e00-78dfb6e77608",
-        "operation_id": "3",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "59c199a1-1504-4efc-947f-f47ee8c327fb",
-        "operation_id": "82",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "5ac3bd8a-f3a1-4646-8ab5-f41fa32fc03e",
-        "operation_id": "7",
-        "parent_id": "ed5028ba-904d-4572-bbd4-f4b5fef840e7",
-        "stage": "email"
-      },
-      {
-        "node_id": "5bb9ee15-80af-42cc-89e8-5e0895d87d1d",
-        "operation_id": "47",
-        "parent_id": "7dd78818-f890-44d1-9928-f7c2dcdd6299",
-        "stage": "email"
-      },
-      {
-        "node_id": "5cd7cf2e-1b89-43a8-9e77-7025ac68a6a2",
-        "operation_id": "102",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "616c1c1c-2a85-4406-aa50-fb4b409ad722",
-        "operation_id": "59",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "61c616ec-1b28-474d-95d5-204e7b81ec28",
-        "operation_id": "91",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "6244dcc9-f345-41e3-b97d-cc93d1377bc1",
-        "operation_id": "5",
-        "parent_id": "2c87e225-a0ad-4c3b-8c09-574fd787d55e",
-        "stage": "email"
-      },
-      {
-        "node_id": "62d004d9-f1d3-4232-82f4-03f5920a4375",
-        "operation_id": "25",
-        "parent_id": "94688a07-6f66-4b39-a141-511de9ed5c68",
-        "stage": "email"
-      },
-      {
-        "node_id": "62f800c4-7e37-4ba7-92e9-c390067576f0",
-        "operation_id": "71",
-        "parent_id": "ab7a4b64-3339-49ac-8d33-d016f1edc3ec",
-        "stage": "email"
-      },
-      {
-        "node_id": "6307c732-97ba-4bfa-b95f-ef30c3a06c0b",
-        "operation_id": "88",
-        "parent_id": "50f37035-4795-463e-a37b-4a7ebb573218",
-        "stage": "email"
-      },
-      {
-        "node_id": "64623873-1a19-4577-b5c4-a105267fcee8",
-        "operation_id": "100",
-        "parent_id": "f9900fcd-ffc9-4642-99fd-de242109f6ae",
-        "stage": "email"
-      },
-      {
-        "node_id": "64e0867d-7cb4-4c9e-a2da-020dfc57f936",
-        "operation_id": "81",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "67ae6b29-4a64-41ec-b64a-910691d05b81",
-        "operation_id": "87",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "6843cbda-6b79-44b0-840f-ddd8e96aaa2b",
-        "operation_id": "15",
-        "parent_id": "56b77b01-008d-47a7-9731-4dc134352832",
-        "stage": "email"
-      },
-      {
-        "node_id": "68ead4ba-46d0-41d3-8df4-610b560515fc",
-        "operation_id": "23",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "690cf7ef-435a-4001-9168-b03d299602b0",
-        "operation_id": "101",
-        "parent_id": "99dd7e1d-b956-4851-a2e7-3008e12d446b",
-        "stage": "email"
-      },
-      {
-        "node_id": "69e61cc8-8a35-48f6-8510-68738205965f",
-        "operation_id": "94",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "6b304d29-e2bd-4309-b82c-f0c92384745e",
-        "operation_id": "64",
-        "parent_id": "1b044c90-548b-4622-aebf-587e817f8b9d",
-        "stage": "email"
-      },
-      {
-        "node_id": "6cf7ef94-7d62-4830-84f3-7affa26614d7",
-        "operation_id": "8",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "6d1dd32c-5f1c-4f69-b963-b63bccfc20f3",
-        "operation_id": "43",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "6d8152a7-a8f5-4779-97d8-732cc24fdc80",
-        "operation_id": "39",
-        "parent_id": "cfae7536-e5d0-4deb-9dba-87995e0c525f",
-        "stage": "email"
-      },
-      {
-        "node_id": "725b748c-ce3e-47a3-a0a0-0e70f5cbe0c5",
-        "operation_id": "54",
-        "parent_id": "b197e8ea-225c-4e4a-9c66-ad978ff95841",
-        "stage": "email"
-      },
-      {
-        "node_id": "72bf618d-3c1b-432a-a2f4-0d7fad0468eb",
-        "operation_id": "65",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "7527903a-1279-41b7-a70a-8f09ab86409d",
-        "operation_id": "62",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "75c74504-d003-42d1-9a45-b857cda3f32e",
-        "operation_id": "38",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "777c497e-c9d2-40d9-8265-fe7be6df6396",
-        "operation_id": "95",
-        "parent_id": "93fdceb5-fbd4-440b-8667-bf437d918cfc",
-        "stage": "email"
-      },
-      {
-        "node_id": "7831ee60-d011-4aa0-994f-8e717fa27529",
-        "operation_id": "66",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "7bfc5611-d7c8-4eda-9f9d-564bac0ad2a7",
-        "operation_id": "69",
-        "parent_id": "fa2bf5fe-a5d7-45c2-992e-b8cd6688f980",
-        "stage": "email"
-      },
-      {
-        "node_id": "7c1b6851-f5b4-4d0a-a91a-16906e787224",
-        "operation_id": "96",
-        "parent_id": "8a07e402-a572-4599-934c-f1a154b4db51",
-        "stage": "email"
-      },
-      {
-        "node_id": "7dd78818-f890-44d1-9928-f7c2dcdd6299",
-        "operation_id": "47",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "7e50cd65-c0e7-4245-8b3b-45c3973a0124",
-        "operation_id": "79",
-        "parent_id": "f9d8bad0-9835-49f1-aaf0-8e56ced7368b",
-        "stage": "email"
-      },
-      {
-        "node_id": "7e7f779f-0315-4cdb-93ea-41d5b5b3b92d",
-        "operation_id": "83",
-        "parent_id": "01a51669-6342-4674-ada8-aaec858259b3",
-        "stage": "email"
-      },
-      {
-        "node_id": "7fbfbd18-cd6c-44ce-9395-15eaec2f8627",
-        "operation_id": "57",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "8063c382-9afa-4c30-978d-ce57f34938ab",
-        "operation_id": "93",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "808e809b-82a8-48d7-9b23-9a265d146b20",
-        "operation_id": "28",
-        "parent_id": "45280040-f957-4bb5-945e-5b8bda1cc213",
-        "stage": "email"
-      },
-      {
-        "node_id": "80da78ac-1d9b-4318-a470-b21c214846dc",
-        "operation_id": "27",
-        "parent_id": "1f88d5ef-fbaf-4077-855f-16a9222a6a54",
-        "stage": "email"
-      },
-      {
-        "node_id": "8245a461-c1a0-471a-843f-aabb85c6d32c",
-        "operation_id": "57",
-        "parent_id": "7fbfbd18-cd6c-44ce-9395-15eaec2f8627",
-        "stage": "email"
-      },
-      {
-        "node_id": "829fbc65-bbb7-4e48-b634-6e6fbbd82daf",
-        "operation_id": "45",
-        "parent_id": "94f4243d-d005-493e-b0da-7cfeeca1e951",
-        "stage": "email"
-      },
-      {
-        "node_id": "82e6c82b-31ff-4d89-bb39-994298833545",
-        "operation_id": "94",
-        "parent_id": "69e61cc8-8a35-48f6-8510-68738205965f",
-        "stage": "email"
-      },
-      {
-        "node_id": "84a7a308-6105-4ce2-8770-869e6fc67f1f",
-        "operation_id": "43",
-        "parent_id": "6d1dd32c-5f1c-4f69-b963-b63bccfc20f3",
-        "stage": "email"
-      },
-      {
-        "node_id": "856048b2-3fb7-4dda-a5f2-eda1a4240982",
-        "operation_id": "14",
-        "parent_id": "a9f0e527-b97e-40b3-960b-0b2bbb436a56",
-        "stage": "email"
-      },
-      {
-        "node_id": "85e0a346-1c15-4f94-9a35-de51d7fa87b7",
-        "operation_id": "92",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "85fb5cab-2c2b-4447-835e-6eb60ea651e7",
-        "operation_id": "53",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "85fee199-b92d-4d9e-8128-d47c631e9fb9",
-        "operation_id": "41",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "88f6aaf7-2ddb-4f38-9d69-09355c5aa9bd",
-        "operation_id": "49",
-        "parent_id": "b8a979f6-389f-484c-bfc7-df31b9ee75a9",
-        "stage": "email"
-      },
-      {
-        "node_id": "8a07e402-a572-4599-934c-f1a154b4db51",
-        "operation_id": "96",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "8ba2d3f5-6793-4933-8e94-65e35ed47db7",
-        "operation_id": "58",
-        "parent_id": "f41233ab-b6b5-4b33-9071-650ae3c15d4e",
-        "stage": "email"
-      },
-      {
-        "node_id": "8d28c34c-9816-404c-ab0e-3ab56762f0e7",
-        "operation_id": "74",
-        "parent_id": "f20d6f75-14d0-4302-a4d7-c12f2a805240",
-        "stage": "email"
-      },
-      {
-        "node_id": "8d6fbeb5-25f1-4964-8fe3-624891a914a3",
-        "operation_id": "34",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "8e15fba4-8181-47d9-be1e-c9f8d6166cb7",
-        "operation_id": "30",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "8f5b6e64-e30d-4166-a2e4-ee44fe773791",
-        "operation_id": "12",
-        "parent_id": "0f7d81d0-4b14-4641-8de9-ff1546c47c34",
-        "stage": "email"
-      },
-      {
-        "node_id": "8fba6360-d1b6-426e-a4a5-2362cb6f8841",
-        "operation_id": "19",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "8fca21a3-bc2c-4eaa-be5a-685f3f584a83",
+        "node_id": "02b42ce4-3cb5-41e0-90ba-f1ef06668258",
         "operation_id": "37",
         "parent_id": null,
         "stage": "export"
       },
       {
-        "node_id": "903dbeef-d46b-4f5b-9a82-5ee8454c03be",
-        "operation_id": "3",
-        "parent_id": "575fd8b1-0450-4da8-9e00-78dfb6e77608",
-        "stage": "email"
-      },
-      {
-        "node_id": "9108491f-b14e-41e4-93f0-91287a541dc2",
-        "operation_id": "33",
+        "node_id": "046575ef-b8b5-44ba-b18c-25af116d37b8",
+        "operation_id": "30",
         "parent_id": null,
         "stage": "export"
       },
       {
-        "node_id": "9219f693-bf3d-4507-beeb-288598abf721",
+        "node_id": "058bc5c6-a1e0-4309-90e2-ea82fd4477b3",
+        "operation_id": "41",
+        "parent_id": "5a96231b-bfac-48b0-92a7-cc3ab1747299",
+        "stage": "email"
+      },
+      {
+        "node_id": "06ed22a8-bed7-472f-a5e8-1e3f95672d52",
         "operation_id": "51",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "92807765-f4c7-462b-8d97-d6981dcc694d",
-        "operation_id": "60",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "93fdceb5-fbd4-440b-8667-bf437d918cfc",
-        "operation_id": "95",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "94688a07-6f66-4b39-a141-511de9ed5c68",
-        "operation_id": "25",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "94f4243d-d005-493e-b0da-7cfeeca1e951",
-        "operation_id": "45",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "9901da3d-c647-4858-b9b9-24f7c1125769",
-        "operation_id": "22",
-        "parent_id": "feed0af5-f74a-498d-8a84-56b81a199abf",
+        "parent_id": "e913bdfd-b883-4d82-b659-09d349e1f31a",
         "stage": "email"
       },
       {
-        "node_id": "9963b8e1-a4fc-43eb-ac63-96a073dabef8",
-        "operation_id": "11",
+        "node_id": "0a02d9f7-5469-4ccf-885c-91ffa43a2e83",
+        "operation_id": "73",
         "parent_id": null,
         "stage": "export"
       },
       {
-        "node_id": "999c8533-d255-4816-980d-ba5aaa0d831d",
-        "operation_id": "20",
-        "parent_id": "0a595612-34eb-4b5b-ab36-80c1015de8be",
+        "node_id": "0c6b57a9-312a-4f9f-8e22-143d3bc2ca0a",
+        "operation_id": "13",
+        "parent_id": "58693211-3120-460b-8c82-2187895d93ce",
         "stage": "email"
       },
       {
-        "node_id": "99dd7e1d-b956-4851-a2e7-3008e12d446b",
-        "operation_id": "101",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "9c2f0f24-6456-4a1b-b960-3d600da842fe",
-        "operation_id": "55",
-        "parent_id": "c6976ffa-6676-49eb-a649-5829a5a3de44",
+        "node_id": "0d98ce26-1e41-4561-9201-7f276cdbc791",
+        "operation_id": "75",
+        "parent_id": "af659b88-c1bb-4515-883e-84b323f5bbed",
         "stage": "email"
       },
       {
-        "node_id": "9df09fbf-f035-438b-83a5-0cb0dbb96027",
-        "operation_id": "16",
-        "parent_id": "4f70f534-0b16-4434-9b41-ab0996b78896",
-        "stage": "email"
-      },
-      {
-        "node_id": "9e3d6dd8-b6f1-48f5-9f5d-a4938a00884c",
-        "operation_id": "36",
-        "parent_id": "21a36d56-5b90-43bf-89d5-d93dfe19d37d",
-        "stage": "email"
-      },
-      {
-        "node_id": "9f0db7c2-f6c4-43d6-adcf-60c51365e1d4",
-        "operation_id": "52",
-        "parent_id": "05e789b8-349f-4f2e-a5e6-67c9e62312d4",
-        "stage": "email"
-      },
-      {
-        "node_id": "a2bdd6a0-783d-4079-9ebb-6fe42e286f6e",
-        "operation_id": "86",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "a7d7ce29-a5b8-459f-84c1-a4e1e01d6eda",
-        "operation_id": "34",
-        "parent_id": "8d6fbeb5-25f1-4964-8fe3-624891a914a3",
-        "stage": "email"
-      },
-      {
-        "node_id": "a801dddb-a1fc-46a9-9568-844ef21eb80e",
-        "operation_id": "23",
-        "parent_id": "68ead4ba-46d0-41d3-8df4-610b560515fc",
-        "stage": "email"
-      },
-      {
-        "node_id": "a8b982fc-fa12-40e8-90d6-a0bed2104c90",
-        "operation_id": "92",
-        "parent_id": "85e0a346-1c15-4f94-9a35-de51d7fa87b7",
-        "stage": "email"
-      },
-      {
-        "node_id": "a9f0e527-b97e-40b3-960b-0b2bbb436a56",
-        "operation_id": "14",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "ab7a4b64-3339-49ac-8d33-d016f1edc3ec",
-        "operation_id": "71",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "ab973a65-6b03-4128-845b-b8f87f310e8a",
+        "node_id": "0de00ed4-df29-49b8-aa16-2ac1d6fcfc22",
         "operation_id": "65",
-        "parent_id": "72bf618d-3c1b-432a-a2f4-0d7fad0468eb",
-        "stage": "email"
-      },
-      {
-        "node_id": "b008aedf-f4c8-4d35-8c52-1c0f4796d136",
-        "operation_id": "21",
         "parent_id": null,
         "stage": "export"
       },
       {
-        "node_id": "b197e8ea-225c-4e4a-9c66-ad978ff95841",
-        "operation_id": "54",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "b2fe1658-7843-4adf-a23c-1bb3b7d15348",
-        "operation_id": "35",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "b414092a-ae77-4ed3-bf75-c6d86a61396d",
-        "operation_id": "42",
-        "parent_id": "bb5124a4-5bcb-4bbb-904c-466ff7341ec2",
-        "stage": "email"
-      },
-      {
-        "node_id": "b8957012-194e-42d5-bbb8-eaaaec3b0788",
-        "operation_id": "63",
-        "parent_id": "1c9f0872-40ae-4a9a-91f7-518da3d94fd0",
-        "stage": "email"
-      },
-      {
-        "node_id": "b8a979f6-389f-484c-bfc7-df31b9ee75a9",
-        "operation_id": "49",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "b8f914d8-e37b-4312-abb3-fc27b1e09787",
-        "operation_id": "37",
-        "parent_id": "8fca21a3-bc2c-4eaa-be5a-685f3f584a83",
-        "stage": "email"
-      },
-      {
-        "node_id": "b9eba346-584d-4e3b-9a66-793f06d011e0",
-        "operation_id": "72",
-        "parent_id": "1583e6b4-fa98-4e8b-9ba4-ee41e613de3c",
-        "stage": "email"
-      },
-      {
-        "node_id": "ba34107b-20f5-4516-a189-12ca3479dd8e",
-        "operation_id": "86",
-        "parent_id": "a2bdd6a0-783d-4079-9ebb-6fe42e286f6e",
-        "stage": "email"
-      },
-      {
-        "node_id": "bb175058-b162-486c-8b90-c5b3cc92e908",
+        "node_id": "1013d9c8-4f1b-469e-ac47-7ee0d6e6e2d8",
         "operation_id": "10",
         "parent_id": null,
         "stage": "export"
       },
       {
-        "node_id": "bb5124a4-5bcb-4bbb-904c-466ff7341ec2",
-        "operation_id": "42",
+        "node_id": "10bfb841-f4f2-4037-86f3-9d25d970906c",
+        "operation_id": "0",
+        "parent_id": "9d3d3b61-83d9-4cee-862f-7be22bcc4395",
+        "stage": "email"
+      },
+      {
+        "node_id": "119bfd23-49c2-47dd-a26c-133ba38f301c",
+        "operation_id": "64",
         "parent_id": null,
         "stage": "export"
       },
       {
-        "node_id": "bebb5c43-5fc4-4ce4-b591-b455ac7d58f2",
-        "operation_id": "76",
-        "parent_id": "3c8264c7-a71f-4174-a873-6dd40754cf15",
-        "stage": "email"
-      },
-      {
-        "node_id": "bf42888c-e54d-4d2a-9b69-4cad67fd9e89",
-        "operation_id": "8",
-        "parent_id": "6cf7ef94-7d62-4830-84f3-7affa26614d7",
-        "stage": "email"
-      },
-      {
-        "node_id": "bf4b3e0b-c19b-49ee-91d6-845121b63386",
-        "operation_id": "46",
-        "parent_id": "c2e5bcc1-f006-4598-a404-a51562c11fa4",
-        "stage": "email"
-      },
-      {
-        "node_id": "bfcc788a-53c3-46ea-b345-6a570789b2c3",
-        "operation_id": "67",
+        "node_id": "1204a336-7d33-4cce-86eb-85b02f519611",
+        "operation_id": "28",
         "parent_id": null,
         "stage": "export"
       },
       {
-        "node_id": "c04cbdd9-d3c1-4df9-8099-5d4f41ddd5de",
-        "operation_id": "11",
-        "parent_id": "9963b8e1-a4fc-43eb-ac63-96a073dabef8",
-        "stage": "email"
-      },
-      {
-        "node_id": "c0ff7853-ad1c-4fc9-89e5-e60e0a1487c5",
-        "operation_id": "78",
-        "parent_id": "e2b2fa85-97a6-4809-b4e7-13861e0d861b",
-        "stage": "email"
-      },
-      {
-        "node_id": "c29d190f-fad6-4109-bca9-243e5394de10",
-        "operation_id": "50",
-        "parent_id": "e93d50ce-b66a-4a25-9ff8-00db52efd4ee",
-        "stage": "email"
-      },
-      {
-        "node_id": "c2e5bcc1-f006-4598-a404-a51562c11fa4",
-        "operation_id": "46",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "c2edb9d1-ebbe-4832-ac6f-85cb6f20527b",
-        "operation_id": "29",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "c6976ffa-6676-49eb-a649-5829a5a3de44",
-        "operation_id": "55",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "cdc98c36-c685-4c5c-abf5-2dd6ea22bf60",
-        "operation_id": "26",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "cfae7536-e5d0-4deb-9dba-87995e0c525f",
+        "node_id": "13076a39-52d3-4445-918a-b880c1e221ee",
         "operation_id": "39",
         "parent_id": null,
         "stage": "export"
       },
       {
-        "node_id": "d2e09e34-2f79-4c9d-8f5d-6192a28d4c39",
-        "operation_id": "24",
+        "node_id": "13482c79-1195-480b-9c0e-53df9f47b1e7",
+        "operation_id": "84",
         "parent_id": null,
         "stage": "export"
       },
       {
-        "node_id": "d39349ed-67bb-47c1-bd6c-68df7ce97b3a",
-        "operation_id": "40",
+        "node_id": "15c53f52-8fdb-4330-a816-489731ed189c",
+        "operation_id": "22",
+        "parent_id": "53070d88-91cd-468d-86b1-69c3ba6f9ad5",
+        "stage": "email"
+      },
+      {
+        "node_id": "16c64e8e-763b-48e8-af76-ed7ceebb4ca8",
+        "operation_id": "42",
         "parent_id": null,
         "stage": "export"
       },
       {
-        "node_id": "d4601eb0-ba8d-4e96-91f3-0dee39ba8267",
-        "operation_id": "35",
-        "parent_id": "b2fe1658-7843-4adf-a23c-1bb3b7d15348",
+        "node_id": "179eaad5-e5d9-4a32-aeec-1e4bd9b94911",
+        "operation_id": "85",
+        "parent_id": "4c857eb3-1a5c-4386-9a1a-fc9bf9ccdbf0",
         "stage": "email"
       },
       {
-        "node_id": "d4676c17-ecc1-4545-a1c3-10ba0798b203",
-        "operation_id": "66",
-        "parent_id": "7831ee60-d011-4aa0-994f-8e717fa27529",
+        "node_id": "1991b75c-2fed-41dc-a1ed-fd5753d9adfd",
+        "operation_id": "34",
+        "parent_id": "714639b7-f676-4561-a864-9cc777d3b89e",
         "stage": "email"
       },
       {
-        "node_id": "d63c7d49-bb93-4d94-9534-8a5bef0e9b00",
-        "operation_id": "70",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "d6dd5870-89be-4ccc-91b8-698c0444878c",
-        "operation_id": "90",
-        "parent_id": "4ad40944-f99f-432f-8078-2515d57db775",
-        "stage": "email"
-      },
-      {
-        "node_id": "d7901678-168f-4046-a18c-a931aa861a99",
-        "operation_id": "24",
-        "parent_id": "d2e09e34-2f79-4c9d-8f5d-6192a28d4c39",
-        "stage": "email"
-      },
-      {
-        "node_id": "d8a7dc69-6b8d-4f87-811e-08aa04705c2b",
-        "operation_id": "19",
-        "parent_id": "8fba6360-d1b6-426e-a4a5-2362cb6f8841",
-        "stage": "email"
-      },
-      {
-        "node_id": "e10b7c2e-84eb-410a-a57b-252bcdceb385",
-        "operation_id": "18",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "e14a6415-8f6f-40f9-a460-85b313740b57",
-        "operation_id": "91",
-        "parent_id": "61c616ec-1b28-474d-95d5-204e7b81ec28",
-        "stage": "email"
-      },
-      {
-        "node_id": "e2b2fa85-97a6-4809-b4e7-13861e0d861b",
-        "operation_id": "78",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "e401eeb2-c007-45d7-b9b2-01c5501ee0f8",
-        "operation_id": "6",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "e4546e8d-5bbc-4f84-b50d-81b144ce54c9",
+        "node_id": "19e8235f-59f7-48b3-a802-d51a9fb62bcf",
         "operation_id": "21",
-        "parent_id": "b008aedf-f4c8-4d35-8c52-1c0f4796d136",
+        "parent_id": "4a280903-82db-4f53-ba64-fdd6b713f7e5",
         "stage": "email"
       },
       {
-        "node_id": "e4c99c38-31fd-42c0-9ebb-0a70b918cc19",
-        "operation_id": "98",
-        "parent_id": "524114de-57a8-491f-bd7c-3f2855d71bd1",
+        "node_id": "1a06f004-a167-40d0-81d2-5e38144c11e1",
+        "operation_id": "81",
+        "parent_id": "6c5de93e-f30b-46c6-b97c-9f2a47ae4857",
         "stage": "email"
       },
       {
-        "node_id": "e54bef5c-0099-4346-9c13-04c0592e0618",
-        "operation_id": "102",
-        "parent_id": "5cd7cf2e-1b89-43a8-9e77-7025ac68a6a2",
+        "node_id": "1bfe1cbb-a492-4627-8082-fcc4cb085d7e",
+        "operation_id": "28",
+        "parent_id": "1204a336-7d33-4cce-86eb-85b02f519611",
         "stage": "email"
       },
       {
-        "node_id": "e6ddf9c3-cdbb-4b46-a0c5-998f45f68f79",
-        "operation_id": "62",
-        "parent_id": "7527903a-1279-41b7-a70a-8f09ab86409d",
+        "node_id": "1f9f55bf-5f15-43b9-82f5-de18bf6b3a82",
+        "operation_id": "23",
+        "parent_id": "83394ebb-fc6d-40b9-949c-2004436e9dc5",
         "stage": "email"
       },
       {
-        "node_id": "e82f30d5-e022-47e8-a9d1-7a374ed92c0d",
-        "operation_id": "61",
-        "parent_id": "38fb7bcf-4f30-4455-9029-f309d047fe48",
-        "stage": "email"
-      },
-      {
-        "node_id": "e93d50ce-b66a-4a25-9ff8-00db52efd4ee",
-        "operation_id": "50",
+        "node_id": "200e0679-61ae-4a27-8871-7edd9bfff66b",
+        "operation_id": "20",
         "parent_id": null,
         "stage": "export"
       },
       {
-        "node_id": "e98be75e-118c-4310-9e05-49982dfda653",
-        "operation_id": "89",
-        "parent_id": "2fb7ed60-d747-441a-aa78-fb106ffd4995",
+        "node_id": "202fd37b-860d-4da2-a60c-686c433e31df",
+        "operation_id": "63",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "225e299a-01a2-4ca5-8063-9cf0135ae03e",
+        "operation_id": "35",
+        "parent_id": "cfdd4dbc-6a3e-4a4f-915b-f6ae74605760",
         "stage": "email"
       },
       {
-        "node_id": "ed5028ba-904d-4572-bbd4-f4b5fef840e7",
+        "node_id": "22806214-1e6e-4e49-b171-f157d6d05893",
+        "operation_id": "88",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "24fdd850-d2f9-428a-a556-29922c663384",
+        "operation_id": "59",
+        "parent_id": "bbed2f27-d282-479e-82da-c2df87ecc75e",
+        "stage": "email"
+      },
+      {
+        "node_id": "25066d1f-00dc-40dc-ab48-8911509aab95",
+        "operation_id": "88",
+        "parent_id": "22806214-1e6e-4e49-b171-f157d6d05893",
+        "stage": "email"
+      },
+      {
+        "node_id": "25449073-26d9-4546-9522-59cf29a89170",
+        "operation_id": "44",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "2692f56f-1525-49ff-b433-fb46f8b540e0",
+        "operation_id": "76",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "26f535da-b896-4e5f-a180-36004a8cd14a",
+        "operation_id": "53",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "27901672-256e-49b4-88f6-9197b9f53089",
+        "operation_id": "37",
+        "parent_id": "02b42ce4-3cb5-41e0-90ba-f1ef06668258",
+        "stage": "email"
+      },
+      {
+        "node_id": "285d365a-3361-4ff7-a328-89787e88c1f0",
+        "operation_id": "45",
+        "parent_id": "30843fcc-716b-4d4f-8af2-ed33cdbbcc9f",
+        "stage": "email"
+      },
+      {
+        "node_id": "29654d42-14f5-4780-9f50-2e4e5da0991c",
         "operation_id": "7",
         "parent_id": null,
         "stage": "export"
       },
       {
-        "node_id": "ee838133-95df-43b2-a736-7afd67f15f0a",
-        "operation_id": "77",
+        "node_id": "2adc11f4-c716-4e89-b2d7-ba946d9cd6c5",
+        "operation_id": "14",
+        "parent_id": "615fe1a7-6a8d-44fe-b2c5-5c69237326d0",
+        "stage": "email"
+      },
+      {
+        "node_id": "2c0a844e-3d02-481c-a913-3c3825378a7f",
+        "operation_id": "64",
+        "parent_id": "119bfd23-49c2-47dd-a26c-133ba38f301c",
+        "stage": "email"
+      },
+      {
+        "node_id": "2d0690a7-0fe8-48bd-ab00-03ec694d55fd",
+        "operation_id": "87",
         "parent_id": null,
         "stage": "export"
       },
       {
-        "node_id": "f15f8a0e-9f9a-43cc-9e76-9f7ae5770a05",
-        "operation_id": "44",
-        "parent_id": "3448c74f-7a02-4618-9989-7634be67d2e7",
-        "stage": "email"
-      },
-      {
-        "node_id": "f20d6f75-14d0-4302-a4d7-c12f2a805240",
-        "operation_id": "74",
+        "node_id": "2d1520bc-0250-46dc-b98a-8b931b82cd44",
+        "operation_id": "91",
         "parent_id": null,
         "stage": "export"
       },
       {
-        "node_id": "f3aa7238-26b5-4707-9ed4-9e33931242e6",
-        "operation_id": "93",
-        "parent_id": "8063c382-9afa-4c30-978d-ce57f34938ab",
+        "node_id": "2d61253a-245f-4b02-a487-fbb7fa99f4d0",
+        "operation_id": "78",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "2e6dee5d-4203-4ed9-a4db-5cd63fc9d350",
+        "operation_id": "94",
+        "parent_id": "e0df8d46-bbd3-4d1c-a68b-f000407e1d04",
         "stage": "email"
       },
       {
-        "node_id": "f41233ab-b6b5-4b33-9071-650ae3c15d4e",
+        "node_id": "2ff07b0c-dc7e-4980-ad4a-de16ce9ab202",
+        "operation_id": "33",
+        "parent_id": "b3c63da1-aaa1-448d-86f0-db27a7f025ac",
+        "stage": "email"
+      },
+      {
+        "node_id": "30843fcc-716b-4d4f-8af2-ed33cdbbcc9f",
+        "operation_id": "45",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "30b97c52-68be-4320-9455-02015ff40c22",
+        "operation_id": "83",
+        "parent_id": "9c25b40b-bdea-4969-b5a1-d7f2fe335f4a",
+        "stage": "email"
+      },
+      {
+        "node_id": "3343667c-2fc8-4712-ba60-3db73c053ddd",
+        "operation_id": "27",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "3415c8b7-01de-4110-a7ae-40c20717e321",
+        "operation_id": "39",
+        "parent_id": "13076a39-52d3-4445-918a-b880c1e221ee",
+        "stage": "email"
+      },
+      {
+        "node_id": "37585f98-ca07-42ff-a6f2-9ac02ee34db0",
+        "operation_id": "52",
+        "parent_id": "38783a48-94c4-47ca-9439-1001bba11c4b",
+        "stage": "email"
+      },
+      {
+        "node_id": "376409fd-c368-44fb-8abf-d3c28e1d8cee",
+        "operation_id": "29",
+        "parent_id": "f54ebb0f-a597-409d-8f41-cf7335108b0f",
+        "stage": "email"
+      },
+      {
+        "node_id": "38783a48-94c4-47ca-9439-1001bba11c4b",
+        "operation_id": "52",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "388345d4-a07f-4a9f-ac52-3e347ce53375",
+        "operation_id": "50",
+        "parent_id": "52fb83da-ba44-4e37-9705-1ecb4a664036",
+        "stage": "email"
+      },
+      {
+        "node_id": "3cfa058e-b256-4faf-bd53-94336efec1c7",
+        "operation_id": "26",
+        "parent_id": "8d1f5850-4e64-4602-bf0c-ce92ecc90727",
+        "stage": "email"
+      },
+      {
+        "node_id": "3dc6bb86-8b03-443a-8a21-4ebf703ae994",
+        "operation_id": "20",
+        "parent_id": "200e0679-61ae-4a27-8871-7edd9bfff66b",
+        "stage": "email"
+      },
+      {
+        "node_id": "40029a43-9ad7-42cc-bf9c-84eaa4205756",
+        "operation_id": "49",
+        "parent_id": "e97d625f-482d-42d9-87a5-a6abc5e44116",
+        "stage": "email"
+      },
+      {
+        "node_id": "435dba4e-803d-4554-af80-568370acbdd9",
+        "operation_id": "40",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "43b5e2ff-efb3-448e-ac38-845003e0a8fc",
+        "operation_id": "30",
+        "parent_id": "046575ef-b8b5-44ba-b18c-25af116d37b8",
+        "stage": "email"
+      },
+      {
+        "node_id": "4444999d-f909-4969-984a-22be199bfa55",
+        "operation_id": "72",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "453b3cce-a9ac-45bf-9035-21ed6e1e148b",
+        "operation_id": "18",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "45e91e68-ce22-4fe7-9d21-5d3c6134ad06",
+        "operation_id": "68",
+        "parent_id": "f2e582a8-4880-4f5b-a7c1-d0e91cedc847",
+        "stage": "email"
+      },
+      {
+        "node_id": "4679eb11-401f-4c0d-a93d-bcbd386527b1",
+        "operation_id": "69",
+        "parent_id": "6d5e1679-ef5a-4c65-ad89-1dc396de386b",
+        "stage": "email"
+      },
+      {
+        "node_id": "4857c46d-fde9-4534-ada4-dc8854ca9fa4",
+        "operation_id": "8",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "4a280903-82db-4f53-ba64-fdd6b713f7e5",
+        "operation_id": "21",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "4acc47e8-20ba-422d-a363-0b633273e7c1",
+        "operation_id": "55",
+        "parent_id": "6e99c8d7-6b0e-43b8-aeb6-8779cab13fc3",
+        "stage": "email"
+      },
+      {
+        "node_id": "4c857eb3-1a5c-4386-9a1a-fc9bf9ccdbf0",
+        "operation_id": "85",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "4cae6ca0-7a3c-4e34-bbb6-af2e5d443f6f",
+        "operation_id": "24",
+        "parent_id": "a743d919-956d-40cc-b5c7-4c7d39e6f56b",
+        "stage": "email"
+      },
+      {
+        "node_id": "4e6e48c6-7192-4d39-b6e0-58857b560aa0",
         "operation_id": "58",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "f49b43ad-3b1a-4235-972b-4818008d0269",
-        "operation_id": "82",
-        "parent_id": "59c199a1-1504-4efc-947f-f47ee8c327fb",
+        "parent_id": "85ed8ffc-7fc7-4c92-a860-7d34406ae0ec",
         "stage": "email"
       },
       {
-        "node_id": "f4e184ba-94f9-493d-a5df-7049c8096761",
-        "operation_id": "32",
+        "node_id": "4fd84d2e-bfb9-4e63-9cbd-52815fdb8874",
+        "operation_id": "31",
+        "parent_id": "a0861857-fd7c-4492-b08f-19c85d62d8fa",
+        "stage": "email"
+      },
+      {
+        "node_id": "501a1872-8f66-41ac-a7d4-c5c2b2ec2e71",
+        "operation_id": "65",
+        "parent_id": "0de00ed4-df29-49b8-aa16-2ac1d6fcfc22",
+        "stage": "email"
+      },
+      {
+        "node_id": "513182bc-74bc-427f-b354-d1b8440e242a",
+        "operation_id": "4",
         "parent_id": null,
         "stage": "export"
       },
       {
-        "node_id": "f5767ff6-ee64-4ec6-984f-112e331a691d",
+        "node_id": "523946cb-ebe6-4ad4-b1dc-3417639863e5",
+        "operation_id": "91",
+        "parent_id": "2d1520bc-0250-46dc-b98a-8b931b82cd44",
+        "stage": "email"
+      },
+      {
+        "node_id": "52fb83da-ba44-4e37-9705-1ecb4a664036",
+        "operation_id": "50",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "53070d88-91cd-468d-86b1-69c3ba6f9ad5",
+        "operation_id": "22",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "554cb4e8-ac24-4e7c-b121-398da62056b6",
+        "operation_id": "66",
+        "parent_id": "f121f4ec-003a-4eb8-973a-e4d4eb6cab68",
+        "stage": "email"
+      },
+      {
+        "node_id": "5694a251-e3ce-4d36-9be7-7fbda8bbfa0b",
+        "operation_id": "1",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "58693211-3120-460b-8c82-2187895d93ce",
         "operation_id": "13",
         "parent_id": null,
         "stage": "export"
       },
       {
-        "node_id": "f5c693c1-930f-4d6b-9520-560e6fa046aa",
-        "operation_id": "31",
-        "parent_id": null,
-        "stage": "export"
-      },
-      {
-        "node_id": "f7714fe9-8b78-4ca8-8089-558eb0b5d1bd",
-        "operation_id": "59",
-        "parent_id": "616c1c1c-2a85-4406-aa50-fb4b409ad722",
+        "node_id": "58a73989-01ab-4e5a-b7fb-9b160b731bcb",
+        "operation_id": "12",
+        "parent_id": "b439e079-1e19-4107-92e6-f287b43b324b",
         "stage": "email"
       },
       {
-        "node_id": "f9900fcd-ffc9-4642-99fd-de242109f6ae",
-        "operation_id": "100",
+        "node_id": "591947d4-8dab-4ffe-b57a-7d8a3b014231",
+        "operation_id": "74",
         "parent_id": null,
         "stage": "export"
       },
       {
-        "node_id": "f9d8bad0-9835-49f1-aaf0-8e56ced7368b",
-        "operation_id": "79",
+        "node_id": "5a96231b-bfac-48b0-92a7-cc3ab1747299",
+        "operation_id": "41",
         "parent_id": null,
         "stage": "export"
       },
       {
-        "node_id": "fa2bf5fe-a5d7-45c2-992e-b8cd6688f980",
+        "node_id": "5ac05738-d850-451a-9e2d-7002e94e9335",
+        "operation_id": "25",
+        "parent_id": "bf95ceae-2064-4695-b1b7-1a81df5c427a",
+        "stage": "email"
+      },
+      {
+        "node_id": "5dde6dc9-f9c5-4066-ba0a-1a1106c9fc7a",
+        "operation_id": "92",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "5f609f59-5445-4ae6-8402-db0aa1acb2ce",
+        "operation_id": "18",
+        "parent_id": "453b3cce-a9ac-45bf-9035-21ed6e1e148b",
+        "stage": "email"
+      },
+      {
+        "node_id": "60046281-5a06-40c7-a320-2a490972ca84",
+        "operation_id": "16",
+        "parent_id": "cc653722-45d8-4004-bad9-329cb91dff18",
+        "stage": "email"
+      },
+      {
+        "node_id": "615fe1a7-6a8d-44fe-b2c5-5c69237326d0",
+        "operation_id": "14",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "628c6ce0-7f58-4d6a-90d9-6e24e5da0b95",
+        "operation_id": "47",
+        "parent_id": "7411dd52-5168-460c-bf4e-0cf5dfec30e5",
+        "stage": "email"
+      },
+      {
+        "node_id": "6327a749-9034-4d15-a15e-4c17988e4881",
+        "operation_id": "1",
+        "parent_id": "5694a251-e3ce-4d36-9be7-7fbda8bbfa0b",
+        "stage": "email"
+      },
+      {
+        "node_id": "662eda7a-83dd-4ae0-9453-fb2f1c203ac1",
+        "operation_id": "40",
+        "parent_id": "435dba4e-803d-4554-af80-568370acbdd9",
+        "stage": "email"
+      },
+      {
+        "node_id": "6c5de93e-f30b-46c6-b97c-9f2a47ae4857",
+        "operation_id": "81",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "6cd9242f-5373-4c76-b10c-3f8036910a33",
+        "operation_id": "61",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "6d0d37e6-5545-461c-abb1-e54c5db99d2c",
+        "operation_id": "32",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "6d5e1679-ef5a-4c65-ad89-1dc396de386b",
         "operation_id": "69",
         "parent_id": null,
         "stage": "export"
       },
       {
-        "node_id": "fa706347-c38d-48ca-81d6-a213f80b18c1",
-        "operation_id": "84",
-        "parent_id": "513076e4-04b6-4eff-9404-7909a498deff",
+        "node_id": "6d8762ee-2f3a-4b96-b235-8896b8f7effd",
+        "operation_id": "46",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "6e99c8d7-6b0e-43b8-aeb6-8779cab13fc3",
+        "operation_id": "55",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "6eb83dea-6c3e-42d8-93aa-06fde93038b8",
+        "operation_id": "96",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "6ff72f5b-d3a6-4975-beb6-afaba67be2d5",
+        "operation_id": "97",
+        "parent_id": "b345e65f-5357-48e1-ae60-d75332b23130",
         "stage": "email"
       },
       {
-        "node_id": "fd17e1bd-4904-46fe-90e9-397bec81468c",
+        "node_id": "714639b7-f676-4561-a864-9cc777d3b89e",
+        "operation_id": "34",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "7411dd52-5168-460c-bf4e-0cf5dfec30e5",
+        "operation_id": "47",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "748b2fc4-c699-477b-9fa3-2ba9671e0469",
+        "operation_id": "98",
+        "parent_id": "96e106a0-dc40-4679-969f-e2764efdaa89",
+        "stage": "email"
+      },
+      {
+        "node_id": "74c5680f-931b-4156-a9da-2feca1b06efe",
+        "operation_id": "8",
+        "parent_id": "4857c46d-fde9-4534-ada4-dc8854ca9fa4",
+        "stage": "email"
+      },
+      {
+        "node_id": "759b2966-c3bb-41f5-a831-b146c00aa54c",
+        "operation_id": "89",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "75f5b6c0-4363-4345-8c94-0f2c664ba8bf",
+        "operation_id": "44",
+        "parent_id": "25449073-26d9-4546-9522-59cf29a89170",
+        "stage": "email"
+      },
+      {
+        "node_id": "762b0fd6-86aa-49b5-8692-e30a5d325376",
+        "operation_id": "63",
+        "parent_id": "202fd37b-860d-4da2-a60c-686c433e31df",
+        "stage": "email"
+      },
+      {
+        "node_id": "7701e829-627f-419d-ad54-8cdb16925ce0",
+        "operation_id": "95",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "777567a5-649f-49be-b462-cf3795e39f5d",
+        "operation_id": "67",
+        "parent_id": "e77b83bc-53a2-463b-8a48-ea3aea49b68c",
+        "stage": "email"
+      },
+      {
+        "node_id": "789940fd-0273-466b-9a87-898e3d8039e0",
+        "operation_id": "99",
+        "parent_id": "e51120cf-5886-48bd-9300-af06f7b3dfdb",
+        "stage": "email"
+      },
+      {
+        "node_id": "79baadf9-4c0c-44f7-bc7d-a7a99845945b",
+        "operation_id": "6",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "7b352a0f-9a24-4777-8db0-602b3810c5c2",
         "operation_id": "70",
-        "parent_id": "d63c7d49-bb93-4d94-9534-8a5bef0e9b00",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "7eaee6c6-75eb-4509-ae53-a94be41029c0",
+        "operation_id": "38",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "80c2c5a5-804c-4600-9718-15ed0c4deb25",
+        "operation_id": "43",
+        "parent_id": "ea91d4dd-a773-4920-9f64-8d189030e93d",
         "stage": "email"
       },
       {
-        "node_id": "fe791deb-ac87-42d6-8cfd-55fb2e35934b",
+        "node_id": "82bb0a5a-e212-4f8b-b1be-1e1d5eae5014",
+        "operation_id": "57",
+        "parent_id": "8dcad65a-7bf6-4edb-abcc-bd0d07161c15",
+        "stage": "email"
+      },
+      {
+        "node_id": "82ff1ab9-01b4-4b26-a69f-15896024d028",
+        "operation_id": "72",
+        "parent_id": "4444999d-f909-4969-984a-22be199bfa55",
+        "stage": "email"
+      },
+      {
+        "node_id": "83394ebb-fc6d-40b9-949c-2004436e9dc5",
+        "operation_id": "23",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "836e6dd2-829b-4304-a15d-adf3c5186e55",
+        "operation_id": "36",
+        "parent_id": "9babf2c7-70b3-4efb-a043-56e5717a7c96",
+        "stage": "email"
+      },
+      {
+        "node_id": "85ed8ffc-7fc7-4c92-a860-7d34406ae0ec",
+        "operation_id": "58",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "8825c54d-c87c-4606-9fad-5428bbacdb3a",
+        "operation_id": "46",
+        "parent_id": "6d8762ee-2f3a-4b96-b235-8896b8f7effd",
+        "stage": "email"
+      },
+      {
+        "node_id": "8916b384-43cb-4225-8454-8726120bd7af",
+        "operation_id": "74",
+        "parent_id": "591947d4-8dab-4ffe-b57a-7d8a3b014231",
+        "stage": "email"
+      },
+      {
+        "node_id": "8ae438b1-5d51-4fdd-8e2f-e07608919267",
+        "operation_id": "77",
+        "parent_id": "b8aadee4-92ef-463e-b448-407ce1c4c81f",
+        "stage": "email"
+      },
+      {
+        "node_id": "8d1dbaab-938e-4b3d-9fd9-e584fc68439f",
+        "operation_id": "86",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "8d1f5850-4e64-4602-bf0c-ce92ecc90727",
+        "operation_id": "26",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "8dcad65a-7bf6-4edb-abcc-bd0d07161c15",
+        "operation_id": "57",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "8e46ea21-2f7d-4b64-99d8-275722dbc429",
+        "operation_id": "5",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "8ecd2ffa-bba8-497b-adff-8d728de09a11",
         "operation_id": "4",
-        "parent_id": "2bc15f28-a06f-46de-a200-259d60cf2c86",
+        "parent_id": "513182bc-74bc-427f-b354-d1b8440e242a",
         "stage": "email"
       },
       {
-        "node_id": "feed0af5-f74a-498d-8a84-56b81a199abf",
-        "operation_id": "22",
+        "node_id": "93076cb0-3fe8-43b9-9ac7-5bdc28eef33c",
+        "operation_id": "2",
+        "parent_id": "d4e6e5c2-b18f-4781-9e94-105e57a585f8",
+        "stage": "email"
+      },
+      {
+        "node_id": "95ad784f-0c7e-499e-939b-364849b93a99",
+        "operation_id": "76",
+        "parent_id": "2692f56f-1525-49ff-b433-fb46f8b540e0",
+        "stage": "email"
+      },
+      {
+        "node_id": "95f9ae15-59d3-4207-85c9-1b7b16372ffb",
+        "operation_id": "90",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "96e106a0-dc40-4679-969f-e2764efdaa89",
+        "operation_id": "98",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "981b8d44-d6ec-408a-9183-94b197b36d74",
+        "operation_id": "48",
+        "parent_id": "e6c391e6-be29-4876-8799-fd5d2a7335b5",
+        "stage": "email"
+      },
+      {
+        "node_id": "981d6460-87d9-4ab2-8178-c99f1efc0325",
+        "operation_id": "27",
+        "parent_id": "3343667c-2fc8-4712-ba60-3db73c053ddd",
+        "stage": "email"
+      },
+      {
+        "node_id": "983cc349-4634-47e4-ba93-9bf976631dc4",
+        "operation_id": "17",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "9babf2c7-70b3-4efb-a043-56e5717a7c96",
+        "operation_id": "36",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "9c25b40b-bdea-4969-b5a1-d7f2fe335f4a",
+        "operation_id": "83",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "9d3d3b61-83d9-4cee-862f-7be22bcc4395",
+        "operation_id": "0",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "9f2ae005-1dc8-43f0-ae44-c8d052ebb0de",
+        "operation_id": "56",
+        "parent_id": "e5585df5-920d-429e-827d-e7d58bfdcdcf",
+        "stage": "email"
+      },
+      {
+        "node_id": "9fdaf818-26fa-404d-b04c-3e340a8dd9d1",
+        "operation_id": "9",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "a0861857-fd7c-4492-b08f-19c85d62d8fa",
+        "operation_id": "31",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "a0e71b19-5a84-4c39-b10c-ab46809eb786",
+        "operation_id": "82",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "a1dd8042-534b-4166-b082-50694c341e3e",
+        "operation_id": "53",
+        "parent_id": "26f535da-b896-4e5f-a180-36004a8cd14a",
+        "stage": "email"
+      },
+      {
+        "node_id": "a498b688-bd74-4d3d-b56f-8eb17b4539fe",
+        "operation_id": "61",
+        "parent_id": "6cd9242f-5373-4c76-b10c-3f8036910a33",
+        "stage": "email"
+      },
+      {
+        "node_id": "a743d919-956d-40cc-b5c7-4c7d39e6f56b",
+        "operation_id": "24",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "a9e41d9e-cf1d-4e01-896f-2db6c27780ba",
+        "operation_id": "71",
+        "parent_id": "bb6c7392-9f7e-40c1-82c6-852d07ffc9a5",
+        "stage": "email"
+      },
+      {
+        "node_id": "ac1970b1-1e87-48fc-8b6c-c7078a50c012",
+        "operation_id": "79",
+        "parent_id": "d9f6d11d-ef33-4106-a3c1-96f41d2740ed",
+        "stage": "email"
+      },
+      {
+        "node_id": "acd10658-e66c-4f54-99bc-e122dcdea21e",
+        "operation_id": "38",
+        "parent_id": "7eaee6c6-75eb-4509-ae53-a94be41029c0",
+        "stage": "email"
+      },
+      {
+        "node_id": "af659b88-c1bb-4515-883e-84b323f5bbed",
+        "operation_id": "75",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "b00b16fc-ac4b-4552-b38d-7971f4899e4d",
+        "operation_id": "7",
+        "parent_id": "29654d42-14f5-4780-9f50-2e4e5da0991c",
+        "stage": "email"
+      },
+      {
+        "node_id": "b271da31-a8d8-457e-821f-ffa83b66de0e",
+        "operation_id": "78",
+        "parent_id": "2d61253a-245f-4b02-a487-fbb7fa99f4d0",
+        "stage": "email"
+      },
+      {
+        "node_id": "b345e65f-5357-48e1-ae60-d75332b23130",
+        "operation_id": "97",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "b3c63da1-aaa1-448d-86f0-db27a7f025ac",
+        "operation_id": "33",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "b439e079-1e19-4107-92e6-f287b43b324b",
+        "operation_id": "12",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "b8aadee4-92ef-463e-b448-407ce1c4c81f",
+        "operation_id": "77",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "b8be8f8d-f5d1-4dee-b2ae-da9d4f253d25",
+        "operation_id": "15",
+        "parent_id": "d07da4ac-2982-4ea0-984f-95750783a89b",
+        "stage": "email"
+      },
+      {
+        "node_id": "bb4ec0d2-9454-4338-836e-56b3ea65037c",
+        "operation_id": "19",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "bb6c7392-9f7e-40c1-82c6-852d07ffc9a5",
+        "operation_id": "71",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "bbed2f27-d282-479e-82da-c2df87ecc75e",
+        "operation_id": "59",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "bc101d80-0f46-47e0-85ea-2da06d74b8f4",
+        "operation_id": "3",
+        "parent_id": "f63db969-98ed-4887-a23e-57a679f75a9c",
+        "stage": "email"
+      },
+      {
+        "node_id": "be545191-b604-489c-8cc2-c0030577deba",
+        "operation_id": "10",
+        "parent_id": "1013d9c8-4f1b-469e-ac47-7ee0d6e6e2d8",
+        "stage": "email"
+      },
+      {
+        "node_id": "bf95ceae-2064-4695-b1b7-1a81df5c427a",
+        "operation_id": "25",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "c1ce7c41-035f-4780-84cb-0370ae87b1ff",
+        "operation_id": "6",
+        "parent_id": "79baadf9-4c0c-44f7-bc7d-a7a99845945b",
+        "stage": "email"
+      },
+      {
+        "node_id": "c59d7651-4a7d-4bdb-965c-e8eed31aada1",
+        "operation_id": "17",
+        "parent_id": "983cc349-4634-47e4-ba93-9bf976631dc4",
+        "stage": "email"
+      },
+      {
+        "node_id": "c5a6eb15-6030-4513-a7d3-ddd694638525",
+        "operation_id": "80",
+        "parent_id": "e9bbf043-dfc8-4ded-9d3c-19ce6506d0f5",
+        "stage": "email"
+      },
+      {
+        "node_id": "c5e2db0d-28c8-481c-8af2-d24fdd89f82e",
+        "operation_id": "32",
+        "parent_id": "6d0d37e6-5545-461c-abb1-e54c5db99d2c",
+        "stage": "email"
+      },
+      {
+        "node_id": "c6c1a8f0-1be5-4d62-b7e2-77fdf4534af0",
+        "operation_id": "11",
+        "parent_id": "ffebf6d8-758c-4417-b9d3-f3934512292a",
+        "stage": "email"
+      },
+      {
+        "node_id": "cbce0ff8-868d-4e0a-b080-ca38e61953dc",
+        "operation_id": "62",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "cc653722-45d8-4004-bad9-329cb91dff18",
+        "operation_id": "16",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "cd58b5db-473e-4f1b-a608-5fe58cdc9794",
+        "operation_id": "82",
+        "parent_id": "a0e71b19-5a84-4c39-b10c-ab46809eb786",
+        "stage": "email"
+      },
+      {
+        "node_id": "cfd769a6-7b3b-4c5c-81e9-b4bececbdce7",
+        "operation_id": "54",
+        "parent_id": "d2675ddf-dada-493a-9efa-09132fe2234c",
+        "stage": "email"
+      },
+      {
+        "node_id": "cfdd4dbc-6a3e-4a4f-915b-f6ae74605760",
+        "operation_id": "35",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "d07da4ac-2982-4ea0-984f-95750783a89b",
+        "operation_id": "15",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "d2675ddf-dada-493a-9efa-09132fe2234c",
+        "operation_id": "54",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "d397c1db-568b-4574-8e6a-14e5329dcbb3",
+        "operation_id": "96",
+        "parent_id": "6eb83dea-6c3e-42d8-93aa-06fde93038b8",
+        "stage": "email"
+      },
+      {
+        "node_id": "d4e6e5c2-b18f-4781-9e94-105e57a585f8",
+        "operation_id": "2",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "d5be2f6b-f5d4-4451-92fb-296afa7d4830",
+        "operation_id": "60",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "d6604fee-67e0-43e8-bc21-c3023ee39126",
+        "operation_id": "62",
+        "parent_id": "cbce0ff8-868d-4e0a-b080-ca38e61953dc",
+        "stage": "email"
+      },
+      {
+        "node_id": "d667d216-13b5-4ddb-a057-8204227fbfe4",
+        "operation_id": "89",
+        "parent_id": "759b2966-c3bb-41f5-a831-b146c00aa54c",
+        "stage": "email"
+      },
+      {
+        "node_id": "d701983a-653c-458a-87b3-7599e8ffac7b",
+        "operation_id": "60",
+        "parent_id": "d5be2f6b-f5d4-4451-92fb-296afa7d4830",
+        "stage": "email"
+      },
+      {
+        "node_id": "d8411fb5-d6e2-4744-99c9-0b056297de41",
+        "operation_id": "95",
+        "parent_id": "7701e829-627f-419d-ad54-8cdb16925ce0",
+        "stage": "email"
+      },
+      {
+        "node_id": "d9f6d11d-ef33-4106-a3c1-96f41d2740ed",
+        "operation_id": "79",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "de4ecd3d-286d-481b-bdc3-cdbb607465bf",
+        "operation_id": "5",
+        "parent_id": "8e46ea21-2f7d-4b64-99d8-275722dbc429",
+        "stage": "email"
+      },
+      {
+        "node_id": "df0eb4ac-4b6a-4c75-8887-27458bab8313",
+        "operation_id": "42",
+        "parent_id": "16c64e8e-763b-48e8-af76-ed7ceebb4ca8",
+        "stage": "email"
+      },
+      {
+        "node_id": "e0df8d46-bbd3-4d1c-a68b-f000407e1d04",
+        "operation_id": "94",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "e51120cf-5886-48bd-9300-af06f7b3dfdb",
+        "operation_id": "99",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "e5585df5-920d-429e-827d-e7d58bfdcdcf",
+        "operation_id": "56",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "e5870197-dca5-47f4-9d61-643278923644",
+        "operation_id": "84",
+        "parent_id": "13482c79-1195-480b-9c0e-53df9f47b1e7",
+        "stage": "email"
+      },
+      {
+        "node_id": "e5e35b60-7a77-4874-ba4b-c18da80c37b3",
+        "operation_id": "93",
+        "parent_id": "ec345391-8829-4cba-b421-854d81d8a9b1",
+        "stage": "email"
+      },
+      {
+        "node_id": "e6c391e6-be29-4876-8799-fd5d2a7335b5",
+        "operation_id": "48",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "e77b83bc-53a2-463b-8a48-ea3aea49b68c",
+        "operation_id": "67",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "e913bdfd-b883-4d82-b659-09d349e1f31a",
+        "operation_id": "51",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "e97d625f-482d-42d9-87a5-a6abc5e44116",
+        "operation_id": "49",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "e9bbf043-dfc8-4ded-9d3c-19ce6506d0f5",
+        "operation_id": "80",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "ea91d4dd-a773-4920-9f64-8d189030e93d",
+        "operation_id": "43",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "ec345391-8829-4cba-b421-854d81d8a9b1",
+        "operation_id": "93",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "ee3dea28-6952-4215-87a1-a1b7b1483b8f",
+        "operation_id": "87",
+        "parent_id": "2d0690a7-0fe8-48bd-ab00-03ec694d55fd",
+        "stage": "email"
+      },
+      {
+        "node_id": "ef2efdd6-2047-408b-b3ce-c9d61b36312e",
+        "operation_id": "9",
+        "parent_id": "9fdaf818-26fa-404d-b04c-3e340a8dd9d1",
+        "stage": "email"
+      },
+      {
+        "node_id": "ef473977-5c1a-44a1-a792-e5460a0d18a7",
+        "operation_id": "86",
+        "parent_id": "8d1dbaab-938e-4b3d-9fd9-e584fc68439f",
+        "stage": "email"
+      },
+      {
+        "node_id": "f121f4ec-003a-4eb8-973a-e4d4eb6cab68",
+        "operation_id": "66",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "f232e9c0-578a-444c-b738-8b5ec33d4dea",
+        "operation_id": "92",
+        "parent_id": "5dde6dc9-f9c5-4066-ba0a-1a1106c9fc7a",
+        "stage": "email"
+      },
+      {
+        "node_id": "f25de5c3-25e8-4a97-acaa-7fe25ed87b6d",
+        "operation_id": "73",
+        "parent_id": "0a02d9f7-5469-4ccf-885c-91ffa43a2e83",
+        "stage": "email"
+      },
+      {
+        "node_id": "f2e582a8-4880-4f5b-a7c1-d0e91cedc847",
+        "operation_id": "68",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "f54ebb0f-a597-409d-8f41-cf7335108b0f",
+        "operation_id": "29",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "f63db969-98ed-4887-a23e-57a679f75a9c",
+        "operation_id": "3",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "f6766774-336e-44b1-9f45-d815e488787d",
+        "operation_id": "90",
+        "parent_id": "95f9ae15-59d3-4207-85c9-1b7b16372ffb",
+        "stage": "email"
+      },
+      {
+        "node_id": "f9da7b26-fd12-4a23-bcb5-5088d7749bb1",
+        "operation_id": "70",
+        "parent_id": "7b352a0f-9a24-4777-8db0-602b3810c5c2",
+        "stage": "email"
+      },
+      {
+        "node_id": "fea7d497-8fa7-44ad-bdee-adef9045f5f3",
+        "operation_id": "19",
+        "parent_id": "bb4ec0d2-9454-4338-836e-56b3ea65037c",
+        "stage": "email"
+      },
+      {
+        "node_id": "ffebf6d8-758c-4417-b9d3-f3934512292a",
+        "operation_id": "11",
         "parent_id": null,
         "stage": "export"
       }
     ],
     "operations": [
+      "0",
+      "1",
+      "2",
       "3",
       "4",
       "5",
@@ -1407,53 +2416,37 @@
       "96",
       "97",
       "98",
-      "99",
-      "100",
-      "101",
-      "102"
+      "99"
     ],
     "passed": true,
     "per_operation": {
+      "0": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "1": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
       "10": {
-        "edges": [
-          [
-            "export",
-            "email",
-            1
-          ]
-        ],
-        "stages": {
-          "email": 1,
-          "export": 1
-        }
-      },
-      "100": {
-        "edges": [
-          [
-            "export",
-            "email",
-            1
-          ]
-        ],
-        "stages": {
-          "email": 1,
-          "export": 1
-        }
-      },
-      "101": {
-        "edges": [
-          [
-            "export",
-            "email",
-            1
-          ]
-        ],
-        "stages": {
-          "email": 1,
-          "export": 1
-        }
-      },
-      "102": {
         "edges": [
           [
             "export",
@@ -1571,6 +2564,19 @@
         }
       },
       "19": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "2": {
         "edges": [
           [
             "export",
@@ -2723,6 +3729,6 @@
   },
   "workflow_trace": {
     "path": "saleor-5-dbworker/task-trace.jsonl",
-    "sha256": "465c566067eacdeedc9c634c889555c5c7aa468284d0aa76b7d9a282021cbcfa"
+    "sha256": "bc96c885378ebd7331d55966ff8d302222c682866862c54e3981e2e141c5af2f"
   }
 }

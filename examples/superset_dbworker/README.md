@@ -52,9 +52,11 @@ query's ten-row aggregate against its arithmetic oracle, and both per-query and
 combined output fingerprints. This verifies returned results, not physical scan
 telemetry.
 
-The previously published full native run validates the earlier evidence format;
-the stronger worker, argument and timing evidence requires a fresh CI run. Older
-paired-callable Superset results must not be presented as native SQL Lab timings.
+The current workflow and stronger worker, argument, timing and SQL-result evidence
+passed all five repetitions per backend and independent aggregate admission in
+[GitHub Actions run 37906191421](https://github.com/zysilm/dbworker/actions/runs/37906191421)
+at source revision `18321cb73b7ea6406e29877520cac6cbc97b6403`.
+Older paired-callable Superset results must not be presented as native SQL Lab timings.
 The selected experiment covers successful asynchronous SELECT queries on SQLite.
 It does not verify PostgreSQL, task timeout/cancellation equivalence, crash recovery,
 publication failure, or atomicity across Superset's ORM and the DBWorker ledger.

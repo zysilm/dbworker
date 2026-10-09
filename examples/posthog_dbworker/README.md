@@ -38,10 +38,12 @@ warmup identities. Captured clock boundaries cover publication, all API effects,
 SMTP acceptance and both successful business stages. Final output validation
 checks native message content and MessagingRecord/user/campaign correspondence.
 
-The previous native notification-only experiment completed successfully on GitHub
-CI; its measurements remain historical and do not represent this expanded API
-workload. The current handler-based workload requires new full GitHub measurements
-before publishing scores. Provisioning keeps the complete frozen original
+The current handler-based workload passed all five repetitions per backend and
+independent aggregate admission in
+[GitHub Actions run 37906191421](https://github.com/zysilm/dbworker/actions/runs/37906191421)
+at source revision `18321cb73b7ea6406e29877520cac6cbc97b6403`.
+Earlier notification-only measurements remain historical and do not represent
+this expanded API workload. Provisioning keeps the complete frozen original
 application dependencies and verified native schema; no sliced dependency app or
 fallback model graph is used.
 

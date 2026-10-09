@@ -1,7 +1,7 @@
 {
   "backend": "dbworker",
   "capabilities": {
-    "scope": "Restricted successful unsplit folder scans; no configured workflows/AI. Any unexpected child graph fails admission.",
+    "scope": "Restricted successful unsplit API-upload scans; no configured workflows/AI. Any unexpected child graph fails admission.",
     "untested": [
       "barcode_split",
       "workflow_webhook",
@@ -15,7 +15,7 @@
     ],
     "verified": [
       "original_celery_app_and_task",
-      "original_folder_producer",
+      "original_authenticated_api_upload",
       "tracked_lifecycle",
       "signed_results",
       "real_ocr",
@@ -35,7 +35,7 @@
     "lifecycle_limits": "DBWorker has no equivalent hard timeout, cancellation or child recycling; success contract only",
     "native_application": "paperless.celery:app",
     "native_settings": {
-      "result_backend": "redis://127.0.0.1:40707/0",
+      "result_backend": "redis://127.0.0.1:57077/0",
       "result_serializer": "signed-pickle",
       "task_acks_late": false,
       "task_serializer": "signed-pickle",
@@ -57,8 +57,8 @@
       "requests": 100
     },
     "redis_aof": "everysec",
-    "submission": "original folder _consume_file producer",
-    "timing": "first original producer call through final business and scheduler completion; oracle hashing outside timer",
+    "submission": "authenticated POST /api/documents/post_document/ via native APIClient routing",
+    "timing": "first authenticated API upload through final expected business and task completion; oracle hashing outside timer",
     "warmup_documents": 2
   },
   "dataset": {
@@ -82,1332 +82,1952 @@
     },
     "python": "3.12.3"
   },
+  "measurement_window": {
+    "clock_domain": "unix_time_ns",
+    "end": {
+      "monotonic_ns": 1096804601189,
+      "timestamp_ns": 1791535989054626820,
+      "uncertainty_ns": 486
+    },
+    "schema_version": 1,
+    "start": {
+      "monotonic_ns": 1046550820881,
+      "timestamp_ns": 1791535938800846622,
+      "uncertainty_ns": 396
+    }
+  },
   "metrics": {
-    "cpu_seconds": 76.43,
-    "documents_per_second": 2.1335456602927443,
-    "observed_processes": 409,
+    "cpu_seconds": 84.46000000000001,
+    "documents_per_second": 1.989900051043141,
+    "observed_processes": 394,
     "peak_processes": 9,
-    "peak_rss_bytes": 1018785792,
+    "peak_rss_bytes": 1138806784,
     "resource_sample_interval_seconds": 0.05,
     "resource_scope": "harness, Redis, worker replacements and OCR descendants; SQLite is in-process",
     "short_lived_process_sampling_limit": "Processes born and exited between 50ms samples may be missed",
-    "wall_seconds": 46.870335076999936
+    "wall_seconds": 50.253780308
   },
   "native_execution": null,
   "repetition": 4,
   "scenario": "native_unsplit_scan_ingestion",
   "status": "passed",
+  "submitted_inputs": [
+    {
+      "argument_sha256": "30085b85399ff15e4db9e28788454df4c07a081ee598cc1977beb9fa1a815510",
+      "input_sha256": "757b312fdd760232d7eabeb45dc98b1d7bbd68392e41a0b06ac87cdf062e4cc7",
+      "operation_id": "0",
+      "task_id": "52685c2c-49e7-44a3-a7f7-056a4968c5c9"
+    },
+    {
+      "argument_sha256": "05eb2cd1679be7e69c085d7fbc8aba01ce8070f3280a201fd2fc2737448a27a0",
+      "input_sha256": "ba0b7737e764739146439a847c6ad1c241d8306a0028ae9c79367adb1d6252b1",
+      "operation_id": "1",
+      "task_id": "601d07a1-d985-45fa-9066-15d39c561289"
+    },
+    {
+      "argument_sha256": "b78edff54580c0fe1fdda60b7531fc20b32caf3dc4bba16a98dc0d1abedc3150",
+      "input_sha256": "aaf5a93e81779aedb0d0f84e950394e91a5f4104fc2deff5e83dd9acb44f9e02",
+      "operation_id": "2",
+      "task_id": "aa82c2da-1979-46c1-899d-3e41c10ebd02"
+    },
+    {
+      "argument_sha256": "97ea5b489e4381b9dd23d163449f83e9af504f34e4d0a9076d5253c44b403a49",
+      "input_sha256": "757fa5a8758a64e297e65ee248cb0c147e6741f500b72fbe9dbe31ca07f92f22",
+      "operation_id": "3",
+      "task_id": "c411ac0d-5179-487a-8945-adf92cfd8844"
+    },
+    {
+      "argument_sha256": "6b9e04c3d4f4a19d5784ecc1250b07adfa69a3a44807db970a40bea5504422fb",
+      "input_sha256": "779d9d4a80cf0a020bba56511ffb08203dcf2497eb03fd0c93c43f0365de9566",
+      "operation_id": "4",
+      "task_id": "82adc728-cac8-41ab-a983-c8d1ddd59adb"
+    },
+    {
+      "argument_sha256": "9b72f1ac479fee846edc00fa17a1bb6343a19543a917bba6456ada8faf91bf2d",
+      "input_sha256": "983a6cf5efafc92b01f527b0e2d4371246f314d55257261b4d35f9f7b32e36b0",
+      "operation_id": "5",
+      "task_id": "f430fe45-c336-4482-9700-9aefeebaddf2"
+    },
+    {
+      "argument_sha256": "73728844c329ea19022a294fad3c03ac3ffe6e2070364d46c8670a0a0a3c004c",
+      "input_sha256": "c77b5ad91b620bab785d23eb97ad8ad98691ba098e7b0f15afb2823d7fd79927",
+      "operation_id": "6",
+      "task_id": "41111b62-0a91-4e61-99ac-ba4f69bf8ab4"
+    },
+    {
+      "argument_sha256": "b21bbdb086661f0ee11c00424c0cd1ce19ddc9da8a6abd664119051f70b26e7c",
+      "input_sha256": "2a27f4ff5728093984cc671797d1516f809d3980e164a221276a6d3c08f9b672",
+      "operation_id": "7",
+      "task_id": "9c2f5982-c41c-4487-97ad-91cb8eccf6dd"
+    },
+    {
+      "argument_sha256": "fc51d3cff72c25db99fbbd444c1783898cd3d43484494ca38bf4698d55ae7100",
+      "input_sha256": "0c2e4af9ca6778cd0955c3b695f02cf7ca650be1618a0fceae14c849d78e35f5",
+      "operation_id": "8",
+      "task_id": "5ac6468d-e291-4472-b3be-d763f01773c0"
+    },
+    {
+      "argument_sha256": "4a171a2ea2793ff719b31d73fe5c63e571cfe1cdc541eb5ee0c5aeee18ad7028",
+      "input_sha256": "46427ff0277c8e916b1bcb604be3bc59435dd2d2de94be2266dddaaf8dbd20a4",
+      "operation_id": "9",
+      "task_id": "1fe48895-6bb9-49fb-b1bc-a671e3d60057"
+    },
+    {
+      "argument_sha256": "0521b0c5f5f7fbe8348c51e59d74fd97ea54758c707b856d5f8bb63047205bfb",
+      "input_sha256": "9f707c22877885fb958a8b57160b27776d824a003f28d8019b3b398a6caa8b2c",
+      "operation_id": "10",
+      "task_id": "f5469459-fe06-42b0-a47e-8a3d234be8fd"
+    },
+    {
+      "argument_sha256": "f958bf6c0d508cb8e7d5fe82510ab61a938b0b774fcb894c88b9c93ca0e3c95d",
+      "input_sha256": "c1501df2949d8423cdef670818860153ec71f4be32f409686281a6ae3f109bb0",
+      "operation_id": "11",
+      "task_id": "40773438-c738-449d-8499-3c2b17b4ace6"
+    },
+    {
+      "argument_sha256": "9ace290ff3bddf2cad1d68d95f0827c182adcf1f05d8e93d8782d3a443ce4129",
+      "input_sha256": "962f95d980d8e00703a0930cbf16d92a50e178612eb861a33f75cb34bf3061cc",
+      "operation_id": "12",
+      "task_id": "15ae61c9-ef32-4a9b-a410-c69b2c9e6557"
+    },
+    {
+      "argument_sha256": "f5536740fdc2315bbad2459d96b0349bc7bd0b7a925b7cef1cf49ea9cf2dbf98",
+      "input_sha256": "901a67dca4543f486391cccfd069596d411ed5b67e84ead141a20874111b7eaf",
+      "operation_id": "13",
+      "task_id": "33d3c330-807f-437b-b81a-8705e5dd6ffd"
+    },
+    {
+      "argument_sha256": "e6405452b4c1b964980b075bc84c3362f5511d7ec7480a000728b24b4b13caa9",
+      "input_sha256": "1ffedfc0fa39c8b65561a0f5b38f3e51acc56d83ab8520a06640587b47a5aca8",
+      "operation_id": "14",
+      "task_id": "804d0268-39b1-4884-8cff-422689f09d8c"
+    },
+    {
+      "argument_sha256": "b46b0c5936c9cd3bb1d3654add0768d00d5afe99e6b752e7a3d60efcf6c27579",
+      "input_sha256": "97608e8fd12643a805037089d2bacc0dc7a3d8d809b26948d9a8f63757dcb05d",
+      "operation_id": "15",
+      "task_id": "fb030df7-3726-4805-ba68-d71795bcbfd3"
+    },
+    {
+      "argument_sha256": "5090ce164d5d0cf6cb8ddf85151f1277b44ef886238eb767e57d58e164065160",
+      "input_sha256": "2590da07a9a5d32b8b44285aa5d54254008074adec35aec42f55cc0bc9f6a9e2",
+      "operation_id": "16",
+      "task_id": "790a060b-31ec-4caa-8162-d008e2b96fcd"
+    },
+    {
+      "argument_sha256": "a6151ea0f5035d22508174be43e7f53abf8a8ffc7c59cee5a91723d8d1d4a702",
+      "input_sha256": "453829359a4658a5d3a9b719a16395408bd9d542fcf9f9bf0473a48ceb7c6bcc",
+      "operation_id": "17",
+      "task_id": "51b2f99f-8749-436d-93a5-60c8b19c5478"
+    },
+    {
+      "argument_sha256": "3412404fcbaa9667f69115daf684bab7ebbba26a0329e65e765b579a6d538e42",
+      "input_sha256": "19cdf45c18216475e5d2dceb4bd07d9d22529a9e4b489ecc182b9635585e2619",
+      "operation_id": "18",
+      "task_id": "7a34f230-377e-4f11-b996-d529e219d43b"
+    },
+    {
+      "argument_sha256": "5c0f69ee8db7e26a56765593d052fcbed92c73811471b1849825fe5f16e7552c",
+      "input_sha256": "ac1faa0973e9fa62e632ed116c3b0a6620a4dff4927c3216874c275148bd6c4e",
+      "operation_id": "19",
+      "task_id": "108d531b-fe1d-44de-b1e4-0db5e722ed08"
+    },
+    {
+      "argument_sha256": "a38aa7dd0cd30e915a3f6ee3df17bba74fe9f2c1cf17ad2f4808a411ec05d2dd",
+      "input_sha256": "093fd2ae9aa8b66a3ce3f1e069486f9d9e714489f3301b4354c029e86b12d83f",
+      "operation_id": "20",
+      "task_id": "ee26ffdf-89a2-4a17-b542-77c472b42418"
+    },
+    {
+      "argument_sha256": "06c5c1b2204b40818c7ca3f73075d8eb2b047d47b1c7047d87bdd80ba75d7fe1",
+      "input_sha256": "2033ed20748232a2d979dbfeb2ffdbf0eec95458961217c7f893b6c6495d3d38",
+      "operation_id": "21",
+      "task_id": "fea1ca51-8d26-4c68-a285-f16d2daaaa87"
+    },
+    {
+      "argument_sha256": "1aa3541895d20adf68769c48a808b9fdc11be582303f4f3bc4224981e4382e95",
+      "input_sha256": "33ce460324ab73e414e7f5e1f8630d1074fd0feabbe24a882b4654c04e1aa673",
+      "operation_id": "22",
+      "task_id": "76c53604-4169-4089-ae1e-8b31dadc504d"
+    },
+    {
+      "argument_sha256": "96dd89613d479d79f87eaf6a195548f7ef65f275a416e610cf060248362cceeb",
+      "input_sha256": "a67fe08a1f75cd1c94bb0e3b83d03b2f4751512414cd6bd82d67a5aca831f7de",
+      "operation_id": "23",
+      "task_id": "dc1a65bc-2217-4855-85bf-89e8cd464150"
+    },
+    {
+      "argument_sha256": "565e25d52fb90fffac1ca3a6aa77c4df579665858d57cf9a2897f0937fb0a22c",
+      "input_sha256": "735a205a5ef51f7a88e37afc36436a475e286446d9c856d2e2f29ba63ba31875",
+      "operation_id": "24",
+      "task_id": "a6630e01-1149-4f96-b9b1-6acd9c971fbe"
+    },
+    {
+      "argument_sha256": "f3f0044155c5c59b32b56bd41ce28db8ec3417dfb2636c5c258b5608f023dbb1",
+      "input_sha256": "6dff42d49e06f665381417e52baf21c1429e126131a30e3ed12eefda58fa09a5",
+      "operation_id": "25",
+      "task_id": "a39f58c1-709a-49d8-93c3-929634d57d79"
+    },
+    {
+      "argument_sha256": "a037b52a407db4cf4419f72731aabb1941ed161f109919ee94a26dd384773884",
+      "input_sha256": "67c4c1368a5c60bc89b8f2802a971f2065197766c9fc272bc33866a60230d6d3",
+      "operation_id": "26",
+      "task_id": "5713415b-4c51-4151-81d1-fa1d631c0b99"
+    },
+    {
+      "argument_sha256": "a087012f71f697d41df3637ac436f5e7534536645124de62e665811e148b6029",
+      "input_sha256": "c7ce0e2de9b5d32cf4e8356d3bf0819cd3e463889029943cf95599def9167693",
+      "operation_id": "27",
+      "task_id": "1c041dbf-fcfe-4fff-b5c8-1cb6b39647d6"
+    },
+    {
+      "argument_sha256": "e34e82bc75ff3911e940905714d38042f5604d48856a3cf5b1025708e3f81235",
+      "input_sha256": "301a35b088880b474e3f17d783dc66b0256f09c3bfc84e8d5f0b4ccf1ea84b00",
+      "operation_id": "28",
+      "task_id": "d6666552-b221-4f5c-bd10-cc1df8868422"
+    },
+    {
+      "argument_sha256": "e3820bff15d901ccdb5f0e9168fffb378f8ddd3f9d006669f005c5007341194f",
+      "input_sha256": "4323f64b8de2a1d04daad6e5e3642f69cec32ce5e711265f58b674b58d36a9e1",
+      "operation_id": "29",
+      "task_id": "3b001dc8-25e5-48d3-8d32-c02f042b34c5"
+    },
+    {
+      "argument_sha256": "174a5ffae6bf06ca27009030c2cb0aba7ea11db1351f7336091851cb6cd9ff29",
+      "input_sha256": "4d46a36ce7f306475a33c676b1a04b111112da9b04b8f1ffe943cbb987c83bb9",
+      "operation_id": "30",
+      "task_id": "d0ebc9c0-0b7b-4b38-8628-ce4e2b35b0ba"
+    },
+    {
+      "argument_sha256": "5164a98e6aeee50836ac0f0b29150e30fad3db9eafbccbbea9441a0904506204",
+      "input_sha256": "03f047c68b39921414f3842735738048db6618d6a35891a688f36fb1244a1ad6",
+      "operation_id": "31",
+      "task_id": "49f1dbe2-66da-4a90-a8d3-efceeef030fc"
+    },
+    {
+      "argument_sha256": "189fa8878998cb36ca1a3217187303f7737eded4045e83699a2e69df4394c78f",
+      "input_sha256": "18960f8b0c98a663bd3e6d0bacc11c63b1541bf3e902430556624eeab51e608e",
+      "operation_id": "32",
+      "task_id": "b65efac7-4be1-4d0e-8b59-742b1bb34300"
+    },
+    {
+      "argument_sha256": "33e4ec48ea565cdc2257c79251c8bdeba6a65e8129420d7bf00a1c149b442f56",
+      "input_sha256": "9a64eeadff698db7cfd07886b47d45256f1b3f351e0301c2171bd152662c3350",
+      "operation_id": "33",
+      "task_id": "fdf00758-7b6b-4d10-ac3b-ce8e8bd5963f"
+    },
+    {
+      "argument_sha256": "5c72a8e925499b20657fdccb6ec94bb8c9c412f0b7b5126a2ba0af6f25fd3950",
+      "input_sha256": "706fa88bebcf5e0a02f66adfb3be03cefb0de9f487e3be0c112b29aa505a8e62",
+      "operation_id": "34",
+      "task_id": "7079c048-71b1-43f2-ae46-ca16ebf3e12c"
+    },
+    {
+      "argument_sha256": "9c6bb234b875432a2599f62f71ccad81855b2a384b817965ecadbf442da7749e",
+      "input_sha256": "3b50cd86fa155dff0814148e06ab881ace8acea8878c8538708d508ac3e315af",
+      "operation_id": "35",
+      "task_id": "174533d6-03eb-46ce-8fad-af8f5bba9cd9"
+    },
+    {
+      "argument_sha256": "379875a9ec7566cacb77504861723d6b9c4327c5d145ac5076fc5feac27edfe6",
+      "input_sha256": "507b569031e9ce37e9c8bd3ceec2174711373e7304124ccb806f1e4ddf051076",
+      "operation_id": "36",
+      "task_id": "a3507295-ced7-48f7-86d0-a9f0a4a9862c"
+    },
+    {
+      "argument_sha256": "b00b15ddbda844e400bf54657caef1e4ab202620cb7323114ce0d1f1978d879f",
+      "input_sha256": "8da9f8dfc17ec2103493435977703e1fd3c3e87ecd7c80c327c31ebde9cd4540",
+      "operation_id": "37",
+      "task_id": "246e578f-8427-4633-b097-26decbb9536f"
+    },
+    {
+      "argument_sha256": "72ff8eff6ad3657d36c0ef1f07cd4307efd73202fa4b92e5a340bf4f0bacb5b5",
+      "input_sha256": "8fb12c5c797de8736960c9a0cb1058241aa0ef0d0f2ce64754d4fabeb8024be3",
+      "operation_id": "38",
+      "task_id": "60d33109-0bab-473b-a387-c48cabeaf901"
+    },
+    {
+      "argument_sha256": "21fd7945176b41f4d0d2834d9f6e45f7b54459378afd06ebaa84ba98aa64dde8",
+      "input_sha256": "d134f3f003fff2eee0bf15d57c2da4bd310d51014479b3f6575469358ef3a6a1",
+      "operation_id": "39",
+      "task_id": "fb399a49-71e9-4d85-855a-08f3952c3e42"
+    },
+    {
+      "argument_sha256": "91809ca9663920a435e9ddb849d49607dce9886e1058297be05d7e456472e407",
+      "input_sha256": "a2f3a5b0acc6500db9972fe26376451c9e5b00cfce47d34af3c22b0e37ae3925",
+      "operation_id": "40",
+      "task_id": "6e26866b-17c5-423b-9fdc-0b54f7fc6294"
+    },
+    {
+      "argument_sha256": "d08b0b0c1cd2e25d132681e84572dc83bda9dd06e49e92bd4ff65e256536ee49",
+      "input_sha256": "41a86d5be9bafc5b0bc8c5a77efacbba657ea516cf9c10e8455f01023a7ae369",
+      "operation_id": "41",
+      "task_id": "ef8daa8d-aaed-4957-84e4-dfe79718b51b"
+    },
+    {
+      "argument_sha256": "32e9b6cca4dac978a8967851591a47d0de269beb81ed640cb4cf25c139d048be",
+      "input_sha256": "d7c23eb3cfd9dff8b3ebcc359152af093e87deb24af31ee7ffc8e8100fdeb8f3",
+      "operation_id": "42",
+      "task_id": "57c44d2b-35f9-46a2-913a-5d685b133438"
+    },
+    {
+      "argument_sha256": "71ee4943063f7bad8e0ea605d27b13abd2d0142972e53b4ef155673a7bf02aa6",
+      "input_sha256": "6967e0555e42241f714752eb70dc55bf9e513f22c3ca541acece0816b7e55c36",
+      "operation_id": "43",
+      "task_id": "dcda5eff-b062-4a66-bcc7-a5944c4681e0"
+    },
+    {
+      "argument_sha256": "e1008b8aa0f8c3e05dbe23441a536cb3537fbbffd452cd5e579ce068fd1640d2",
+      "input_sha256": "c557e65b83e87b6ce9960d45bb87a336615f91a693558c079aa2f1fde27e29c9",
+      "operation_id": "44",
+      "task_id": "811a75aa-2ae0-4e27-b950-26ee0f99769f"
+    },
+    {
+      "argument_sha256": "7f538adaa8f05787a1c92e24e7ea2a57312d9cd080127101bffa8f07697de039",
+      "input_sha256": "21917f4e2e559dcdf2248eff7d7ceacfecd47dff2c1cad964bf961f4dd9c8c62",
+      "operation_id": "45",
+      "task_id": "8520be38-eb5e-460c-9d73-f5711e15be33"
+    },
+    {
+      "argument_sha256": "e5a7c6e47034190c216b73c862363b0cfb50f12247dffd683919b5995fd7e495",
+      "input_sha256": "bb47d4ec1da3c2b987b00194c1f840308e7b6d7ee810d21b07bbb22fbefb6309",
+      "operation_id": "46",
+      "task_id": "d9fbfefd-6296-4300-a5d1-43ee6bce454e"
+    },
+    {
+      "argument_sha256": "f5940e6855497d6a6c39f4b0dd05a3dea4e94de8c07384a352ae3a356b1cabc9",
+      "input_sha256": "76783fc9588a9bc71c506d83352215af176c035e375839544abf2f986372f50a",
+      "operation_id": "47",
+      "task_id": "9945fddb-6f96-4b26-8e05-aa866f7c7eb5"
+    },
+    {
+      "argument_sha256": "a44653f50a8487f2d8b59eb6ea279bb6cb9aa74da3cd7b29904ed97879da0ed8",
+      "input_sha256": "bfc543499ebf122f04e244b965cb931986c043feb7a1d199bd2b2c96a6f862bf",
+      "operation_id": "48",
+      "task_id": "d9ee8381-adc2-49ce-92a7-fffbcefdae83"
+    },
+    {
+      "argument_sha256": "8a1bde6aa93725142cb5315503a9b997678a39087eb7ce375fce46a4f90e79e0",
+      "input_sha256": "05b5ac530ae5154b395703c70cf57550913bd5380160760826306f27b9d6616f",
+      "operation_id": "49",
+      "task_id": "f414ece6-4385-4af7-8adc-cdd1d9f91689"
+    },
+    {
+      "argument_sha256": "fb6e3e6d58ace8bd43328061e75b4056d014813012145a27cc2d101c6b4d1d84",
+      "input_sha256": "580c4cdd33f324f33c6f2f751d3bc3b8454d7b9ee1ab66e4308cb4767c234535",
+      "operation_id": "50",
+      "task_id": "c0216aa6-e58a-43f4-aab5-136b4c9ae1e5"
+    },
+    {
+      "argument_sha256": "932d739b8e8d3f2dcf7b99158199b916a98fd5723ecc54cdb7030f132a1c52ac",
+      "input_sha256": "85f0fd8d25ddb89013fc6a416f36e82e1a351e141b728bc02aa74aebc06780c3",
+      "operation_id": "51",
+      "task_id": "aa06e21b-e70b-40d9-846c-5f533200254b"
+    },
+    {
+      "argument_sha256": "10158b143099fd0ffece6be486e1dede95fae0a82d2913d14ad08fa5a4d906d7",
+      "input_sha256": "a8ab04828f7b950c5b90619dbfc4d2d8251571d974a53de3ce88dceb29640bfa",
+      "operation_id": "52",
+      "task_id": "7e6a948d-9ea9-4e4e-9948-457b5c3d7937"
+    },
+    {
+      "argument_sha256": "96283a223d548cbf1b87d5c4e03c586d794cd9893c9e4aae765d917900ecb0d2",
+      "input_sha256": "6b05b1a96b26e3c77a2c3b9870d74342ab3f466bc319c79952248a5c4b472278",
+      "operation_id": "53",
+      "task_id": "9ceb9a22-8d0e-4e1c-9236-8a88aa7538c6"
+    },
+    {
+      "argument_sha256": "0afa1900299037800b86e3341af7451932d7377595ba53299ebe8ca5c710caf0",
+      "input_sha256": "0a15ae830e01ed0c1573e3c3a3085ab392e5ccfd8f9eea916529f58865c443fd",
+      "operation_id": "54",
+      "task_id": "7891b34b-68dc-4a32-9ea5-e4e355bab2f1"
+    },
+    {
+      "argument_sha256": "c0178c221fcbce4e451a66bc574cc07d809358d0a835679e754e557598123b30",
+      "input_sha256": "d714aadc5b240862d4d0b55f25050ec6556ece26497afe8ab0cd67038ead0455",
+      "operation_id": "55",
+      "task_id": "1cd6a1dc-c459-48b4-a973-f55eb2356987"
+    },
+    {
+      "argument_sha256": "ea461140bed8b4eb9de7bd07517548056429ee92cb29839da6c92d45e2d03e97",
+      "input_sha256": "de42b38c065f74578fd52891b30aa91ab0e098113951233055c2adefc33cd1f7",
+      "operation_id": "56",
+      "task_id": "e75cc771-28dd-415d-be75-5bec04af4a4d"
+    },
+    {
+      "argument_sha256": "9f03cb48d4a0f44e605cabc9a651d6a64795452911756ddf16bb015ae4041218",
+      "input_sha256": "1eedd901792432df6c9daeb81b82b3e167559dc0c5b363c882e961ea88a02a84",
+      "operation_id": "57",
+      "task_id": "3901af42-b64e-442e-a63e-dfd00a4d055c"
+    },
+    {
+      "argument_sha256": "670e3b5afbf3af1e1501e1850cb16d319e734bd625e8fcfbb4e7660e7f654081",
+      "input_sha256": "48cc39f98372d0bd16e801afee4d3a429dad81793bce62a89a22b0672480b973",
+      "operation_id": "58",
+      "task_id": "86dab63a-fa08-4d33-a481-0bcefbfe16f9"
+    },
+    {
+      "argument_sha256": "a594ae3e21c58d33a06e3ffad44d835bee33d2c816d7ed600eea7bdf5e5c1691",
+      "input_sha256": "52208abe5bf0b1151fb4902b553818df2343badc19d372644b13bac07370ae7c",
+      "operation_id": "59",
+      "task_id": "7ae927c4-1d48-4137-b2b8-2787181bd6fa"
+    },
+    {
+      "argument_sha256": "8714f71945e33435ac8c76caabd34c5270d13d44b3acba58e0bc10a21dfe0577",
+      "input_sha256": "c04be326019aa4c80fd43922f24ce38edf5c238e97428db2c8ac5e95482b760b",
+      "operation_id": "60",
+      "task_id": "692d83e1-00b1-468b-b441-04e966895b53"
+    },
+    {
+      "argument_sha256": "bfbc66e8d17e762ea21cb02b65d59a7e085b3a969d233be40e0cd5062f57ca3d",
+      "input_sha256": "4a09eb8cdc02180a6628f87885b130284211ab1b5857e1c34cc2cf0cd4b1c6c6",
+      "operation_id": "61",
+      "task_id": "201f3e18-f37b-4fa3-b7a4-6dde634db5c9"
+    },
+    {
+      "argument_sha256": "e607419c6f1f1c397871dec044802768134d994679e36d63026f402e2c2906a7",
+      "input_sha256": "297bb8ada1d00f84775e688cc19a027f9c27bdb541c426e08584bc6a104d64bd",
+      "operation_id": "62",
+      "task_id": "42fb209e-6a45-46d8-8c98-0a2351c49830"
+    },
+    {
+      "argument_sha256": "c6a8c8a5b0b0a44d3904ec1c3bd86419f28dfa309bee12606ad52f2e6b4bf77a",
+      "input_sha256": "bafe62da0dbe63f4db04da5f2b9fe2e5b5d8b9c65e85e44e70ffbe9a5fc29eb7",
+      "operation_id": "63",
+      "task_id": "5dc322ac-3ea5-4b52-80fd-d244740bceba"
+    },
+    {
+      "argument_sha256": "e760c9409fb0b15439a1d905835ac7b8b173be7b9f792ee67a06da1e8a59baa7",
+      "input_sha256": "72c4bc77691401c5fa6b066eb3f08da70412bc8785006b630234e5c4bfd864a2",
+      "operation_id": "64",
+      "task_id": "701e5fe2-9a54-4470-b65a-3ac584bfeaa2"
+    },
+    {
+      "argument_sha256": "206d3912020e8f798df87b6884e1f94b876a704e634392623d68936b15c887ca",
+      "input_sha256": "41d7319ab35f5b8307c7745a00fa36f9bfdc76a226617e1d222d41783f2b342e",
+      "operation_id": "65",
+      "task_id": "0028bccc-d01a-4e0f-bd68-9b1c3f8a2396"
+    },
+    {
+      "argument_sha256": "760a4b0432426b53b8dbb310fb17ee48b6e4f4871b6c8f19e8b4126f9bfd17ae",
+      "input_sha256": "3964be65f57da0d0a8c96d4d1d8045fd82c6f0422323e4f6f43f5013aca5fa28",
+      "operation_id": "66",
+      "task_id": "fd23b01f-1673-4858-95f3-dfe85e0345d2"
+    },
+    {
+      "argument_sha256": "3237130c1ea67afc87320fc8059890a58ef0dacac19a7983afc5fa9ef364d214",
+      "input_sha256": "091ba7aecea0c081ac858ffec0bc721c6f0304429f80da2a48ef45a619a4959f",
+      "operation_id": "67",
+      "task_id": "17dc60bc-95e6-4bd7-98d5-d2935b52f5b2"
+    },
+    {
+      "argument_sha256": "98a9fbadf990f7dc845bab65422f7aa7c7392c4cc34d9866784c4de9ba107215",
+      "input_sha256": "e16ac0a431b4cfe80bfacf8c99b39cb52264794c0709f70acab313bd997711b7",
+      "operation_id": "68",
+      "task_id": "e39d7280-b686-48a3-b8b6-12295690d13e"
+    },
+    {
+      "argument_sha256": "1745a984f30c0fb60d9d50a8fa930b89bdf9d9f0c677e745d8f88a42a3f76748",
+      "input_sha256": "bb5a59c2444a657322b455d374689d0db38de945a6f57cc2dddd7b0069577a9c",
+      "operation_id": "69",
+      "task_id": "062eb9cd-60b3-4e17-a7ae-f3b14f181012"
+    },
+    {
+      "argument_sha256": "ba9dc5bcd8392ef0d17f213a0f12536ccb1a7553ac22c0e55b70a9adc2d8c73b",
+      "input_sha256": "a82e891fe089c8c93526d2267590fc385cc33a0d85ad6dabf264d128be6b0850",
+      "operation_id": "70",
+      "task_id": "8837847d-57d6-46a0-a796-44276acaf870"
+    },
+    {
+      "argument_sha256": "3a8ecd1e75c5cd2f0344c1cf185e3bba061b6811def0841a7aa32f5165736df1",
+      "input_sha256": "c1ae5cb0c34f15da6502086423137ec42d9eb4fc5548811d2cf856a4f57d5979",
+      "operation_id": "71",
+      "task_id": "4e8b4573-82a3-4a72-a0fb-56135777038b"
+    },
+    {
+      "argument_sha256": "52f4ebe518de3cebcab3d99a5cf8941f0a51ff3c7e332cb5c9ca28e0cd6f5e93",
+      "input_sha256": "cab1b8a9f203ec0df2a717b65d66775eb823332cf5da5b7f680d10a5b7b7db9b",
+      "operation_id": "72",
+      "task_id": "0c2c6af6-c32e-49eb-a44d-beb12df7cc90"
+    },
+    {
+      "argument_sha256": "3dc02c00f402c9b346cfbb99c517fb3dc0da9ac71fe9f8cf9b5d2c37fe6fb83c",
+      "input_sha256": "28374a4417f69b6ed609e64673a007c4ad7ae623744a7b1865cdbf41c54c12a0",
+      "operation_id": "73",
+      "task_id": "a362ebca-847e-4205-a37a-e5397ff9afc5"
+    },
+    {
+      "argument_sha256": "69b7cb51c6f08dd108a21665ccbd072d67bc114c3cd7bbb61687542182751122",
+      "input_sha256": "9d1a503c69978b78ca4a15d28fe32475d14253fdcd08561f55192f8df1e0e38c",
+      "operation_id": "74",
+      "task_id": "47d9bee9-d19b-420e-8445-a86864f870c9"
+    },
+    {
+      "argument_sha256": "8ec71b5f04ecbd86aaf5f1fc43dfa918b5fc6fafbddc9f6a237624e879aad19d",
+      "input_sha256": "9bd0b89113614eca5bdf49873987d1e7503c4aa915268ed4c9475ce5ec8211ec",
+      "operation_id": "75",
+      "task_id": "18e0f46d-0ca5-4f3d-bf36-500a2f7e81e7"
+    },
+    {
+      "argument_sha256": "24c9970c56a6eda30f7d22d7f2bbaad70e0118bc160c9069839b2e2494e57c91",
+      "input_sha256": "398ab537b9471f7ec46de79751825dfef94742b471cc7143708d2707435f2a25",
+      "operation_id": "76",
+      "task_id": "441b0d49-2b0b-4c8a-bd48-321998efdf69"
+    },
+    {
+      "argument_sha256": "01934fa1f8cec8cdccd95bc38e6ffb4a028d23e164c812d88eb908f5f1d6974f",
+      "input_sha256": "012d5672845bb96140530f68ae4e6a47239be1113315509750c68cef3921c3ed",
+      "operation_id": "77",
+      "task_id": "050ecac2-aa35-4984-afd3-25c609777db0"
+    },
+    {
+      "argument_sha256": "3195bdd8a1fd46acbaa0724df80c527cf54a5fc4956d6981bc757b5b64fa4b77",
+      "input_sha256": "0dcb5f86a3356b6ca07b51b76c7497a5edc1358d6a2f861a4ceed6e97d872665",
+      "operation_id": "78",
+      "task_id": "b3cfd13f-8d22-4ed8-9400-e2e9a567e984"
+    },
+    {
+      "argument_sha256": "ed016841c712f642827adc726b28c80c2537c5bf38871e8284223707687348d4",
+      "input_sha256": "f48931434f9855ebab0b69bbc5b0157235932ef99356e8a035d383a377f5a236",
+      "operation_id": "79",
+      "task_id": "b9f3185f-40f1-48bc-bc47-4d87b76c968c"
+    },
+    {
+      "argument_sha256": "4a3682293884b42876cf3bf7a088fb437448c3f9c56e21ce56667deb18b2f0ae",
+      "input_sha256": "68da02b698bf21d14779c558049cf4a5571559d77f1c33ac1c314ef68ef926ca",
+      "operation_id": "80",
+      "task_id": "21a8cf60-1a17-4622-b4af-3cc3846d7786"
+    },
+    {
+      "argument_sha256": "e2e0bbde1e0bf80d69030d74b5e70184aafdbc9ae7c8d825c5e676011e081a19",
+      "input_sha256": "75bf17a6e2be100ba224965e4d3fecaf965b0db73b69166afebcce32b94ac979",
+      "operation_id": "81",
+      "task_id": "1f121a2c-b4c8-40b9-808e-848399fb495b"
+    },
+    {
+      "argument_sha256": "eab6068dd686f244813f2127162d30b1d2e49d3dff6153c43a5c30e54d5a7ef8",
+      "input_sha256": "3beff8edd808d15c63219d79c4e2814db6baf465089030bbfcd8c1c47142e4af",
+      "operation_id": "82",
+      "task_id": "d53f6829-dfbc-4ffd-8ff7-eb5b22cebd95"
+    },
+    {
+      "argument_sha256": "129cf9baafbe28c86e3ea338c9371e5670424d4dd389e0f03671ef2bebe2f107",
+      "input_sha256": "aaba733f5430ecf02f7e960d632de9faee2b802188544873e4b11cbdf0099234",
+      "operation_id": "83",
+      "task_id": "5f1800be-d753-470b-8214-7a92dc7a0c64"
+    },
+    {
+      "argument_sha256": "64f4ca9a193b40938010fe27e3b87c335557cd1b99772f853e248ef2ab140cbc",
+      "input_sha256": "56e3d518d7c4551ee3a4288784bf3f8df27b35e4054dbf6c4a621edaeca937a9",
+      "operation_id": "84",
+      "task_id": "7425304a-90db-47fa-99db-c7ad398eb5f6"
+    },
+    {
+      "argument_sha256": "b7e33c6a443e6c4f6b846bb2a8770359fa6b2b9c0f262e9cbe4ab7c6ee9bc167",
+      "input_sha256": "edccbd3bd883dac68574c21b0dfa3e697dce02d13e6d884cc23f8222a8c0ad32",
+      "operation_id": "85",
+      "task_id": "8dab5188-4592-4b05-ad5a-8c45fa316141"
+    },
+    {
+      "argument_sha256": "4f5aac01f4b645f6d53e67f986ec1f1d9208508e4c32eb07a2e737e44af2ea7a",
+      "input_sha256": "4578fdedb197629b2df1de3b7296f81a23fb06f2b7995ef54fc398fd86d3c1ae",
+      "operation_id": "86",
+      "task_id": "601290fe-8633-4b72-aff4-e72e7a0d6b17"
+    },
+    {
+      "argument_sha256": "e366e62aba268d0f85561798bfd74d21a27507efacd25550e9d3375de693d1d0",
+      "input_sha256": "90a7f3f77b34c109e56755cc84b7e67669515e991b30f969114c5aafb88e7952",
+      "operation_id": "87",
+      "task_id": "30b10cb6-0b32-42ff-ad0e-6adb9b32b6d7"
+    },
+    {
+      "argument_sha256": "7c1cdf17f25022449f331efb9832a484d8548924f42b4dd4d35ceb294dff6a14",
+      "input_sha256": "53938b6cbd5e53b70ad1ba6f3d7208100b91d092c4780325d43a3b914c09636c",
+      "operation_id": "88",
+      "task_id": "df128dd8-efa9-4506-bed8-2664a635e155"
+    },
+    {
+      "argument_sha256": "2a5e07fdbdb2776aafa897f13a8ae064f9cab7b81ecc98293f12bad80739ed67",
+      "input_sha256": "fa5dd0cf755a9b29b16ad1b159f74a06e63ae2defb18b672c1b099393e9a316a",
+      "operation_id": "89",
+      "task_id": "00f81ab7-cc5f-4dd0-bf59-d0c32bcf8908"
+    },
+    {
+      "argument_sha256": "576e234f4dc7e338b2fd5682b3001a694987ff08785bfb0f2a5f0af71b490c2c",
+      "input_sha256": "773c650c934393b7313fbfd2f41d33f2cf760b177a59b966d4c78522a83b6450",
+      "operation_id": "90",
+      "task_id": "79cd7ea6-29b7-49cd-8947-a5dab1581693"
+    },
+    {
+      "argument_sha256": "788e81f95651bffd56a7b8daa214b89e9c79b987bbf03b3b50c34f83a963457c",
+      "input_sha256": "55f5bf3f42a5381b9f5beca9bd2585e4f5cbba76f9210f13c4c97cc82c8606a0",
+      "operation_id": "91",
+      "task_id": "fa8eaf85-44c4-434e-8969-e761632ecfb2"
+    },
+    {
+      "argument_sha256": "4468a6fc59e7791cb917e0d792170db95d1e55e4364fc096bd06c8fd5bca8e98",
+      "input_sha256": "0d8439086be12123cda875c8225ddc814516f3944c058e4e4b179844ddc01182",
+      "operation_id": "92",
+      "task_id": "c668ddfc-95fb-4a81-970a-122f937e6d5a"
+    },
+    {
+      "argument_sha256": "4ca9479efbeaf257f662e173d1d91b795b591c92056cd07f0b2c66d4ea908bf8",
+      "input_sha256": "94c3cc24bdc4c6c7aa7e0c94515c707c4d7f3cacff7633db8edb3e9e5b9e12a9",
+      "operation_id": "93",
+      "task_id": "0155ebf0-462d-4fa1-83a6-9507e1e408c0"
+    },
+    {
+      "argument_sha256": "fda491b6785e6f21489d1270e54b45ae43db30ad1d20823b12f8d12646f8cea3",
+      "input_sha256": "76c447d1ea7c385e2cc282c4d0dcc6e947050b0be2e2d4f27dd328bac180e399",
+      "operation_id": "94",
+      "task_id": "08781045-dc24-4c12-8689-77639caf448b"
+    },
+    {
+      "argument_sha256": "4a5126f3c24b9588486bf79bf670445416a5a74d778b551a047d41fd27eec7a0",
+      "input_sha256": "f95a72c6ef879a92f59984480ccb928c7717f1a8c0caa1caceb1680bf136c8cd",
+      "operation_id": "95",
+      "task_id": "615a48e8-ef81-48da-9e9b-e58eba4b640c"
+    },
+    {
+      "argument_sha256": "48d2e2f36a2a449ebb98c5d2e1c5924828888536d5a64a6b63e5c611167a5b72",
+      "input_sha256": "4f32600cd90582089373584aced9fa994ab63184dc20d96b110089577914f68c",
+      "operation_id": "96",
+      "task_id": "489c09ee-1ecb-4602-9755-7a542f88f4ab"
+    },
+    {
+      "argument_sha256": "636571a263893f1690800ae9cdb14689d033393b918fce6caf3abfc2b41f0731",
+      "input_sha256": "5c035ceebc550849f655d129fea8098af771dcce0279c5fea3c47e634b38e542",
+      "operation_id": "97",
+      "task_id": "001248de-78e3-4444-a4de-989fc544caeb"
+    },
+    {
+      "argument_sha256": "a0144d0b8137166ccddf2bc801483cb749429d6859c6061debd593abeb2b9b90",
+      "input_sha256": "ea09f3e85f959d5f98d09a51ee189e48fdcd0fe3ef4dc0ef73724168686b5822",
+      "operation_id": "98",
+      "task_id": "8204cf0d-6c2c-47ab-877c-126af1067b4c"
+    },
+    {
+      "argument_sha256": "39df9aecad4c545403a6d0fb207f2d212c97d81c83b5c51ac2c2e4092c1f5cdb",
+      "input_sha256": "b2e85fb3ff83560e25b3d911820e75489e3d847ab67ce93c618cf28aeb80444d",
+      "operation_id": "99",
+      "task_id": "0281d643-11ed-4afe-b8f4-ea26de7b7dba"
+    }
+  ],
   "validation": {
     "documents": 100,
     "native_lifecycle": true,
-    "output_digest": "978a91ac1e0d9fbe32c438cc13e8b7bd812f5b8ed354767eeb5d771fa40b34fc",
+    "output_digest": "554933c670447a1349847c91b10d7418b55cc19b89cfb6056a3b716b675a6847",
     "passed": true
   },
+  "warmup_operations": [
+    "warmup:0",
+    "warmup:1"
+  ],
   "workflow_graph": {
     "contract": "successful_business_workflow",
     "edge_counts": [],
     "nodes": 100,
     "observed_jobs": [
       {
-        "node_id": "02c7ebef-c0ec-4ee2-b338-1dc013bf1744",
-        "operation_id": "invoice:00038",
+        "node_id": "001248de-78e3-4444-a4de-989fc544caeb",
+        "operation_id": "97",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "038f2ecd-8f20-46d0-ab65-80877a18e3a8",
-        "operation_id": "invoice:00041",
+        "node_id": "0028bccc-d01a-4e0f-bd68-9b1c3f8a2396",
+        "operation_id": "65",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "053ccef3-8733-4af4-9fe0-0ef3ed4403d6",
-        "operation_id": "invoice:00032",
+        "node_id": "00f81ab7-cc5f-4dd0-bf59-d0c32bcf8908",
+        "operation_id": "89",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "06496141-be80-4776-984c-802713bd811a",
-        "operation_id": "invoice:00070",
+        "node_id": "0155ebf0-462d-4fa1-83a6-9507e1e408c0",
+        "operation_id": "93",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "07d29236-3f59-4c55-82a2-bc40d2e2660f",
-        "operation_id": "invoice:00098",
+        "node_id": "0281d643-11ed-4afe-b8f4-ea26de7b7dba",
+        "operation_id": "99",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "0dce0ec0-0464-445b-b371-d18c7c3f9ec2",
-        "operation_id": "invoice:00077",
+        "node_id": "050ecac2-aa35-4984-afd3-25c609777db0",
+        "operation_id": "77",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "0dce897c-4e29-4edf-8543-b8c664efd8e8",
-        "operation_id": "invoice:00016",
+        "node_id": "062eb9cd-60b3-4e17-a7ae-f3b14f181012",
+        "operation_id": "69",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "134d855f-bb79-4cc6-ad6b-3be5601f3345",
-        "operation_id": "invoice:00076",
+        "node_id": "08781045-dc24-4c12-8689-77639caf448b",
+        "operation_id": "94",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "1360cf32-1b2d-4d97-8252-29d4933cc3c8",
-        "operation_id": "invoice:00050",
+        "node_id": "0c2c6af6-c32e-49eb-a44d-beb12df7cc90",
+        "operation_id": "72",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "13e16999-5f37-4d07-8003-acf98eda4680",
-        "operation_id": "invoice:00048",
+        "node_id": "108d531b-fe1d-44de-b1e4-0db5e722ed08",
+        "operation_id": "19",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "146d63f3-ac86-4069-87d3-37c041d41c68",
-        "operation_id": "invoice:00049",
+        "node_id": "15ae61c9-ef32-4a9b-a410-c69b2c9e6557",
+        "operation_id": "12",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "1827e447-f276-4c45-8077-1f54fa880fc5",
-        "operation_id": "invoice:00024",
+        "node_id": "174533d6-03eb-46ce-8fad-af8f5bba9cd9",
+        "operation_id": "35",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "1931be5c-cf22-467c-9c7d-6836c10a554e",
-        "operation_id": "invoice:00095",
+        "node_id": "17dc60bc-95e6-4bd7-98d5-d2935b52f5b2",
+        "operation_id": "67",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "1b87059b-72f8-4a14-b2e4-54e5a6b9564e",
-        "operation_id": "invoice:00040",
+        "node_id": "18e0f46d-0ca5-4f3d-bf36-500a2f7e81e7",
+        "operation_id": "75",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "1e6afb3d-528e-49e8-aa72-9d0ddbfe0a88",
-        "operation_id": "invoice:00034",
+        "node_id": "1c041dbf-fcfe-4fff-b5c8-1cb6b39647d6",
+        "operation_id": "27",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "1ffa442e-2434-420e-98c7-0fe6c49e5b10",
-        "operation_id": "invoice:00004",
+        "node_id": "1cd6a1dc-c459-48b4-a973-f55eb2356987",
+        "operation_id": "55",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "25fca7a0-b024-4809-be2b-246a3a8500be",
-        "operation_id": "invoice:00026",
+        "node_id": "1f121a2c-b4c8-40b9-808e-848399fb495b",
+        "operation_id": "81",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "2699b3a4-5d74-486b-9f05-2e4611dc7b64",
-        "operation_id": "invoice:00014",
+        "node_id": "1fe48895-6bb9-49fb-b1bc-a671e3d60057",
+        "operation_id": "9",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "28301466-ee62-432e-8d70-b6c1dd86d7ef",
-        "operation_id": "invoice:00060",
+        "node_id": "201f3e18-f37b-4fa3-b7a4-6dde634db5c9",
+        "operation_id": "61",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "2cbdf9be-be99-4b34-9101-5620085a13ff",
-        "operation_id": "invoice:00035",
+        "node_id": "21a8cf60-1a17-4622-b4af-3cc3846d7786",
+        "operation_id": "80",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "2d81d22c-0f4b-4edf-ac9a-81aa402f47de",
-        "operation_id": "invoice:00044",
+        "node_id": "246e578f-8427-4633-b097-26decbb9536f",
+        "operation_id": "37",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "2fa37aba-c92e-4cf2-8e7e-b4f903d31d84",
-        "operation_id": "invoice:00064",
+        "node_id": "30b10cb6-0b32-42ff-ad0e-6adb9b32b6d7",
+        "operation_id": "87",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "2fd0b33f-c275-4859-855e-41f8017ae1bf",
-        "operation_id": "invoice:00022",
+        "node_id": "33d3c330-807f-437b-b81a-8705e5dd6ffd",
+        "operation_id": "13",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "2fd16ead-8c64-44f8-82fb-a1ec1ae96c8e",
-        "operation_id": "invoice:00054",
+        "node_id": "3901af42-b64e-442e-a63e-dfd00a4d055c",
+        "operation_id": "57",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "30cf3030-62d4-45ff-ac52-8bda2638c260",
-        "operation_id": "invoice:00010",
+        "node_id": "3b001dc8-25e5-48d3-8d32-c02f042b34c5",
+        "operation_id": "29",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "33ef6358-e9c2-4c31-95da-38d7e8678227",
-        "operation_id": "invoice:00091",
+        "node_id": "40773438-c738-449d-8499-3c2b17b4ace6",
+        "operation_id": "11",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "37db9d55-ef54-4d64-b95e-417ad902c22b",
-        "operation_id": "invoice:00002",
+        "node_id": "41111b62-0a91-4e61-99ac-ba4f69bf8ab4",
+        "operation_id": "6",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "38c0864a-67f7-4b48-bd3c-cf6b442e79c0",
-        "operation_id": "invoice:00088",
+        "node_id": "42fb209e-6a45-46d8-8c98-0a2351c49830",
+        "operation_id": "62",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "3aea1ff6-ce56-4587-ae11-9c5fcf28c771",
-        "operation_id": "invoice:00028",
+        "node_id": "441b0d49-2b0b-4c8a-bd48-321998efdf69",
+        "operation_id": "76",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "41695b6b-8b31-4bb2-ada1-7aafb8d76651",
-        "operation_id": "invoice:00080",
+        "node_id": "47d9bee9-d19b-420e-8445-a86864f870c9",
+        "operation_id": "74",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "44b224bf-e1ac-4cdd-b5c3-184e5bd5ed3e",
-        "operation_id": "invoice:00037",
+        "node_id": "489c09ee-1ecb-4602-9755-7a542f88f4ab",
+        "operation_id": "96",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "51890849-e879-429f-a5f0-852d0d0d077f",
-        "operation_id": "invoice:00045",
+        "node_id": "49f1dbe2-66da-4a90-a8d3-efceeef030fc",
+        "operation_id": "31",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "537ee493-dd03-42ab-9304-104ba0cb0020",
-        "operation_id": "invoice:00051",
+        "node_id": "4e8b4573-82a3-4a72-a0fb-56135777038b",
+        "operation_id": "71",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "551f9bd2-e979-45b6-b0e5-5d7039c56075",
-        "operation_id": "invoice:00061",
+        "node_id": "51b2f99f-8749-436d-93a5-60c8b19c5478",
+        "operation_id": "17",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "5b95cbbe-8f93-4b5a-8751-50a76589fe20",
-        "operation_id": "invoice:00074",
+        "node_id": "52685c2c-49e7-44a3-a7f7-056a4968c5c9",
+        "operation_id": "0",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "6062b7cc-b062-4882-9676-63a7a16157b4",
-        "operation_id": "invoice:00059",
+        "node_id": "5713415b-4c51-4151-81d1-fa1d631c0b99",
+        "operation_id": "26",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "61299ea9-a4ce-4af0-bba7-c4cf1ed39516",
-        "operation_id": "invoice:00052",
+        "node_id": "57c44d2b-35f9-46a2-913a-5d685b133438",
+        "operation_id": "42",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "62600e1d-b52e-4cac-ba7e-13e3ff235657",
-        "operation_id": "invoice:00007",
+        "node_id": "5ac6468d-e291-4472-b3be-d763f01773c0",
+        "operation_id": "8",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "65af99bf-7d40-48ae-a2bd-594e1c7e339e",
-        "operation_id": "invoice:00046",
+        "node_id": "5dc322ac-3ea5-4b52-80fd-d244740bceba",
+        "operation_id": "63",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "667cf059-1a4f-4061-9c39-e0f16cab8887",
-        "operation_id": "invoice:00075",
+        "node_id": "5f1800be-d753-470b-8214-7a92dc7a0c64",
+        "operation_id": "83",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "66936216-412f-40ce-9ed9-084e70d6efbd",
-        "operation_id": "invoice:00087",
+        "node_id": "601290fe-8633-4b72-aff4-e72e7a0d6b17",
+        "operation_id": "86",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "68317d36-e64a-4ef9-9fe2-014ec97da4a4",
-        "operation_id": "invoice:00067",
+        "node_id": "601d07a1-d985-45fa-9066-15d39c561289",
+        "operation_id": "1",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "68b5746c-32c0-4d44-a03f-17df8120209d",
-        "operation_id": "invoice:00083",
+        "node_id": "60d33109-0bab-473b-a387-c48cabeaf901",
+        "operation_id": "38",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "693023d5-4e4c-4b95-9870-3e835a5ef3b0",
-        "operation_id": "invoice:00009",
+        "node_id": "615a48e8-ef81-48da-9e9b-e58eba4b640c",
+        "operation_id": "95",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "6e4e68ba-a014-4228-b414-bbb70312de2c",
-        "operation_id": "invoice:00099",
+        "node_id": "692d83e1-00b1-468b-b441-04e966895b53",
+        "operation_id": "60",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "76d73e82-3c71-43d9-81a5-670ca510d5b9",
-        "operation_id": "invoice:00042",
+        "node_id": "6e26866b-17c5-423b-9fdc-0b54f7fc6294",
+        "operation_id": "40",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "771ba46e-a13c-4bb0-b5c3-26fb0b45342e",
-        "operation_id": "invoice:00084",
+        "node_id": "701e5fe2-9a54-4470-b65a-3ac584bfeaa2",
+        "operation_id": "64",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "77d215d8-7884-4a16-b35a-83037c258977",
-        "operation_id": "invoice:00066",
+        "node_id": "7079c048-71b1-43f2-ae46-ca16ebf3e12c",
+        "operation_id": "34",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "7c11eecc-8efe-4c55-a49f-50d725df7149",
-        "operation_id": "invoice:00090",
+        "node_id": "7425304a-90db-47fa-99db-c7ad398eb5f6",
+        "operation_id": "84",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "7c6d8be6-c791-47c3-89ad-512dfef0c4bd",
-        "operation_id": "invoice:00023",
+        "node_id": "76c53604-4169-4089-ae1e-8b31dadc504d",
+        "operation_id": "22",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "7cc95d73-accf-4d3a-9886-c715a25ffb2e",
-        "operation_id": "invoice:00085",
+        "node_id": "7891b34b-68dc-4a32-9ea5-e4e355bab2f1",
+        "operation_id": "54",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "7d697230-51cf-4640-a637-4410f992f33c",
-        "operation_id": "invoice:00093",
+        "node_id": "790a060b-31ec-4caa-8162-d008e2b96fcd",
+        "operation_id": "16",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "7f85ae9a-6108-493b-83a2-2b4cd1d655f3",
-        "operation_id": "invoice:00019",
+        "node_id": "79cd7ea6-29b7-49cd-8947-a5dab1581693",
+        "operation_id": "90",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "82b034bd-13e6-40cd-98d8-d7ef2d313991",
-        "operation_id": "invoice:00072",
+        "node_id": "7a34f230-377e-4f11-b996-d529e219d43b",
+        "operation_id": "18",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "83bceabf-2899-4113-a55f-158cd272d5c0",
-        "operation_id": "invoice:00029",
+        "node_id": "7ae927c4-1d48-4137-b2b8-2787181bd6fa",
+        "operation_id": "59",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "85e7d03a-7e77-4c09-a0e4-57bca118e202",
-        "operation_id": "invoice:00039",
+        "node_id": "7e6a948d-9ea9-4e4e-9948-457b5c3d7937",
+        "operation_id": "52",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "8e7a30c0-6bf4-40ed-ae41-b6457e9e5a13",
-        "operation_id": "invoice:00027",
+        "node_id": "804d0268-39b1-4884-8cff-422689f09d8c",
+        "operation_id": "14",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "91412626-feff-4b2b-ada6-5833ca04e0ff",
-        "operation_id": "invoice:00062",
+        "node_id": "811a75aa-2ae0-4e27-b950-26ee0f99769f",
+        "operation_id": "44",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "96d67d4b-1d6e-4054-ae53-9e786e9d723b",
-        "operation_id": "invoice:00057",
+        "node_id": "8204cf0d-6c2c-47ab-877c-126af1067b4c",
+        "operation_id": "98",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "978fa4a2-ed84-4b16-9215-a1e10ccc3b02",
-        "operation_id": "invoice:00020",
+        "node_id": "82adc728-cac8-41ab-a983-c8d1ddd59adb",
+        "operation_id": "4",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "a0d11459-ada2-443c-9d06-b208622b07cc",
-        "operation_id": "invoice:00030",
+        "node_id": "8520be38-eb5e-460c-9d73-f5711e15be33",
+        "operation_id": "45",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "a73e53d0-85df-4dc4-8d7a-3585ea6f4802",
-        "operation_id": "invoice:00003",
+        "node_id": "86dab63a-fa08-4d33-a481-0bcefbfe16f9",
+        "operation_id": "58",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "a7a33be1-477a-408e-9b41-6b2ad299009c",
-        "operation_id": "invoice:00043",
+        "node_id": "8837847d-57d6-46a0-a796-44276acaf870",
+        "operation_id": "70",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "a82fa0e8-e52f-405f-ba52-b64a530147a9",
-        "operation_id": "invoice:00021",
+        "node_id": "8dab5188-4592-4b05-ad5a-8c45fa316141",
+        "operation_id": "85",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "a8ee68f7-98ff-42d0-bf5d-44b3845a1b28",
-        "operation_id": "invoice:00047",
+        "node_id": "9945fddb-6f96-4b26-8e05-aa866f7c7eb5",
+        "operation_id": "47",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "acea5f6f-5a77-40c9-be8d-35858cf3d8db",
-        "operation_id": "invoice:00025",
+        "node_id": "9c2f5982-c41c-4487-97ad-91cb8eccf6dd",
+        "operation_id": "7",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "b13dc6aa-0a9e-4881-892c-356c3a453039",
-        "operation_id": "invoice:00018",
+        "node_id": "9ceb9a22-8d0e-4e1c-9236-8a88aa7538c6",
+        "operation_id": "53",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "b202bdc4-c67d-45cd-9bc8-79df1406a055",
-        "operation_id": "invoice:00031",
+        "node_id": "a3507295-ced7-48f7-86d0-a9f0a4a9862c",
+        "operation_id": "36",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "b2bb816d-4853-487d-83df-58936eaf1006",
-        "operation_id": "invoice:00005",
+        "node_id": "a362ebca-847e-4205-a37a-e5397ff9afc5",
+        "operation_id": "73",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "bb8a5bda-db2c-4f23-b801-2676312eec0d",
-        "operation_id": "invoice:00058",
+        "node_id": "a39f58c1-709a-49d8-93c3-929634d57d79",
+        "operation_id": "25",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "bbb24bf9-c153-4bda-a8af-ff209669d257",
-        "operation_id": "invoice:00071",
+        "node_id": "a6630e01-1149-4f96-b9b1-6acd9c971fbe",
+        "operation_id": "24",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "c32c408c-f876-448d-a089-36bcc35ec940",
-        "operation_id": "invoice:00078",
+        "node_id": "aa06e21b-e70b-40d9-846c-5f533200254b",
+        "operation_id": "51",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "c40c6e5b-9500-46d2-8be1-04670845db95",
-        "operation_id": "invoice:00069",
+        "node_id": "aa82c2da-1979-46c1-899d-3e41c10ebd02",
+        "operation_id": "2",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "c95156c5-0b1c-4f2e-9383-7c4ffef3b646",
-        "operation_id": "invoice:00033",
+        "node_id": "b3cfd13f-8d22-4ed8-9400-e2e9a567e984",
+        "operation_id": "78",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "c9fc57a3-ea7a-465e-9da5-5f957c98c6a9",
-        "operation_id": "invoice:00055",
+        "node_id": "b65efac7-4be1-4d0e-8b59-742b1bb34300",
+        "operation_id": "32",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "cb9907ae-e038-44df-860a-e20e51c313d4",
-        "operation_id": "invoice:00073",
+        "node_id": "b9f3185f-40f1-48bc-bc47-4d87b76c968c",
+        "operation_id": "79",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "cea53924-4704-4040-80e8-dc3309d73df7",
-        "operation_id": "invoice:00096",
+        "node_id": "c0216aa6-e58a-43f4-aab5-136b4c9ae1e5",
+        "operation_id": "50",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "cee611dc-96f7-482c-b60f-874fd9bb3ea5",
-        "operation_id": "invoice:00053",
+        "node_id": "c411ac0d-5179-487a-8945-adf92cfd8844",
+        "operation_id": "3",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "d0832a45-c3b3-456c-9231-64872e9bf217",
-        "operation_id": "invoice:00017",
+        "node_id": "c668ddfc-95fb-4a81-970a-122f937e6d5a",
+        "operation_id": "92",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "d0d5dff3-81e9-4a8b-a841-41efc4ecb899",
-        "operation_id": "invoice:00082",
+        "node_id": "d0ebc9c0-0b7b-4b38-8628-ce4e2b35b0ba",
+        "operation_id": "30",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "d176c122-1c70-4973-9bc0-bd8094ee78a1",
-        "operation_id": "invoice:00092",
+        "node_id": "d53f6829-dfbc-4ffd-8ff7-eb5b22cebd95",
+        "operation_id": "82",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "d20f198b-b234-4011-a44f-4c32fe1398be",
-        "operation_id": "invoice:00094",
+        "node_id": "d6666552-b221-4f5c-bd10-cc1df8868422",
+        "operation_id": "28",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "d3e0dfe8-8c25-4718-8483-daeafcbcedb2",
-        "operation_id": "invoice:00089",
+        "node_id": "d9ee8381-adc2-49ce-92a7-fffbcefdae83",
+        "operation_id": "48",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "d5c2831e-ca14-4647-a34a-e803cbf74da8",
-        "operation_id": "invoice:00011",
+        "node_id": "d9fbfefd-6296-4300-a5d1-43ee6bce454e",
+        "operation_id": "46",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "d775a5df-ecd8-4701-b0c2-aa461ce93b65",
-        "operation_id": "invoice:00086",
+        "node_id": "dc1a65bc-2217-4855-85bf-89e8cd464150",
+        "operation_id": "23",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "d87fb6e5-a176-47ce-bc75-399601db852a",
-        "operation_id": "invoice:00008",
+        "node_id": "dcda5eff-b062-4a66-bcc7-a5944c4681e0",
+        "operation_id": "43",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "da1d003e-f08b-46c6-8c66-7d091be9b321",
-        "operation_id": "invoice:00079",
+        "node_id": "df128dd8-efa9-4506-bed8-2664a635e155",
+        "operation_id": "88",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "db0bf8a7-14fe-4c5b-977d-da0db921ae01",
-        "operation_id": "invoice:00012",
+        "node_id": "e39d7280-b686-48a3-b8b6-12295690d13e",
+        "operation_id": "68",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "dd72ec0d-d5c7-48ea-ae83-a40467e5e2c3",
-        "operation_id": "invoice:00097",
+        "node_id": "e75cc771-28dd-415d-be75-5bec04af4a4d",
+        "operation_id": "56",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "e5174102-10eb-4a10-b311-22e4e5f2d771",
-        "operation_id": "invoice:00015",
+        "node_id": "ee26ffdf-89a2-4a17-b542-77c472b42418",
+        "operation_id": "20",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "e78b769b-73e8-4e06-9441-f07d3570fc89",
-        "operation_id": "invoice:00056",
+        "node_id": "ef8daa8d-aaed-4957-84e4-dfe79718b51b",
+        "operation_id": "41",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "e8090f71-8700-44ba-9a1b-9c1348d0e802",
-        "operation_id": "invoice:00013",
+        "node_id": "f414ece6-4385-4af7-8adc-cdd1d9f91689",
+        "operation_id": "49",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "e8fd7853-c43f-43c3-ba68-41db0b65ad20",
-        "operation_id": "invoice:00100",
+        "node_id": "f430fe45-c336-4482-9700-9aefeebaddf2",
+        "operation_id": "5",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "ef240959-8284-43a3-918b-b61f96c8a00d",
-        "operation_id": "invoice:00065",
+        "node_id": "f5469459-fe06-42b0-a47e-8a3d234be8fd",
+        "operation_id": "10",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "f271e3c6-cad1-4211-a5d4-80b1f5fc34f9",
-        "operation_id": "invoice:00081",
+        "node_id": "fa8eaf85-44c4-434e-8969-e761632ecfb2",
+        "operation_id": "91",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "f8aea984-32b9-4850-8fcb-2839c118f31e",
-        "operation_id": "invoice:00036",
+        "node_id": "fb030df7-3726-4805-ba68-d71795bcbfd3",
+        "operation_id": "15",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "fa4e4c06-d827-48f6-b8ab-974b20467b1b",
-        "operation_id": "invoice:00101",
+        "node_id": "fb399a49-71e9-4d85-855a-08f3952c3e42",
+        "operation_id": "39",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "fa512abd-e14b-46ac-8a95-dc652a6ae267",
-        "operation_id": "invoice:00063",
+        "node_id": "fd23b01f-1673-4858-95f3-dfe85e0345d2",
+        "operation_id": "66",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "fca80465-280d-435e-831f-0db3f8da43b5",
-        "operation_id": "invoice:00068",
+        "node_id": "fdf00758-7b6b-4d10-ac3b-ce8e8bd5963f",
+        "operation_id": "33",
         "parent_id": null,
         "stage": "ingestion"
       },
       {
-        "node_id": "feadbb2b-0aed-486c-bea2-26a92d9cdfd4",
-        "operation_id": "invoice:00006",
+        "node_id": "fea1ca51-8d26-4c68-a285-f16d2daaaa87",
+        "operation_id": "21",
         "parent_id": null,
         "stage": "ingestion"
       }
     ],
     "operations": [
-      "invoice:00002",
-      "invoice:00003",
-      "invoice:00004",
-      "invoice:00005",
-      "invoice:00006",
-      "invoice:00007",
-      "invoice:00008",
-      "invoice:00009",
-      "invoice:00010",
-      "invoice:00011",
-      "invoice:00012",
-      "invoice:00013",
-      "invoice:00014",
-      "invoice:00015",
-      "invoice:00016",
-      "invoice:00017",
-      "invoice:00018",
-      "invoice:00019",
-      "invoice:00020",
-      "invoice:00021",
-      "invoice:00022",
-      "invoice:00023",
-      "invoice:00024",
-      "invoice:00025",
-      "invoice:00026",
-      "invoice:00027",
-      "invoice:00028",
-      "invoice:00029",
-      "invoice:00030",
-      "invoice:00031",
-      "invoice:00032",
-      "invoice:00033",
-      "invoice:00034",
-      "invoice:00035",
-      "invoice:00036",
-      "invoice:00037",
-      "invoice:00038",
-      "invoice:00039",
-      "invoice:00040",
-      "invoice:00041",
-      "invoice:00042",
-      "invoice:00043",
-      "invoice:00044",
-      "invoice:00045",
-      "invoice:00046",
-      "invoice:00047",
-      "invoice:00048",
-      "invoice:00049",
-      "invoice:00050",
-      "invoice:00051",
-      "invoice:00052",
-      "invoice:00053",
-      "invoice:00054",
-      "invoice:00055",
-      "invoice:00056",
-      "invoice:00057",
-      "invoice:00058",
-      "invoice:00059",
-      "invoice:00060",
-      "invoice:00061",
-      "invoice:00062",
-      "invoice:00063",
-      "invoice:00064",
-      "invoice:00065",
-      "invoice:00066",
-      "invoice:00067",
-      "invoice:00068",
-      "invoice:00069",
-      "invoice:00070",
-      "invoice:00071",
-      "invoice:00072",
-      "invoice:00073",
-      "invoice:00074",
-      "invoice:00075",
-      "invoice:00076",
-      "invoice:00077",
-      "invoice:00078",
-      "invoice:00079",
-      "invoice:00080",
-      "invoice:00081",
-      "invoice:00082",
-      "invoice:00083",
-      "invoice:00084",
-      "invoice:00085",
-      "invoice:00086",
-      "invoice:00087",
-      "invoice:00088",
-      "invoice:00089",
-      "invoice:00090",
-      "invoice:00091",
-      "invoice:00092",
-      "invoice:00093",
-      "invoice:00094",
-      "invoice:00095",
-      "invoice:00096",
-      "invoice:00097",
-      "invoice:00098",
-      "invoice:00099",
-      "invoice:00100",
-      "invoice:00101"
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15",
+      "16",
+      "17",
+      "18",
+      "19",
+      "20",
+      "21",
+      "22",
+      "23",
+      "24",
+      "25",
+      "26",
+      "27",
+      "28",
+      "29",
+      "30",
+      "31",
+      "32",
+      "33",
+      "34",
+      "35",
+      "36",
+      "37",
+      "38",
+      "39",
+      "40",
+      "41",
+      "42",
+      "43",
+      "44",
+      "45",
+      "46",
+      "47",
+      "48",
+      "49",
+      "50",
+      "51",
+      "52",
+      "53",
+      "54",
+      "55",
+      "56",
+      "57",
+      "58",
+      "59",
+      "60",
+      "61",
+      "62",
+      "63",
+      "64",
+      "65",
+      "66",
+      "67",
+      "68",
+      "69",
+      "70",
+      "71",
+      "72",
+      "73",
+      "74",
+      "75",
+      "76",
+      "77",
+      "78",
+      "79",
+      "80",
+      "81",
+      "82",
+      "83",
+      "84",
+      "85",
+      "86",
+      "87",
+      "88",
+      "89",
+      "90",
+      "91",
+      "92",
+      "93",
+      "94",
+      "95",
+      "96",
+      "97",
+      "98",
+      "99"
     ],
     "passed": true,
     "per_operation": {
-      "invoice:00002": {
+      "0": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00003": {
+      "1": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00004": {
+      "10": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00005": {
+      "11": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00006": {
+      "12": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00007": {
+      "13": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00008": {
+      "14": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00009": {
+      "15": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00010": {
+      "16": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00011": {
+      "17": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00012": {
+      "18": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00013": {
+      "19": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00014": {
+      "2": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00015": {
+      "20": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00016": {
+      "21": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00017": {
+      "22": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00018": {
+      "23": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00019": {
+      "24": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00020": {
+      "25": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00021": {
+      "26": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00022": {
+      "27": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00023": {
+      "28": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00024": {
+      "29": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00025": {
+      "3": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00026": {
+      "30": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00027": {
+      "31": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00028": {
+      "32": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00029": {
+      "33": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00030": {
+      "34": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00031": {
+      "35": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00032": {
+      "36": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00033": {
+      "37": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00034": {
+      "38": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00035": {
+      "39": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00036": {
+      "4": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00037": {
+      "40": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00038": {
+      "41": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00039": {
+      "42": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00040": {
+      "43": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00041": {
+      "44": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00042": {
+      "45": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00043": {
+      "46": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00044": {
+      "47": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00045": {
+      "48": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00046": {
+      "49": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00047": {
+      "5": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00048": {
+      "50": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00049": {
+      "51": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00050": {
+      "52": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00051": {
+      "53": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00052": {
+      "54": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00053": {
+      "55": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00054": {
+      "56": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00055": {
+      "57": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00056": {
+      "58": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00057": {
+      "59": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00058": {
+      "6": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00059": {
+      "60": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00060": {
+      "61": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00061": {
+      "62": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00062": {
+      "63": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00063": {
+      "64": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00064": {
+      "65": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00065": {
+      "66": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00066": {
+      "67": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00067": {
+      "68": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00068": {
+      "69": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00069": {
+      "7": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00070": {
+      "70": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00071": {
+      "71": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00072": {
+      "72": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00073": {
+      "73": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00074": {
+      "74": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00075": {
+      "75": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00076": {
+      "76": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00077": {
+      "77": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00078": {
+      "78": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00079": {
+      "79": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00080": {
+      "8": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00081": {
+      "80": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00082": {
+      "81": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00083": {
+      "82": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00084": {
+      "83": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00085": {
+      "84": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00086": {
+      "85": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00087": {
+      "86": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00088": {
+      "87": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00089": {
+      "88": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00090": {
+      "89": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00091": {
+      "9": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00092": {
+      "90": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00093": {
+      "91": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00094": {
+      "92": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00095": {
+      "93": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00096": {
+      "94": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00097": {
+      "95": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00098": {
+      "96": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00099": {
+      "97": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00100": {
+      "98": {
         "edges": [],
         "stages": {
           "ingestion": 1
         }
       },
-      "invoice:00101": {
+      "99": {
         "edges": [],
         "stages": {
           "ingestion": 1
@@ -1421,6 +2041,6 @@
   },
   "workflow_trace": {
     "path": "paperless_ngx-4-dbworker/workflow.jsonl",
-    "sha256": "372fbd20fbfcc499c457f01811a3363a1f135d32519784b8db64102634b57aa4"
+    "sha256": "6c0aef3700b66520c6d4ce4dcccd9738d8bfb799cfd0bb7e978bbda1d200a08f"
   }
 }
