@@ -1,0 +1,21 @@
+{
+  "scope": "Local scheduler diagnosis, not native 2FA and not official benchmark results",
+  "source_commit": "69d9fbd8442c714f361a5e9196bd314aed75f099",
+  "core_sha256": "07337100d945b0eccc00654138d15b954c3a546d5907482c30d5c7a05b2ce079",
+  "reports": [
+    {
+      "variant": "64-baseline",
+      "files": {
+        "64-baseline/result.json": "c3e3c611fd8c608775889e605e809671e2b801f24b96d9528e7879e9acff9cd8",
+        "64-baseline/executions.jsonl": "9d965408863124c1ed9717c2d8ecfbe90fe2b10b07929cb0209c02890d692be1"
+      }
+    },
+    {
+      "variant": "64-pending-index",
+      "files": {
+        "64-pending-index/result.json": "1077515b4afb713cf1c27f56f6e88ca964f6c4e2ae252804de12f0fd283f5379",
+        "64-pending-index/executions.jsonl": "06e96292c2dfbf163bc117866684d5cc3e8c8149e42eb48187eda76a169325f3"
+      }
+    }
+  ]
+}
