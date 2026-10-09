@@ -1,42 +1,62 @@
 {
   "backend": "celery",
   "capabilities": {
-    "scope": "Paired durable-request replacement of the real export body and upstream job hooks; plugins disabled equally",
+    "scope": "Native Saleor export and separate admin-email workflow; upstream plugins restored, no webhook subscriptions",
     "untested": [
       "crash_recovery",
       "replica_lag",
       "webhook_delivery",
-      "email_delivery",
-      "native_celery_delivery_lifecycle",
+      "failure_and_retry_lifecycle",
       "outbox_recovery"
     ],
     "verified": [
+      "native_export_task",
       "real_product_csv_export",
       "independent_csv_oracle",
       "durable_job_success",
-      "exact_export_events",
-      "untimed_failure_lifecycle",
-      "dbworker_ledger"
+      "export_and_email_events",
+      "separate_email_jobs",
+      "real_smtp_acceptance",
+      "observed_business_job_graph"
     ]
   },
-  "comparison_mode": "paired_durable_request",
+  "comparison_mode": "native_application_workflow",
   "configuration": {
     "business_database": "postgresql",
-    "comparison_mode": "paired_durable_request",
+    "comparison_mode": "native_application_workflow",
     "concurrency": 2,
-    "plugins": [],
+    "coordination_database": "redis",
+    "environment_overrides": {
+      "CACHES": "process-local cache; no external deployment cache required",
+      "CELERY_BROKER_URL": "owned Redis instance for the native baseline",
+      "CELERY_TASK_ALWAYS_EAGER": "setup-only eager maintenance tasks; disabled during measurement",
+      "DATABASE_URL": "owned PostgreSQL cluster; replica alias uses same primary",
+      "EMAIL_URL": "owned local SMTP receiver; upstream templates and transport",
+      "MEDIA_ROOT": "owned filesystem artifact directory",
+      "STORAGES": "local filesystem instead of cloud infrastructure",
+      "worker_concurrency": "two processes per backend for the entire workflow"
+    },
+    "native_celery": {
+      "task_acks_late": false,
+      "task_default_queue": "celery",
+      "task_ignore_result": false,
+      "task_reject_on_worker_lost": null,
+      "task_serializer": "json",
+      "worker_prefetch_multiplier": 1
+    },
+    "plugins": "upstream defaults; admin email active; no webhook subscriptions",
     "postgres_fsync": true,
     "profile": {
       "products": 256,
       "repetitions": 5,
       "requests": 100
     },
-    "publication": "single pass after durable request commit",
+    "publication": "one task per export; one separately queued email task per export",
     "redis_aof": "everysec",
     "replica": "same primary",
-    "request_database": "sqlite",
-    "retry": "no automatic retry",
+    "retry": "upstream export and email tasks do not declare automatic retry",
     "setup": "complete upstream migrations; eager maintenance tasks on empty database outside timing",
+    "timing_boundary": "task publication through export, SMTP acceptance, email event and both completed jobs",
     "warmup_requests": 2
   },
   "dataset": {
@@ -56,7 +76,7 @@
     "packages": {
       "Django": "5.2.17",
       "celery": "5.6.3",
-      "dbworker": "0.0.6",
+      "dbworker": "0.0.7",
       "saleor": "3.24.0-a.0",
       "sqlalchemy": "2.1.3"
     },
@@ -64,17 +84,2679 @@
     "python": "3.12.3"
   },
   "metrics": {
-    "exports_per_second": 53.20570049110128,
-    "wall_seconds": 1.8794978559999436
+    "exports_per_second": 10.048403337739433,
+    "wall_seconds": 9.951829822000036
+  },
+  "native_execution": {
+    "check": "live_task_origin_and_ast",
+    "configuration": {
+      "task_acks_late": false,
+      "task_default_queue": "celery",
+      "task_ignore_result": false,
+      "task_reject_on_worker_lost": null,
+      "task_serializer": "json",
+      "worker_prefetch_multiplier": 1
+    },
+    "observer_only": true,
+    "passed": true,
+    "task_names": [
+      "export-products",
+      "saleor.plugins.admin_email.tasks.send_email_with_link_to_download_file_task"
+    ],
+    "tasks": {
+      "export-products": {
+        "framework_wrappers": [],
+        "function": "export_products_task",
+        "source": "saleor/csv/tasks.py",
+        "source_sha256": "c50dc236429f914f6d6f8cd238f91d4727364b14a3dbe0cfa28f9c9345376716",
+        "task_class": "saleor.csv.tasks.export_products_task"
+      },
+      "saleor.plugins.admin_email.tasks.send_email_with_link_to_download_file_task": {
+        "framework_wrappers": [],
+        "function": "send_email_with_link_to_download_file_task",
+        "source": "saleor/plugins/admin_email/tasks.py",
+        "source_sha256": "c0ff70ca30ee42c547194c9c0115f29b0d31c4c7c3c385e2961a42add1f43e3e",
+        "task_class": "saleor.plugins.admin_email.tasks.send_email_with_link_to_download_file_task"
+      }
+    },
+    "worker_app": "saleor.celeryconf:app"
   },
   "repetition": 4,
   "scenario": "product_csv_export",
   "status": "passed",
   "validation": {
+    "business_jobs": 200,
+    "email_messages": 100,
     "exports": 100,
-    "failure_lifecycle": "passed",
-    "output_digest": "fbd1035acd8d458fdbdce0f36e1c6fd526e40135f5ff5609637b9e3632b6b15e",
+    "output_digest": "91ac3637e4bd1168f95abe623fa155fa65c760ad054d30d3f46f92d64224e3c1",
     "passed": true,
     "products_per_export": 256
+  },
+  "workflow_graph": {
+    "contract": "successful_business_workflow",
+    "edge_counts": [
+      [
+        "export",
+        "email",
+        100
+      ]
+    ],
+    "nodes": 200,
+    "observed_jobs": [
+      {
+        "node_id": "011d828a-2952-4da4-a7e6-8a98a68dc69a",
+        "operation_id": "8",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "02ad9c1c-8e32-477d-a7f8-98ae6713f1de",
+        "operation_id": "63",
+        "parent_id": "d59fdc70-b4b9-444a-bde8-9ad32cd065e0",
+        "stage": "email"
+      },
+      {
+        "node_id": "03ea3d59-4add-4705-ab72-5a96201297ea",
+        "operation_id": "26",
+        "parent_id": "e15d095d-2cbf-4f67-893f-d05c5b39f625",
+        "stage": "email"
+      },
+      {
+        "node_id": "058844a8-06d3-4320-8c20-baf1c25e66d5",
+        "operation_id": "87",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "095390b2-39e9-428b-af02-f51d5fc96edf",
+        "operation_id": "76",
+        "parent_id": "293afa10-cc74-4eea-a2f1-a38bbe619e79",
+        "stage": "email"
+      },
+      {
+        "node_id": "0abffd4f-31a3-41aa-984c-ce0972aa4aa1",
+        "operation_id": "68",
+        "parent_id": "f003d3e7-f82a-48f7-a0a2-d0f6317e5f77",
+        "stage": "email"
+      },
+      {
+        "node_id": "0ca6190f-8c5a-4741-b950-fd16ad27ffba",
+        "operation_id": "69",
+        "parent_id": "a2df8bd4-480e-4cc1-8ec0-0383e2e1f854",
+        "stage": "email"
+      },
+      {
+        "node_id": "0cb53476-6729-432e-9b48-446d19eef529",
+        "operation_id": "78",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "0df64136-411d-43b6-afb3-91a7b8fe05b0",
+        "operation_id": "30",
+        "parent_id": "74a24279-3d44-4a10-a3f3-eca7c65563cc",
+        "stage": "email"
+      },
+      {
+        "node_id": "0f673498-8c56-4bb2-a5cb-d699f75b9203",
+        "operation_id": "99",
+        "parent_id": "6e4f21ee-80a5-4ac6-8706-72874c0f1a8b",
+        "stage": "email"
+      },
+      {
+        "node_id": "0f8dd56d-53b3-4f2f-931a-bac3ede95cad",
+        "operation_id": "72",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "0fb048cc-1674-47ae-b01a-32265ce26a78",
+        "operation_id": "22",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "11a8022e-f4a6-4c92-a871-ae6f9080710e",
+        "operation_id": "47",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "12bb15eb-9e49-48e6-81b7-4e9012f0d1aa",
+        "operation_id": "37",
+        "parent_id": "858081da-a2d9-4b5a-8310-ba3d3265e82c",
+        "stage": "email"
+      },
+      {
+        "node_id": "12ca3d33-0db2-4ec0-8346-e4110ee3d538",
+        "operation_id": "48",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "13dae900-6d12-4dfe-9fe8-547b5674cfaf",
+        "operation_id": "25",
+        "parent_id": "d60832f4-4d9a-49fd-b756-5f98fe9a2fca",
+        "stage": "email"
+      },
+      {
+        "node_id": "145e7358-0301-4151-9493-754cbb79c2f8",
+        "operation_id": "86",
+        "parent_id": "157f62d2-9381-4e11-b34b-8b956cb136f9",
+        "stage": "email"
+      },
+      {
+        "node_id": "157f62d2-9381-4e11-b34b-8b956cb136f9",
+        "operation_id": "86",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "160c93c5-f6d2-4c41-bf6f-24bcaa5252e5",
+        "operation_id": "31",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "1b01f30c-18a8-4837-a4f3-114130e21a76",
+        "operation_id": "51",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "20ab962e-1512-4ab9-9734-ee3383d96eec",
+        "operation_id": "31",
+        "parent_id": "160c93c5-f6d2-4c41-bf6f-24bcaa5252e5",
+        "stage": "email"
+      },
+      {
+        "node_id": "2318a383-9520-4cc9-8e39-f9b2ea9fe1ed",
+        "operation_id": "27",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "236d771d-0619-4d20-a4c1-6f4e33a5b2f8",
+        "operation_id": "45",
+        "parent_id": "9990021f-7da8-4e33-85d0-eb87133ad62c",
+        "stage": "email"
+      },
+      {
+        "node_id": "240cb897-63b1-4fc5-ade2-58936f4266f5",
+        "operation_id": "64",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "263acbae-6f20-4ce3-99fe-f7d97a85a4ce",
+        "operation_id": "80",
+        "parent_id": "fbf2fa9a-f1ed-43d6-bb49-f1e2d139f058",
+        "stage": "email"
+      },
+      {
+        "node_id": "26b82c5f-8401-416b-8e0e-12576b104c51",
+        "operation_id": "46",
+        "parent_id": "a7d01141-2410-4eb9-8e65-0674756b7640",
+        "stage": "email"
+      },
+      {
+        "node_id": "28f48564-3143-4b0f-bc62-28c632431d05",
+        "operation_id": "54",
+        "parent_id": "4d258fe2-501d-4431-8a9b-bf01758900a8",
+        "stage": "email"
+      },
+      {
+        "node_id": "29116112-95c6-4f2b-b182-3105261da0cd",
+        "operation_id": "35",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "293afa10-cc74-4eea-a2f1-a38bbe619e79",
+        "operation_id": "76",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "2d3a85c2-33c6-4ce9-bee0-ec2b4e2ff8eb",
+        "operation_id": "58",
+        "parent_id": "c3e65cf2-bd55-4d21-8217-85cbc8e840af",
+        "stage": "email"
+      },
+      {
+        "node_id": "2f42fcbf-eae4-4434-81c8-86a2d2c17ee5",
+        "operation_id": "88",
+        "parent_id": "58dc8861-c0e3-42b3-9229-b93201ef3c95",
+        "stage": "email"
+      },
+      {
+        "node_id": "30f81d37-f7c0-4564-95d4-f6d183858718",
+        "operation_id": "74",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "31e290bc-55e5-4846-bfdf-6f3a9805df09",
+        "operation_id": "97",
+        "parent_id": "c95cba8b-4f17-4d8c-8faf-29c55c6f8ec2",
+        "stage": "email"
+      },
+      {
+        "node_id": "3378e39c-7f1b-418c-a3f2-45a1bce973ec",
+        "operation_id": "50",
+        "parent_id": "a0554a61-a26c-44d4-b0a3-21d21b1dacc1",
+        "stage": "email"
+      },
+      {
+        "node_id": "345d0b01-ea38-4a0a-aacd-8f7a6917793a",
+        "operation_id": "9",
+        "parent_id": "de526e2d-a03e-4dbb-96c7-fc2b7b7d9263",
+        "stage": "email"
+      },
+      {
+        "node_id": "3483e32e-66aa-4622-bbbe-c8397a109853",
+        "operation_id": "102",
+        "parent_id": "eae1cf71-3375-40e9-8125-5d5a1367afcd",
+        "stage": "email"
+      },
+      {
+        "node_id": "3705f978-027c-401a-b2ec-b8b8084223fa",
+        "operation_id": "94",
+        "parent_id": "61a8a968-020f-4c35-b83e-14b75be36a17",
+        "stage": "email"
+      },
+      {
+        "node_id": "37c41a76-0582-4456-babf-6bdfab78e7af",
+        "operation_id": "34",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "381c3f65-ab80-427f-806f-e2a1a60e3a63",
+        "operation_id": "77",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "3db3c69a-be8e-4f79-b5d2-5eb3fe30f387",
+        "operation_id": "81",
+        "parent_id": "7699ee88-33f3-4b34-9367-96b6b9cd17d9",
+        "stage": "email"
+      },
+      {
+        "node_id": "3fd202a4-8bbc-46c3-add6-f28b2379c1b4",
+        "operation_id": "52",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "416c600f-186e-4213-9b5a-68c36acdb0cf",
+        "operation_id": "89",
+        "parent_id": "d3786f5b-8edd-4401-802e-2f5656b825a4",
+        "stage": "email"
+      },
+      {
+        "node_id": "45e97546-7058-445a-bf57-aeeb330d3546",
+        "operation_id": "16",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "478a32e9-4c8c-4a21-85d5-d854264cce05",
+        "operation_id": "100",
+        "parent_id": "77d189f1-bda4-43fc-bb25-2af89d3e2401",
+        "stage": "email"
+      },
+      {
+        "node_id": "4a073c6f-9751-4f52-b2e6-74268ce8eedd",
+        "operation_id": "95",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "4d258fe2-501d-4431-8a9b-bf01758900a8",
+        "operation_id": "54",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "502fda67-9b33-49f7-b0b6-f1e89e5d4153",
+        "operation_id": "84",
+        "parent_id": "dfd20a02-6358-4cbe-8ac3-0c62ffa93d49",
+        "stage": "email"
+      },
+      {
+        "node_id": "53e2d9bc-ee67-49b4-ac57-a41306a7c458",
+        "operation_id": "55",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "55752a59-09a9-47df-b8d2-4e0c538948db",
+        "operation_id": "24",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "567a5078-0092-4aeb-93ed-ba129f4822de",
+        "operation_id": "95",
+        "parent_id": "4a073c6f-9751-4f52-b2e6-74268ce8eedd",
+        "stage": "email"
+      },
+      {
+        "node_id": "57005c33-60ef-4d88-9d74-71e428d28281",
+        "operation_id": "85",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "57cf4830-2a35-47d9-97ac-ef24bcae0df1",
+        "operation_id": "91",
+        "parent_id": "8b55203a-0f2e-4c09-9d7e-dff9b4206623",
+        "stage": "email"
+      },
+      {
+        "node_id": "5828ddba-0427-4666-927e-66a22a48e074",
+        "operation_id": "75",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "587a8688-a3cc-4afb-900e-a0be6a6a0923",
+        "operation_id": "87",
+        "parent_id": "058844a8-06d3-4320-8c20-baf1c25e66d5",
+        "stage": "email"
+      },
+      {
+        "node_id": "58dc8861-c0e3-42b3-9229-b93201ef3c95",
+        "operation_id": "88",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "5a3dd417-af13-4f1d-8bed-4d0e0ec04d0a",
+        "operation_id": "90",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "5bf2c9b9-b7b2-4b23-8d5d-bb32ee97e15b",
+        "operation_id": "6",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "5cc855aa-715e-4525-bfc3-5d089624463e",
+        "operation_id": "20",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "5f49b092-e229-4571-adae-3a5dd2751afd",
+        "operation_id": "23",
+        "parent_id": "dec00d01-59d5-45df-aa46-7cac3e43b555",
+        "stage": "email"
+      },
+      {
+        "node_id": "5ff248c7-0d20-429e-8bf3-f8f690bfee1a",
+        "operation_id": "3",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "61a8a968-020f-4c35-b83e-14b75be36a17",
+        "operation_id": "94",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "63364b62-c68b-4e96-b598-2c942126dd1d",
+        "operation_id": "82",
+        "parent_id": "d1988c16-3d19-4c94-bcc5-74629e3a51c4",
+        "stage": "email"
+      },
+      {
+        "node_id": "645dc6a3-2c13-4fc0-a0db-1acb150018e1",
+        "operation_id": "61",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "65a5e66c-5065-4c3c-aaf4-c313dea7c9b3",
+        "operation_id": "35",
+        "parent_id": "29116112-95c6-4f2b-b182-3105261da0cd",
+        "stage": "email"
+      },
+      {
+        "node_id": "66cb5cec-e2c7-412f-b67a-de98419632df",
+        "operation_id": "57",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "67df4059-c7f6-4152-979e-eb905506d02a",
+        "operation_id": "33",
+        "parent_id": "a514849d-e4f7-495a-9746-ca1236987f99",
+        "stage": "email"
+      },
+      {
+        "node_id": "69f85dd4-bd9f-4eb8-95b8-1a18b67e6d50",
+        "operation_id": "47",
+        "parent_id": "11a8022e-f4a6-4c92-a871-ae6f9080710e",
+        "stage": "email"
+      },
+      {
+        "node_id": "6b938a0e-2813-4945-a2d5-f8ccf54dc0f3",
+        "operation_id": "12",
+        "parent_id": "e776103b-f171-4e06-b1fe-eb7815a49c32",
+        "stage": "email"
+      },
+      {
+        "node_id": "6ce7d9df-0663-4ff6-890b-ddeb56dcafdd",
+        "operation_id": "74",
+        "parent_id": "30f81d37-f7c0-4564-95d4-f6d183858718",
+        "stage": "email"
+      },
+      {
+        "node_id": "6d86f759-7be0-4927-b6f3-e682c3434d44",
+        "operation_id": "79",
+        "parent_id": "b04e1ff8-2e04-41d8-b067-6d64a4e158d8",
+        "stage": "email"
+      },
+      {
+        "node_id": "6e4f21ee-80a5-4ac6-8706-72874c0f1a8b",
+        "operation_id": "99",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "70338f27-aa5a-427b-ab20-db442bc6194e",
+        "operation_id": "13",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "72b9d182-4c10-4664-95ef-ae9d14041550",
+        "operation_id": "49",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "731f9a3c-0973-4d76-95a2-6ab1c87ca15d",
+        "operation_id": "38",
+        "parent_id": "e7bf32d6-6cce-422b-b45f-48af4f0246a0",
+        "stage": "email"
+      },
+      {
+        "node_id": "735892fc-a8c6-41eb-b51a-398b1110c610",
+        "operation_id": "17",
+        "parent_id": "7b548dc0-cb9b-457a-9282-0839bd237da4",
+        "stage": "email"
+      },
+      {
+        "node_id": "73b200ea-c2c1-47bf-93c0-ad065874c702",
+        "operation_id": "41",
+        "parent_id": "e62398dd-705b-44f6-b330-563cb092200b",
+        "stage": "email"
+      },
+      {
+        "node_id": "74a24279-3d44-4a10-a3f3-eca7c65563cc",
+        "operation_id": "30",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "76794101-a1fe-4d01-86de-117060f57f42",
+        "operation_id": "73",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "7699ee88-33f3-4b34-9367-96b6b9cd17d9",
+        "operation_id": "81",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "773e360f-a70e-46c0-aa62-f37d556712b2",
+        "operation_id": "4",
+        "parent_id": "ddb8eb3c-ccee-4fe6-a837-2f8408c21861",
+        "stage": "email"
+      },
+      {
+        "node_id": "776fc4a7-7aad-4505-a90c-12cbb97be206",
+        "operation_id": "53",
+        "parent_id": "eeacd239-6b95-4cbd-80c2-ee75ce93c24e",
+        "stage": "email"
+      },
+      {
+        "node_id": "77d189f1-bda4-43fc-bb25-2af89d3e2401",
+        "operation_id": "100",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "77ff3815-0842-4269-b218-2bce5c1afbc2",
+        "operation_id": "93",
+        "parent_id": "7c957b82-973b-44f7-a8f7-7b18e5ec39d6",
+        "stage": "email"
+      },
+      {
+        "node_id": "7acf6e36-463d-4953-bcad-fdaef2906145",
+        "operation_id": "62",
+        "parent_id": "f4956833-fce7-452d-8ae2-51eaef9bd413",
+        "stage": "email"
+      },
+      {
+        "node_id": "7afd13ae-b892-41db-817d-2d7b55ebe110",
+        "operation_id": "65",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "7b548dc0-cb9b-457a-9282-0839bd237da4",
+        "operation_id": "17",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "7c957b82-973b-44f7-a8f7-7b18e5ec39d6",
+        "operation_id": "93",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "7db30356-a7de-47bb-ab74-4cb1baaf0945",
+        "operation_id": "101",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "8375473e-b47c-4a81-8814-d2f020dba033",
+        "operation_id": "52",
+        "parent_id": "3fd202a4-8bbc-46c3-add6-f28b2379c1b4",
+        "stage": "email"
+      },
+      {
+        "node_id": "858081da-a2d9-4b5a-8310-ba3d3265e82c",
+        "operation_id": "37",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "85bed011-2d5e-47c2-bb7c-527944dea74e",
+        "operation_id": "98",
+        "parent_id": "cdd72116-f087-4f66-bce1-c04d8c84c0a0",
+        "stage": "email"
+      },
+      {
+        "node_id": "88516475-4faf-4d0c-9f55-9605bcda5760",
+        "operation_id": "19",
+        "parent_id": "ae658e1c-ca67-4ba8-a7bc-c305107423e3",
+        "stage": "email"
+      },
+      {
+        "node_id": "88de1473-958d-415c-8c8b-b1a67ed64259",
+        "operation_id": "43",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "89c86084-83eb-451d-88b4-171c19882ae3",
+        "operation_id": "13",
+        "parent_id": "70338f27-aa5a-427b-ab20-db442bc6194e",
+        "stage": "email"
+      },
+      {
+        "node_id": "8b1b2064-ab42-4b25-9b03-6f92d2e72a68",
+        "operation_id": "92",
+        "parent_id": "a879bd26-f40a-4af1-b0aa-c3fece5f43e8",
+        "stage": "email"
+      },
+      {
+        "node_id": "8b55203a-0f2e-4c09-9d7e-dff9b4206623",
+        "operation_id": "91",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "8db34a5a-7335-489e-b78c-0713cd25b55b",
+        "operation_id": "56",
+        "parent_id": "a15cf399-9a5b-423e-80ff-62c0722f1240",
+        "stage": "email"
+      },
+      {
+        "node_id": "8dc30cb8-72dc-47a5-a5be-113de88a5c2e",
+        "operation_id": "11",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "8e7db764-8198-4f0b-b4d7-bd12589594ba",
+        "operation_id": "7",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "8f7c537a-9663-4d27-b88a-e9e1589f5408",
+        "operation_id": "28",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "926474c9-3914-45e3-b39b-653c79624bbd",
+        "operation_id": "60",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "92c64b1e-a009-4c5b-b5e9-d5acca5e5866",
+        "operation_id": "32",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "937b7d7f-8f34-45f5-9ec4-0f1def0e76ef",
+        "operation_id": "66",
+        "parent_id": "e9e354ef-bd48-40eb-a060-bc10ca8102d2",
+        "stage": "email"
+      },
+      {
+        "node_id": "95189ff4-26ed-487b-922e-1ddf6cc4d246",
+        "operation_id": "11",
+        "parent_id": "8dc30cb8-72dc-47a5-a5be-113de88a5c2e",
+        "stage": "email"
+      },
+      {
+        "node_id": "953b9b82-d21e-47a7-83d3-8844e014dda2",
+        "operation_id": "75",
+        "parent_id": "5828ddba-0427-4666-927e-66a22a48e074",
+        "stage": "email"
+      },
+      {
+        "node_id": "95d5b5ea-fb89-4db7-8c8c-57b382198009",
+        "operation_id": "83",
+        "parent_id": "be731e7d-5d60-4cba-a696-ace86fee7484",
+        "stage": "email"
+      },
+      {
+        "node_id": "96836eb0-78db-4cf7-b6a2-4a52ed1b8551",
+        "operation_id": "24",
+        "parent_id": "55752a59-09a9-47df-b8d2-4e0c538948db",
+        "stage": "email"
+      },
+      {
+        "node_id": "97516b65-7850-49ec-a99b-d86703b3817a",
+        "operation_id": "34",
+        "parent_id": "37c41a76-0582-4456-babf-6bdfab78e7af",
+        "stage": "email"
+      },
+      {
+        "node_id": "975b58d8-afa4-4e13-b5cc-7b3ee8a90fd4",
+        "operation_id": "5",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "9920fed9-4362-4acb-8c86-67a6dd9417a6",
+        "operation_id": "10",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "995c82fe-c816-4af0-b1bf-e6375b6b035c",
+        "operation_id": "59",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "9990021f-7da8-4e33-85d0-eb87133ad62c",
+        "operation_id": "45",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "999dbbe6-c0bf-48c9-82a8-e13093282a89",
+        "operation_id": "5",
+        "parent_id": "975b58d8-afa4-4e13-b5cc-7b3ee8a90fd4",
+        "stage": "email"
+      },
+      {
+        "node_id": "9dd5e163-09e4-41a1-aeac-c812d0665abf",
+        "operation_id": "71",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "9f5fa81b-c09f-41df-a4b5-4160eac4604a",
+        "operation_id": "49",
+        "parent_id": "72b9d182-4c10-4664-95ef-ae9d14041550",
+        "stage": "email"
+      },
+      {
+        "node_id": "a0554a61-a26c-44d4-b0a3-21d21b1dacc1",
+        "operation_id": "50",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "a130e4a8-ad2f-4a42-a345-cdca896acf66",
+        "operation_id": "61",
+        "parent_id": "645dc6a3-2c13-4fc0-a0db-1acb150018e1",
+        "stage": "email"
+      },
+      {
+        "node_id": "a15cf399-9a5b-423e-80ff-62c0722f1240",
+        "operation_id": "56",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "a2df8bd4-480e-4cc1-8ec0-0383e2e1f854",
+        "operation_id": "69",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "a483c3af-4181-4984-96b2-b53723d6e4c2",
+        "operation_id": "78",
+        "parent_id": "0cb53476-6729-432e-9b48-446d19eef529",
+        "stage": "email"
+      },
+      {
+        "node_id": "a514849d-e4f7-495a-9746-ca1236987f99",
+        "operation_id": "33",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "a62ee2d6-0f49-43f9-8d93-de5688448061",
+        "operation_id": "44",
+        "parent_id": "c10d76fc-380e-4f56-9cc1-81df51cd9a98",
+        "stage": "email"
+      },
+      {
+        "node_id": "a6e9ed32-2b04-4a63-90ca-fea29b73d494",
+        "operation_id": "42",
+        "parent_id": "da088040-4e47-4b4b-a480-81712cb03ecf",
+        "stage": "email"
+      },
+      {
+        "node_id": "a7d01141-2410-4eb9-8e65-0674756b7640",
+        "operation_id": "46",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "a7e841d1-bd6b-46a0-b358-16b8ecf59eb9",
+        "operation_id": "96",
+        "parent_id": "f224ce3d-4697-49f0-9e2d-bf6ea9119ce3",
+        "stage": "email"
+      },
+      {
+        "node_id": "a879bd26-f40a-4af1-b0aa-c3fece5f43e8",
+        "operation_id": "92",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "aade3ff8-c853-418f-97c9-a6707653699e",
+        "operation_id": "18",
+        "parent_id": "f57cef58-19c2-4f4b-98b7-3ae13324c93f",
+        "stage": "email"
+      },
+      {
+        "node_id": "ab8b63e9-21fe-422d-83a5-3653c6c05402",
+        "operation_id": "70",
+        "parent_id": "d75eb13d-3d87-4c4a-8888-fa1a23db5aa8",
+        "stage": "email"
+      },
+      {
+        "node_id": "abacf94c-89fe-4554-99c0-830bfc00bbb9",
+        "operation_id": "10",
+        "parent_id": "9920fed9-4362-4acb-8c86-67a6dd9417a6",
+        "stage": "email"
+      },
+      {
+        "node_id": "acb2e8e4-2d77-41df-b67a-9ee669163311",
+        "operation_id": "39",
+        "parent_id": "be0896cd-adcb-471f-94e9-907f63969397",
+        "stage": "email"
+      },
+      {
+        "node_id": "adcac00c-d967-4eb0-a656-0818d815f502",
+        "operation_id": "60",
+        "parent_id": "926474c9-3914-45e3-b39b-653c79624bbd",
+        "stage": "email"
+      },
+      {
+        "node_id": "ae658e1c-ca67-4ba8-a7bc-c305107423e3",
+        "operation_id": "19",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "b04e1ff8-2e04-41d8-b067-6d64a4e158d8",
+        "operation_id": "79",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "b0be31a4-4141-491c-b553-bffeba121f1d",
+        "operation_id": "28",
+        "parent_id": "8f7c537a-9663-4d27-b88a-e9e1589f5408",
+        "stage": "email"
+      },
+      {
+        "node_id": "b1cfa180-1d27-4936-8613-60312eab7593",
+        "operation_id": "67",
+        "parent_id": "db395d48-fee7-4a76-8b59-01a598cdbeec",
+        "stage": "email"
+      },
+      {
+        "node_id": "b8a9e213-e7d0-45a9-8b99-c48d7c31db61",
+        "operation_id": "48",
+        "parent_id": "12ca3d33-0db2-4ec0-8346-e4110ee3d538",
+        "stage": "email"
+      },
+      {
+        "node_id": "b8c68c72-e02d-4633-8883-e969a2bb065c",
+        "operation_id": "14",
+        "parent_id": "efde4fd9-8798-48dc-a63c-2676ad5c67e7",
+        "stage": "email"
+      },
+      {
+        "node_id": "b9074a69-c01a-4260-8cdd-2f953a92b63b",
+        "operation_id": "85",
+        "parent_id": "57005c33-60ef-4d88-9d74-71e428d28281",
+        "stage": "email"
+      },
+      {
+        "node_id": "bad06b18-ca2a-4f96-9753-e0429647cc90",
+        "operation_id": "65",
+        "parent_id": "7afd13ae-b892-41db-817d-2d7b55ebe110",
+        "stage": "email"
+      },
+      {
+        "node_id": "bb920b13-31d2-4c54-9bc5-24f00936dd46",
+        "operation_id": "15",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "be0896cd-adcb-471f-94e9-907f63969397",
+        "operation_id": "39",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "be24125e-c408-46f3-9bb3-d702c7bfde6b",
+        "operation_id": "29",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "be687cd8-498c-4db8-9dd2-aa52710e9ccb",
+        "operation_id": "15",
+        "parent_id": "bb920b13-31d2-4c54-9bc5-24f00936dd46",
+        "stage": "email"
+      },
+      {
+        "node_id": "be731e7d-5d60-4cba-a696-ace86fee7484",
+        "operation_id": "83",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "bedc0741-545a-474f-b5d3-ab8167e9798e",
+        "operation_id": "73",
+        "parent_id": "76794101-a1fe-4d01-86de-117060f57f42",
+        "stage": "email"
+      },
+      {
+        "node_id": "c10d76fc-380e-4f56-9cc1-81df51cd9a98",
+        "operation_id": "44",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "c3e65cf2-bd55-4d21-8217-85cbc8e840af",
+        "operation_id": "58",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "c452472a-9e22-4dfc-be9a-1acbc87cb37e",
+        "operation_id": "43",
+        "parent_id": "88de1473-958d-415c-8c8b-b1a67ed64259",
+        "stage": "email"
+      },
+      {
+        "node_id": "c5eb1970-1183-459f-ab9a-dec8396a3065",
+        "operation_id": "55",
+        "parent_id": "53e2d9bc-ee67-49b4-ac57-a41306a7c458",
+        "stage": "email"
+      },
+      {
+        "node_id": "c64651b8-21d5-4761-a726-6e7b1cfac0d3",
+        "operation_id": "36",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "c95cba8b-4f17-4d8c-8faf-29c55c6f8ec2",
+        "operation_id": "97",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "c98aec2f-c608-4b96-b7ac-04df151c2bee",
+        "operation_id": "21",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "cdd72116-f087-4f66-bce1-c04d8c84c0a0",
+        "operation_id": "98",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "d07666b0-ffdd-4491-83bf-c407fd48bbf8",
+        "operation_id": "57",
+        "parent_id": "66cb5cec-e2c7-412f-b67a-de98419632df",
+        "stage": "email"
+      },
+      {
+        "node_id": "d07ab1f9-b9b5-466b-aee1-79afa7c0e075",
+        "operation_id": "7",
+        "parent_id": "8e7db764-8198-4f0b-b4d7-bd12589594ba",
+        "stage": "email"
+      },
+      {
+        "node_id": "d1988c16-3d19-4c94-bcc5-74629e3a51c4",
+        "operation_id": "82",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "d1b5c7d3-048d-4d53-9a24-f2c4352fdfa7",
+        "operation_id": "6",
+        "parent_id": "5bf2c9b9-b7b2-4b23-8d5d-bb32ee97e15b",
+        "stage": "email"
+      },
+      {
+        "node_id": "d3786f5b-8edd-4401-802e-2f5656b825a4",
+        "operation_id": "89",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "d54ea43a-af91-483e-b497-f558f9f01da3",
+        "operation_id": "3",
+        "parent_id": "5ff248c7-0d20-429e-8bf3-f8f690bfee1a",
+        "stage": "email"
+      },
+      {
+        "node_id": "d59fdc70-b4b9-444a-bde8-9ad32cd065e0",
+        "operation_id": "63",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "d60832f4-4d9a-49fd-b756-5f98fe9a2fca",
+        "operation_id": "25",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "d64aee8e-9167-48af-87d8-99b9a87c08bc",
+        "operation_id": "51",
+        "parent_id": "1b01f30c-18a8-4837-a4f3-114130e21a76",
+        "stage": "email"
+      },
+      {
+        "node_id": "d75eb13d-3d87-4c4a-8888-fa1a23db5aa8",
+        "operation_id": "70",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "da088040-4e47-4b4b-a480-81712cb03ecf",
+        "operation_id": "42",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "da996758-ec2c-4be3-a2a9-93908a1b0056",
+        "operation_id": "21",
+        "parent_id": "c98aec2f-c608-4b96-b7ac-04df151c2bee",
+        "stage": "email"
+      },
+      {
+        "node_id": "dad64214-64b7-4180-866d-716ff0e718cd",
+        "operation_id": "90",
+        "parent_id": "5a3dd417-af13-4f1d-8bed-4d0e0ec04d0a",
+        "stage": "email"
+      },
+      {
+        "node_id": "db395d48-fee7-4a76-8b59-01a598cdbeec",
+        "operation_id": "67",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "dba2a14c-cfdc-4925-86b2-fc19db688da7",
+        "operation_id": "64",
+        "parent_id": "240cb897-63b1-4fc5-ade2-58936f4266f5",
+        "stage": "email"
+      },
+      {
+        "node_id": "dd90e410-6d13-4b87-9415-64cc01f20882",
+        "operation_id": "27",
+        "parent_id": "2318a383-9520-4cc9-8e39-f9b2ea9fe1ed",
+        "stage": "email"
+      },
+      {
+        "node_id": "ddb8eb3c-ccee-4fe6-a837-2f8408c21861",
+        "operation_id": "4",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "de526e2d-a03e-4dbb-96c7-fc2b7b7d9263",
+        "operation_id": "9",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "dec00d01-59d5-45df-aa46-7cac3e43b555",
+        "operation_id": "23",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "def2c54a-a556-481f-86bf-cf047c91c4ee",
+        "operation_id": "71",
+        "parent_id": "9dd5e163-09e4-41a1-aeac-c812d0665abf",
+        "stage": "email"
+      },
+      {
+        "node_id": "dfd20a02-6358-4cbe-8ac3-0c62ffa93d49",
+        "operation_id": "84",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "e15d095d-2cbf-4f67-893f-d05c5b39f625",
+        "operation_id": "26",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "e62398dd-705b-44f6-b330-563cb092200b",
+        "operation_id": "41",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "e679aa1b-1366-443e-8a80-10eaf89ca4c8",
+        "operation_id": "20",
+        "parent_id": "5cc855aa-715e-4525-bfc3-5d089624463e",
+        "stage": "email"
+      },
+      {
+        "node_id": "e67ccf5a-034a-46ab-aab0-ee1e88bb5053",
+        "operation_id": "59",
+        "parent_id": "995c82fe-c816-4af0-b1bf-e6375b6b035c",
+        "stage": "email"
+      },
+      {
+        "node_id": "e7439397-2f21-4036-84ec-2e19887d8431",
+        "operation_id": "16",
+        "parent_id": "45e97546-7058-445a-bf57-aeeb330d3546",
+        "stage": "email"
+      },
+      {
+        "node_id": "e74be60b-b454-4da3-8a45-80e02166900b",
+        "operation_id": "72",
+        "parent_id": "0f8dd56d-53b3-4f2f-931a-bac3ede95cad",
+        "stage": "email"
+      },
+      {
+        "node_id": "e776103b-f171-4e06-b1fe-eb7815a49c32",
+        "operation_id": "12",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "e7bf32d6-6cce-422b-b45f-48af4f0246a0",
+        "operation_id": "38",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "e9e354ef-bd48-40eb-a060-bc10ca8102d2",
+        "operation_id": "66",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "eae1cf71-3375-40e9-8125-5d5a1367afcd",
+        "operation_id": "102",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "ed324d68-8be4-4e38-aa7d-3bee2edb410f",
+        "operation_id": "36",
+        "parent_id": "c64651b8-21d5-4761-a726-6e7b1cfac0d3",
+        "stage": "email"
+      },
+      {
+        "node_id": "eeacd239-6b95-4cbd-80c2-ee75ce93c24e",
+        "operation_id": "53",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "ef0b3128-1ffd-4c4a-8c6f-036c8460e249",
+        "operation_id": "8",
+        "parent_id": "011d828a-2952-4da4-a7e6-8a98a68dc69a",
+        "stage": "email"
+      },
+      {
+        "node_id": "efde4fd9-8798-48dc-a63c-2676ad5c67e7",
+        "operation_id": "14",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "f003d3e7-f82a-48f7-a0a2-d0f6317e5f77",
+        "operation_id": "68",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "f016959d-cf40-40b7-8a4e-801f3eadd37b",
+        "operation_id": "101",
+        "parent_id": "7db30356-a7de-47bb-ab74-4cb1baaf0945",
+        "stage": "email"
+      },
+      {
+        "node_id": "f224ce3d-4697-49f0-9e2d-bf6ea9119ce3",
+        "operation_id": "96",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "f2bfca27-a7bb-4ba5-aa2f-1e4033f4fb49",
+        "operation_id": "40",
+        "parent_id": "fc848e23-606f-470a-af9f-9c5173bc05fc",
+        "stage": "email"
+      },
+      {
+        "node_id": "f2d51bdb-d4c1-4c8d-999c-8ec4249aebd3",
+        "operation_id": "22",
+        "parent_id": "0fb048cc-1674-47ae-b01a-32265ce26a78",
+        "stage": "email"
+      },
+      {
+        "node_id": "f4956833-fce7-452d-8ae2-51eaef9bd413",
+        "operation_id": "62",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "f57cef58-19c2-4f4b-98b7-3ae13324c93f",
+        "operation_id": "18",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "f6274f95-0f89-4e63-b67c-8e65cd39f414",
+        "operation_id": "77",
+        "parent_id": "381c3f65-ab80-427f-806f-e2a1a60e3a63",
+        "stage": "email"
+      },
+      {
+        "node_id": "fbc717a5-9b8a-4214-a446-9b4e31abbc56",
+        "operation_id": "29",
+        "parent_id": "be24125e-c408-46f3-9bb3-d702c7bfde6b",
+        "stage": "email"
+      },
+      {
+        "node_id": "fbf2fa9a-f1ed-43d6-bb49-f1e2d139f058",
+        "operation_id": "80",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "fc848e23-606f-470a-af9f-9c5173bc05fc",
+        "operation_id": "40",
+        "parent_id": null,
+        "stage": "export"
+      },
+      {
+        "node_id": "ffd70bfd-5758-4a82-81df-1f63317646be",
+        "operation_id": "32",
+        "parent_id": "92c64b1e-a009-4c5b-b5e9-d5acca5e5866",
+        "stage": "email"
+      }
+    ],
+    "operations": [
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15",
+      "16",
+      "17",
+      "18",
+      "19",
+      "20",
+      "21",
+      "22",
+      "23",
+      "24",
+      "25",
+      "26",
+      "27",
+      "28",
+      "29",
+      "30",
+      "31",
+      "32",
+      "33",
+      "34",
+      "35",
+      "36",
+      "37",
+      "38",
+      "39",
+      "40",
+      "41",
+      "42",
+      "43",
+      "44",
+      "45",
+      "46",
+      "47",
+      "48",
+      "49",
+      "50",
+      "51",
+      "52",
+      "53",
+      "54",
+      "55",
+      "56",
+      "57",
+      "58",
+      "59",
+      "60",
+      "61",
+      "62",
+      "63",
+      "64",
+      "65",
+      "66",
+      "67",
+      "68",
+      "69",
+      "70",
+      "71",
+      "72",
+      "73",
+      "74",
+      "75",
+      "76",
+      "77",
+      "78",
+      "79",
+      "80",
+      "81",
+      "82",
+      "83",
+      "84",
+      "85",
+      "86",
+      "87",
+      "88",
+      "89",
+      "90",
+      "91",
+      "92",
+      "93",
+      "94",
+      "95",
+      "96",
+      "97",
+      "98",
+      "99",
+      "100",
+      "101",
+      "102"
+    ],
+    "passed": true,
+    "per_operation": {
+      "10": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "100": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "101": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "102": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "11": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "12": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "13": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "14": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "15": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "16": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "17": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "18": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "19": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "20": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "21": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "22": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "23": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "24": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "25": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "26": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "27": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "28": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "29": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "3": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "30": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "31": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "32": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "33": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "34": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "35": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "36": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "37": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "38": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "39": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "4": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "40": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "41": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "42": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "43": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "44": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "45": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "46": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "47": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "48": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "49": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "5": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "50": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "51": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "52": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "53": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "54": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "55": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "56": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "57": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "58": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "59": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "6": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "60": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "61": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "62": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "63": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "64": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "65": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "66": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "67": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "68": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "69": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "7": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "70": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "71": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "72": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "73": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "74": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "75": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "76": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "77": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "78": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "79": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "8": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "80": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "81": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "82": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "83": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "84": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "85": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "86": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "87": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "88": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "89": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "9": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "90": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "91": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "92": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "93": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "94": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "95": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "96": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "97": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "98": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      },
+      "99": {
+        "edges": [
+          [
+            "export",
+            "email",
+            1
+          ]
+        ],
+        "stages": {
+          "email": 1,
+          "export": 1
+        }
+      }
+    },
+    "schema_version": 1,
+    "stage_counts": {
+      "email": 100,
+      "export": 100
+    }
+  },
+  "workflow_trace": {
+    "path": "saleor-4-celery/task-trace.jsonl",
+    "sha256": "91b9541665dbee20091de42483a195b789b8bae4d99852f1e714308ee701a759"
   }
 }

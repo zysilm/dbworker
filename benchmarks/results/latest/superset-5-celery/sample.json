@@ -1,6 +1,46 @@
 {
   "backend": "celery",
-  "comparison_mode": "paired_durable_request",
+  "capabilities": {
+    "scope": "Native successful asynchronous SQL Lab SELECT workflow on a declared SQLite fixture",
+    "untested": [
+      "worker_crash",
+      "publication_failure",
+      "timeouts",
+      "cancellation",
+      "cross_orm_atomicity",
+      "postgresql"
+    ],
+    "verified": [
+      "native_sql_lab_submission",
+      "native_task_dispatch",
+      "async_results_storage",
+      "native_results_retrieval",
+      "one_job_per_query",
+      "business_success"
+    ]
+  },
+  "comparison_mode": "native_application_workflow",
+  "configuration": {
+    "celery_acknowledgements": "upstream early acknowledgements",
+    "completion": "native success + stored results + authenticated retrieval + scheduler terminal event",
+    "concurrency": 2,
+    "dbworker_timeouts": "No equivalent native soft/hard task limits; normal completion only",
+    "environment_overrides": [
+      "isolated Redis host/port",
+      "isolated filesystem cache directory",
+      "isolated SQLite metadata URI",
+      "fixture secret/encryption setting",
+      "local test-client CSRF/TLS disabled"
+    ],
+    "metadata_database": "sqlite",
+    "native_application": "superset.tasks.celery_app:app",
+    "native_configuration": "docker/pythonpath_dev/superset_config.py",
+    "redis_aof": "everysec",
+    "results_backend": "upstream FileSystemCache",
+    "submission": "authenticated original SQL Lab REST API",
+    "timing": "first API submission through all result retrieval and scheduler completion",
+    "warehouse_database": "sqlite"
+  },
   "environment": {
     "interpreter": "/workspace/benchmarks/environments/superset/celery/.venv/bin/python",
     "packages": {
@@ -15,20 +55,1364 @@
   "metrics": {
     "cpu_seconds": null,
     "peak_rss_bytes": null,
-    "queries_per_second": 48.8688760828633,
-    "wall_seconds": 2.0462922010000284
+    "queries_per_second": 29.80192811274716,
+    "wall_seconds": 3.3554875920000313
+  },
+  "native_execution": {
+    "check": "live_task_origin_and_ast",
+    "configuration": {
+      "overrides": "isolated Redis/cache/metadata/security fixture environment",
+      "source_sha256": "523a1e68dc214e8f7f5e09304dfe9593b7996009dd13224d67d09abfe4fe29f7",
+      "upstream_config": "docker/pythonpath_dev/superset_config.py"
+    },
+    "observer_only": true,
+    "passed": true,
+    "task_names": [
+      "sql_lab.get_sql_results"
+    ],
+    "tasks": {
+      "sql_lab.get_sql_results": {
+        "framework_wrappers": [],
+        "function": "get_sql_results",
+        "source": "superset/sql_lab.py",
+        "source_sha256": "57afb23c405755cc9c9143e65f1bc06b87cd90ba2a3bf5a7934d7096b4f373b3",
+        "task_class": "superset.sql_lab.get_sql_results"
+      }
+    },
+    "worker_app": "superset.tasks.celery_app:app"
   },
   "repetition": 5,
   "scenario": "sql_lab_group_by",
   "status": "passed",
   "unavailable_metrics": {
-    "cpu_seconds": "Total-stack sampling is not implemented for this initial suite",
-    "peak_rss_bytes": "Total-stack sampling is not implemented for this initial suite"
+    "cpu_seconds": "Total-stack CPU sampling is unavailable",
+    "peak_rss_bytes": "Total-stack RSS sampling is unavailable"
   },
   "validation": {
-    "output_digest": "e131da9e0850da955bf8b7533b13bf95a1faacf15906372470b590534ce9d528",
+    "output_digest": "35612dc6e4fcc6d1886888171ff3eaebbc6c426ec9509b3d87922a835a9db796",
     "passed": true,
     "queries": 100,
+    "retrieved_results": 100,
     "rows_per_query": 10
+  },
+  "workflow_graph": {
+    "contract": "successful_business_workflow",
+    "edge_counts": [],
+    "nodes": 100,
+    "observed_jobs": [
+      {
+        "node_id": "00da8cb8-699e-4f16-ac96-dda3cfd5277a",
+        "operation_id": "query-92",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "04097f9c-e0d4-4924-a17f-6f593ac7daed",
+        "operation_id": "query-58",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "0600f015-2451-40df-9a46-e90797bfcaaf",
+        "operation_id": "query-78",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "069b96e4-65a4-44ab-ba36-8377f9e507bf",
+        "operation_id": "query-79",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "0e53dcbb-5f76-4fff-b726-b69ab0b9a5fe",
+        "operation_id": "query-57",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "0f0f8813-e43d-48e4-ab0a-8e12ec236f4a",
+        "operation_id": "query-55",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "0f3e0724-3112-4efb-ace5-7af98ed39e45",
+        "operation_id": "query-96",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "171cf0d6-483d-4893-a8fd-fad08f270f52",
+        "operation_id": "query-41",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "17ddac3a-52a7-4288-af54-719fcf592c57",
+        "operation_id": "query-43",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "17e3dbb3-34bc-4c6e-b4e3-f7574cbccc07",
+        "operation_id": "query-18",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "19f9d849-9886-41f3-9c2a-4c7d0ddb5e7d",
+        "operation_id": "query-76",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "1d370824-38d2-4bea-bba7-1fedd97e448f",
+        "operation_id": "query-88",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "1e8af014-5887-4c13-adff-b56872c4ea1b",
+        "operation_id": "query-23",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "1fe15bde-4325-4654-b5da-f64522078331",
+        "operation_id": "query-60",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "22018bae-c143-4752-a690-f72566804f0e",
+        "operation_id": "query-66",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "247e7af0-f11a-429d-9316-9951a6ddc454",
+        "operation_id": "query-81",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "24d7902b-e468-4a9b-a363-470098931794",
+        "operation_id": "query-9",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "26b1cc9c-eb06-4945-b6f5-4c06bcda0cc5",
+        "operation_id": "query-62",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "27c8d188-e4a7-48e0-a208-ab414842bf35",
+        "operation_id": "query-31",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "27cb6e59-e62f-4d90-9ef0-28d54b54df73",
+        "operation_id": "query-30",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "2ae64b49-f91a-41c5-906e-cb8eb702e1ef",
+        "operation_id": "query-4",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "2b45747c-44e4-424d-be27-be5fb20a138f",
+        "operation_id": "query-14",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "2b6806a9-cff2-4b3c-a216-48e70747dccb",
+        "operation_id": "query-99",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "2d83211a-558c-4815-80c6-797ecbbda53b",
+        "operation_id": "query-83",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "2e8b623a-3aca-47ad-be64-fc666148b5a6",
+        "operation_id": "query-44",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "329df3fc-e922-4fbe-b814-14fe5fecbdc5",
+        "operation_id": "query-94",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "34c93833-3713-4cf6-aae4-0595c04d827c",
+        "operation_id": "query-75",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "35a2758f-f773-43b5-ba31-89f1f681d9e7",
+        "operation_id": "query-38",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "369deaac-fd04-455d-a667-6ec361c93cf1",
+        "operation_id": "query-40",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "3a1b97ac-dd20-4988-a45b-4634842d9c37",
+        "operation_id": "query-42",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "3f899a64-183b-47a8-91d7-406ea6d20414",
+        "operation_id": "query-7",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "41c1cc4c-47c2-4ea6-a307-3dfb9f933f51",
+        "operation_id": "query-64",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "47b4db7a-3fbe-49bf-aecd-a94139e35d32",
+        "operation_id": "query-24",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "49d790fc-fbab-43c9-9f5f-abff8fd9c999",
+        "operation_id": "query-27",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "4c3ba7f3-5df8-4589-a1a0-a396f3a24f74",
+        "operation_id": "query-15",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "57714a5a-87c5-47bc-95be-83affd871b3e",
+        "operation_id": "query-16",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "59a89166-c2a9-43e2-9f4b-1341ddaefaf0",
+        "operation_id": "query-36",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "5a3ec7f2-b58b-4c2a-b8fd-9ccd982aa41d",
+        "operation_id": "query-47",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "6075e034-ab4c-4a7d-9096-933ab26b8e2c",
+        "operation_id": "query-35",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "632ff161-98bf-472f-b530-e7554c67dbfc",
+        "operation_id": "query-51",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "6956056c-c07c-4ca1-bae2-5201f17fc10a",
+        "operation_id": "query-84",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "6a1a1cee-81e8-433d-9326-f3f5cea48bc8",
+        "operation_id": "query-34",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "6e97113d-cb67-4198-80ec-6a57591d5f84",
+        "operation_id": "query-17",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "6fe73003-3a66-4fd1-9384-cab028f2f81a",
+        "operation_id": "query-89",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "7337c398-3c7d-48d4-b2e2-ec118c9c0bb8",
+        "operation_id": "query-29",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "76f7c4c0-57d1-4f34-bf80-4009a6df83d4",
+        "operation_id": "query-52",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "778465ab-9ef4-43b1-9561-74bbc8a479b7",
+        "operation_id": "query-46",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "799172af-c39f-444f-b7cf-41aa0f73b18b",
+        "operation_id": "query-19",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "7c800555-0eb4-4e28-ad54-325c67a8ee01",
+        "operation_id": "query-68",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "80ff8109-25ff-41ee-9ada-b67ede0071c8",
+        "operation_id": "query-10",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "81d1537d-2844-4903-9897-1b28edc1112c",
+        "operation_id": "query-1",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "847d66cf-91e7-4e69-8ca0-a9a9072607b3",
+        "operation_id": "query-97",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "85b89a39-67b7-4d9d-92ea-caeed6d59ae1",
+        "operation_id": "query-26",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "8a238a34-4ae7-4067-a245-dc1298b978f0",
+        "operation_id": "query-28",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "8b72253d-3bb2-4f1b-9a43-07579fd951aa",
+        "operation_id": "query-73",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "8bb97630-1769-48a1-af94-90233f75601e",
+        "operation_id": "query-65",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "914f8f2c-7234-4ca3-b97d-4ad2e9e8038b",
+        "operation_id": "query-61",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "9159fa0c-8eab-4a34-ac76-16901898da99",
+        "operation_id": "query-85",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "929411c6-f264-4a8c-b202-495d5f9efcbc",
+        "operation_id": "query-67",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "92a469e0-95e0-4dbf-b13c-5d721ea6230d",
+        "operation_id": "query-93",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "9a050d8b-44a0-45cd-a5d2-93af7fd80cd1",
+        "operation_id": "query-21",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "9ac1fc7b-4b8a-42d8-adf4-6e8859813750",
+        "operation_id": "query-50",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "9c2d6778-f14f-476b-8ef8-89e3f05e8328",
+        "operation_id": "query-39",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "a5921ecb-a0f6-4135-87be-530ddeff26e1",
+        "operation_id": "query-56",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "a67c31d3-ff15-499e-a73a-5be606fff771",
+        "operation_id": "query-72",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "a82de7f0-ed04-43db-8dd4-904d06ef2ef8",
+        "operation_id": "query-71",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "a8ff4ab1-e209-43aa-b40a-f9cc300460ab",
+        "operation_id": "query-54",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "ab5d13a8-e045-4a9c-bc62-60e3befcb02f",
+        "operation_id": "query-3",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "af8b08b8-34b8-4956-b614-2d42774fd646",
+        "operation_id": "query-5",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "b2bd2584-1bcb-402e-942f-6c7e7369f808",
+        "operation_id": "query-32",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "b47bcba7-4e17-4d9f-82c7-1ae20f1d9de9",
+        "operation_id": "query-53",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "b51e6214-893b-4a2d-adb7-46a803275ca0",
+        "operation_id": "query-74",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "bb1c7750-54a9-4d78-ad0b-f48864fd4c7c",
+        "operation_id": "query-59",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "bdd28d7a-d500-47a9-be68-dccbca3a04eb",
+        "operation_id": "query-13",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "be27df8f-dfca-4eb3-83e4-8581d88a1625",
+        "operation_id": "query-82",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "c240fbd3-33e4-4a60-9e59-e83cb1a55207",
+        "operation_id": "query-95",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "cb4bb28e-379f-48d6-8a27-7e9f8f8a37ba",
+        "operation_id": "query-37",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "d39ecc37-1abe-4b0d-bed2-e31a2d3c9952",
+        "operation_id": "query-25",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "d485f4c7-e578-4020-be05-6567ca43243b",
+        "operation_id": "query-86",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "dad7cbff-de06-4d7b-be53-ead9140357b3",
+        "operation_id": "query-80",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "dadf2bd5-3edb-40c2-a800-ab1c815fb486",
+        "operation_id": "query-11",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "dc9b3104-293c-43f3-b15f-1fd6ab55d4bb",
+        "operation_id": "query-91",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "dd0a5efb-ce3c-4f4a-94b8-71d770bd2198",
+        "operation_id": "query-77",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "de492dc3-76e4-4ff5-81eb-da3f277e9cbb",
+        "operation_id": "query-87",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "e647e256-a937-4e8d-ac08-b133f38349ed",
+        "operation_id": "query-2",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "e6fd88bd-0bdc-47f2-8987-9a46658a75be",
+        "operation_id": "query-8",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "e9398dba-b4b2-4d16-934f-58e49244ea01",
+        "operation_id": "query-98",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "ea9eeb09-ae98-4b85-a99c-bab083ad2139",
+        "operation_id": "query-48",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "ebf55740-e666-4771-86a4-4b023235eeb8",
+        "operation_id": "query-20",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "ee50150d-4294-42af-baa1-c35b8708a982",
+        "operation_id": "query-45",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "ef706fea-c469-40c7-a31b-0f8e4f846bc6",
+        "operation_id": "query-49",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "f0804760-cfee-4894-9231-908366ef51fc",
+        "operation_id": "query-33",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "f44513bd-d303-423a-ba58-37a913c5136e",
+        "operation_id": "query-22",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "f5916961-0bcb-472a-bc80-5e0816d3fa6e",
+        "operation_id": "query-12",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "f6432461-6541-4a15-9a74-60f3e3d946b8",
+        "operation_id": "query-63",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "fb703843-032c-4f43-927c-2dd8202df587",
+        "operation_id": "query-90",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "fb9f6f59-e989-4f20-bf2e-6740939828d1",
+        "operation_id": "query-0",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "fdc16b1b-e0fd-42db-b6d8-62a256b5c321",
+        "operation_id": "query-6",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "fe2fe73e-3b79-4154-afb3-265e28da8b43",
+        "operation_id": "query-70",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "ffd3c052-26fa-471c-8878-b0245490e094",
+        "operation_id": "query-69",
+        "parent_id": null,
+        "stage": "sql_lab"
+      }
+    ],
+    "operations": [
+      "query-0",
+      "query-1",
+      "query-2",
+      "query-3",
+      "query-4",
+      "query-5",
+      "query-6",
+      "query-7",
+      "query-8",
+      "query-9",
+      "query-10",
+      "query-11",
+      "query-12",
+      "query-13",
+      "query-14",
+      "query-15",
+      "query-16",
+      "query-17",
+      "query-18",
+      "query-19",
+      "query-20",
+      "query-21",
+      "query-22",
+      "query-23",
+      "query-24",
+      "query-25",
+      "query-26",
+      "query-27",
+      "query-28",
+      "query-29",
+      "query-30",
+      "query-31",
+      "query-32",
+      "query-33",
+      "query-34",
+      "query-35",
+      "query-36",
+      "query-37",
+      "query-38",
+      "query-39",
+      "query-40",
+      "query-41",
+      "query-42",
+      "query-43",
+      "query-44",
+      "query-45",
+      "query-46",
+      "query-47",
+      "query-48",
+      "query-49",
+      "query-50",
+      "query-51",
+      "query-52",
+      "query-53",
+      "query-54",
+      "query-55",
+      "query-56",
+      "query-57",
+      "query-58",
+      "query-59",
+      "query-60",
+      "query-61",
+      "query-62",
+      "query-63",
+      "query-64",
+      "query-65",
+      "query-66",
+      "query-67",
+      "query-68",
+      "query-69",
+      "query-70",
+      "query-71",
+      "query-72",
+      "query-73",
+      "query-74",
+      "query-75",
+      "query-76",
+      "query-77",
+      "query-78",
+      "query-79",
+      "query-80",
+      "query-81",
+      "query-82",
+      "query-83",
+      "query-84",
+      "query-85",
+      "query-86",
+      "query-87",
+      "query-88",
+      "query-89",
+      "query-90",
+      "query-91",
+      "query-92",
+      "query-93",
+      "query-94",
+      "query-95",
+      "query-96",
+      "query-97",
+      "query-98",
+      "query-99"
+    ],
+    "passed": true,
+    "per_operation": {
+      "query-0": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-1": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-10": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-11": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-12": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-13": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-14": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-15": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-16": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-17": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-18": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-19": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-2": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-20": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-21": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-22": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-23": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-24": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-25": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-26": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-27": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-28": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-29": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-3": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-30": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-31": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-32": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-33": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-34": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-35": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-36": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-37": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-38": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-39": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-4": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-40": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-41": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-42": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-43": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-44": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-45": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-46": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-47": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-48": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-49": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-5": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-50": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-51": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-52": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-53": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-54": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-55": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-56": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-57": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-58": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-59": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-6": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-60": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-61": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-62": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-63": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-64": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-65": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-66": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-67": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-68": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-69": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-7": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-70": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-71": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-72": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-73": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-74": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-75": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-76": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-77": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-78": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-79": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-8": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-80": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-81": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-82": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-83": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-84": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-85": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-86": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-87": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-88": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-89": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-9": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-90": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-91": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-92": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-93": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-94": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-95": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-96": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-97": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-98": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-99": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      }
+    },
+    "schema_version": 1,
+    "stage_counts": {
+      "sql_lab": 100
+    }
+  },
+  "workflow_trace": {
+    "path": "superset-5-celery/task_trace.jsonl",
+    "sha256": "6c77e22759545cd9c50d501b69d40512703a1762e20263bac9c43b3595b1f05b"
   }
 }

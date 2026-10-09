@@ -1,88 +1,1426 @@
 {
   "backend": "dbworker",
   "capabilities": {
-    "scope": "Paired durable requests running the unchanged upstream ingestion body; auxiliary Redis progress is shared infrastructure",
+    "scope": "Restricted successful unsplit folder scans; no configured workflows/AI. Any unexpected child graph fails admission.",
     "untested": [
-      "crash_recovery",
-      "postgresql",
-      "classification_training",
       "barcode_split",
-      "workflow_continuations",
-      "AI"
+      "workflow_webhook",
+      "AI",
+      "mail_chords",
+      "index_retry",
+      "crash_recovery",
+      "timeouts",
+      "cancellation",
+      "cross_orm_atomicity"
     ],
     "verified": [
-      "unchanged_consume_file_plugin_pipeline",
-      "real_tesseract_ocr",
-      "durable_document_rows",
-      "original_file_sha256",
-      "real_thumbnails",
-      "tantivy_content_search",
-      "dbworker_ledger"
+      "original_celery_app_and_task",
+      "original_folder_producer",
+      "tracked_lifecycle",
+      "signed_results",
+      "real_ocr",
+      "originals_thumbnails_archives_search",
+      "one_ingestion_job_per_scan"
     ]
   },
-  "comparison_mode": "paired_durable_request",
+  "comparison_mode": "native_application_workflow",
   "configuration": {
     "application_database": "sqlite",
-    "celery_pool": "prefork",
-    "comparison_mode": "paired_durable_request",
+    "auxiliary_progress_redis_both": true,
+    "celery_pool": "native prefork with max_tasks_per_child=1",
+    "completion": "all native-equivalent tracked task states/results, search readiness and scheduler terminal events",
     "concurrency": 2,
-    "dbworker_pool": "spawn processes",
-    "ocr_clean": "none",
-    "ocr_deskew": false,
-    "ocr_language": "eng",
-    "ocr_mode": "force",
-    "ocr_output_type": "pdf",
-    "ocr_rotate_pages": false,
-    "platform_pool_limitation": null,
+    "dbworker_job_database": "sqlite",
+    "dbworker_pool": "persistent spawn processes",
+    "lifecycle_limits": "DBWorker has no equivalent hard timeout, cancellation or child recycling; success contract only",
+    "native_application": "paperless.celery:app",
+    "native_settings": {
+      "result_backend": "redis://127.0.0.1:52877/0",
+      "result_serializer": "signed-pickle",
+      "task_acks_late": false,
+      "task_serializer": "signed-pickle",
+      "task_time_limit": 1800,
+      "task_track_started": true,
+      "worker_concurrency": 2,
+      "worker_max_tasks_per_child": 1,
+      "worker_prefetch_multiplier": 4
+    },
+    "overrides": [
+      "isolated paths/Redis/secret",
+      "English forced OCR",
+      "PDF output",
+      "no clean/deskew/rotate",
+      "2 worker slots, 1 OCR thread"
+    ],
     "profile": {
       "repetitions": 5,
       "requests": 100
     },
     "redis_aof": "everysec",
-    "redis_auxiliary_progress_both_backends": true,
-    "request_database": "sqlite",
-    "retry": "none",
+    "submission": "original folder _consume_file producer",
+    "timing": "first original producer call through final business and scheduler completion; oracle hashing outside timer",
     "warmup_documents": 2
   },
   "dataset": {
     "documents": 100,
     "dpi": 200,
     "format": "raster-only PNG",
-    "generation": "Pillow raster drawing using ReportLab Vera.ttf",
-    "independent_oracle": "expected markers and original SHA256",
     "size": [
       1800,
       700
-    ],
-    "text": "INVOICE <five-digit-number>; Benchmark orchard payment received"
+    ]
   },
   "environment": {
     "interpreter": "/workspace/benchmarks/environments/paperless_ngx/dbworker/.venv/bin/python",
     "packages": {
       "celery": "5.6.3",
-      "dbworker": "0.0.6",
+      "dbworker": "0.0.7",
       "django": "5.2.17",
       "ocrmypdf": "17.12.1",
       "sqlalchemy": "2.0.54",
       "tantivy": "0.26.2"
     },
-    "python": "3.12.3",
-    "tesseract": "tesseract 5.3.4"
+    "python": "3.12.3"
   },
   "metrics": {
-    "documents_per_second": 2.4911097841373957,
-    "wall_seconds": 40.142751089
+    "cpu_seconds": 77.17999999999999,
+    "documents_per_second": 2.131561117859824,
+    "observed_processes": 400,
+    "peak_processes": 9,
+    "peak_rss_bytes": 1124626432,
+    "resource_sample_interval_seconds": 0.05,
+    "resource_scope": "harness, Redis, worker replacements and OCR descendants; SQLite is in-process",
+    "short_lived_process_sampling_limit": "Processes born and exited between 50ms samples may be missed",
+    "wall_seconds": 46.91397265699993
   },
+  "native_execution": null,
   "repetition": 3,
-  "scenario": "scanned_image_ingestion",
+  "scenario": "native_unsplit_scan_ingestion",
   "status": "passed",
   "validation": {
     "documents": 100,
-    "original_files": true,
-    "output_digest": "b409f93cfdeb5049aa44555d2d0299932248a183084f9978690f06783e680b8f",
+    "native_lifecycle": true,
+    "output_digest": "978a91ac1e0d9fbe32c438cc13e8b7bd812f5b8ed354767eeb5d771fa40b34fc",
+    "passed": true
+  },
+  "workflow_graph": {
+    "contract": "successful_business_workflow",
+    "edge_counts": [],
+    "nodes": 100,
+    "observed_jobs": [
+      {
+        "node_id": "00fbd3ed-350a-4704-b49d-5cc3e91a0ab4",
+        "operation_id": "invoice:00099",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "01e84197-ed69-4c8f-86f4-3d49455b6bd9",
+        "operation_id": "invoice:00013",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "050c06a9-7f46-49b5-8bee-594492165adf",
+        "operation_id": "invoice:00040",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "06404e0b-0821-4dad-b677-11ad3e40160f",
+        "operation_id": "invoice:00032",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "0b59e27c-d01b-4254-be31-33df696575ed",
+        "operation_id": "invoice:00075",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "1a270e6e-84a5-410d-a084-c05d262752ba",
+        "operation_id": "invoice:00007",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "1ab8f55d-b8d8-4e59-931a-faa4dd43beb4",
+        "operation_id": "invoice:00101",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "1d676a0c-93a6-44a9-8f8f-7d8277a6aff2",
+        "operation_id": "invoice:00097",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "1f9bfcd9-5b59-4c65-a576-5bb9f4a5f512",
+        "operation_id": "invoice:00052",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "20fe1362-b7d6-4d08-a9dc-4d8003352129",
+        "operation_id": "invoice:00010",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "22200f57-1a81-414a-bcd9-03d40d3dd7be",
+        "operation_id": "invoice:00039",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "23bff011-b7b9-44d4-a722-678a1f41caf2",
+        "operation_id": "invoice:00091",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "24ef8cb6-fe50-4948-8e5c-0f7735e8731f",
+        "operation_id": "invoice:00081",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "255ced51-2d23-47bf-887f-f25a11a6c967",
+        "operation_id": "invoice:00019",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "271d0872-adbf-4447-a988-b323cbfec7b6",
+        "operation_id": "invoice:00044",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "2aa5f28f-215f-42e7-84f3-edcbe0b6c897",
+        "operation_id": "invoice:00074",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "2fc0e632-8af4-47b1-85b9-89e0fba3b3ef",
+        "operation_id": "invoice:00025",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "3682c967-3e1f-4503-ab3c-7faceb1494c1",
+        "operation_id": "invoice:00045",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "3a4d62e2-de76-4237-8c19-9b34f3cda3a2",
+        "operation_id": "invoice:00031",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "3a5f0885-9b39-4d2c-acbb-3f8175c58944",
+        "operation_id": "invoice:00033",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "3dc83865-ff54-4e6e-a6a6-6928c70d49e6",
+        "operation_id": "invoice:00080",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "3f155d68-ac70-4819-b696-8adbf0403332",
+        "operation_id": "invoice:00069",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "40918109-7239-476a-a7f0-bfdd0d349a2a",
+        "operation_id": "invoice:00085",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "40af51c4-a90a-4370-b4ee-1d6cb8fc7794",
+        "operation_id": "invoice:00036",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "434c1a60-4afc-4452-bd6b-a388f71a7480",
+        "operation_id": "invoice:00072",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "48108ddc-df89-43af-ad75-2b94249e27ee",
+        "operation_id": "invoice:00071",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "4be9efd7-e09e-4f53-8287-178b91219082",
+        "operation_id": "invoice:00011",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "4fb51189-3969-4f42-8e7e-156d23f97e15",
+        "operation_id": "invoice:00051",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "54f796fd-f7e1-4163-abf2-14779356b789",
+        "operation_id": "invoice:00003",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "552da5ad-f594-497e-a951-5f1f830a7f4a",
+        "operation_id": "invoice:00076",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "55469868-2ff6-4e0b-b8f9-47811248624c",
+        "operation_id": "invoice:00050",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "55794e7e-ad8f-4b25-8108-e5c6fb7a2ebb",
+        "operation_id": "invoice:00030",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "59a5962e-af9a-4ffc-88c1-8c4f60ad2167",
+        "operation_id": "invoice:00037",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "5aaa621a-676d-45d9-a737-018790340f48",
+        "operation_id": "invoice:00095",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "5b85673e-9897-42b6-92bf-40d6f96470df",
+        "operation_id": "invoice:00035",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "5bd081e0-6b99-4db3-9262-747e0ca54e2b",
+        "operation_id": "invoice:00084",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "6032ab89-d318-45e1-9a56-22d6b713212f",
+        "operation_id": "invoice:00058",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "614a333b-705a-497e-b96f-2bea92ccc2d4",
+        "operation_id": "invoice:00012",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "61e321a1-cd94-427b-beea-6bc1e371534a",
+        "operation_id": "invoice:00023",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "6884fb44-571f-4e6e-abff-735eb047b62f",
+        "operation_id": "invoice:00064",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "68e4f50f-0c1e-4447-86b2-4f6373405087",
+        "operation_id": "invoice:00056",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "71486b62-f265-42f4-bc9d-827db60e0f77",
+        "operation_id": "invoice:00041",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "7167fe86-168b-492b-b06f-dbfa6cbc4e31",
+        "operation_id": "invoice:00089",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "73b3fd33-9a2c-429c-9a38-af5cbb51dad6",
+        "operation_id": "invoice:00006",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "76391de6-d152-43ed-be39-f12cd54e4dc0",
+        "operation_id": "invoice:00065",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "77202bf1-a73c-41f7-8ce8-e35445a15577",
+        "operation_id": "invoice:00070",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "79b10309-97aa-4fc8-a647-f3940e5c7087",
+        "operation_id": "invoice:00020",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "7a221258-b873-4a16-ac10-7979fb6e7ded",
+        "operation_id": "invoice:00098",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "7a3fab3a-884e-48ec-baf3-6b047ba0841f",
+        "operation_id": "invoice:00014",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "8510fcd9-c489-48bb-9c49-c5e800791a54",
+        "operation_id": "invoice:00073",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "859d6930-ff5c-4eb9-8466-24f311f3de65",
+        "operation_id": "invoice:00008",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "86210d4f-5ded-416b-a00d-175af2a5a644",
+        "operation_id": "invoice:00042",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "885d2f4b-9cc2-4b25-8ca3-2120e85a121c",
+        "operation_id": "invoice:00005",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "8904153f-0363-4978-9650-8eaf7077eb49",
+        "operation_id": "invoice:00027",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "8ca35f3b-ab39-4072-b97c-321037ab0d61",
+        "operation_id": "invoice:00017",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "8eb8766b-f9f8-4daf-9dc1-151b25f627d1",
+        "operation_id": "invoice:00021",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "8f643be9-5cd5-44c7-bb04-cd920e4f3313",
+        "operation_id": "invoice:00057",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "902510f0-fe03-4d2d-ab3c-7d39f82e28a2",
+        "operation_id": "invoice:00043",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "90c928de-7354-432d-bf54-8f24aca0c124",
+        "operation_id": "invoice:00096",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "967e12fc-ebb0-4f2d-a396-b46eb08ddbc0",
+        "operation_id": "invoice:00083",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "96e4dde2-b6b5-4e73-9864-144d7ac563c8",
+        "operation_id": "invoice:00002",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "9a0c5363-232c-4677-ab9f-bb183029d379",
+        "operation_id": "invoice:00079",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "9f2c5132-0127-4867-b98d-2c31b1e1529a",
+        "operation_id": "invoice:00049",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "a55b5f2b-32c9-4e94-b489-5d5e455a1b42",
+        "operation_id": "invoice:00016",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "ab10b17b-85eb-47aa-9a9d-342b22a15e82",
+        "operation_id": "invoice:00092",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "ae7d9598-dfcb-41ea-afee-427614a1ed7e",
+        "operation_id": "invoice:00060",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "b043a663-29b6-46b8-8271-a965f768b45b",
+        "operation_id": "invoice:00063",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "b1d75301-8600-496b-bfcf-ca2d23614658",
+        "operation_id": "invoice:00054",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "b2465e3d-a081-42f6-b7de-4627cc1d4e2f",
+        "operation_id": "invoice:00086",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "b3eaccc6-154d-497a-a892-21c8eca56d0c",
+        "operation_id": "invoice:00059",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "b5a87e22-84d8-4eb7-9bc5-c56f9269a802",
+        "operation_id": "invoice:00028",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "b8c7fe51-83cf-4028-811a-e274faaf2477",
+        "operation_id": "invoice:00094",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "bdbb4ea1-fb5e-413b-a8d0-9a511668ba27",
+        "operation_id": "invoice:00046",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "c0281067-6048-4418-a00e-592d52fcc351",
+        "operation_id": "invoice:00038",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "c4021c78-52b6-4247-b8be-99bf44a0409f",
+        "operation_id": "invoice:00024",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "c86a125f-2da0-4465-bbbb-2e014f579683",
+        "operation_id": "invoice:00018",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "c8f78245-12a4-479b-9350-cb6b9cfae797",
+        "operation_id": "invoice:00026",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "cc3410ae-548a-4bee-b4d4-b7b108ff042d",
+        "operation_id": "invoice:00062",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "cf84ffdf-ad85-49a3-8806-ba3ad8c41403",
+        "operation_id": "invoice:00034",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "d05030cb-ae6b-4c23-bb1c-ebbd60aad605",
+        "operation_id": "invoice:00078",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "d23aa0db-1da3-4170-84cf-1e8cbcb1814f",
+        "operation_id": "invoice:00088",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "e173f10f-f8c4-44b4-9510-a61fc31788da",
+        "operation_id": "invoice:00061",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "e487120f-19f1-4b59-8ce4-faa264061ebc",
+        "operation_id": "invoice:00066",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "e4ab974e-b48a-4c29-84b0-7b0833152fa6",
+        "operation_id": "invoice:00077",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "e5ad8a8e-8092-486b-8871-a016d5194580",
+        "operation_id": "invoice:00068",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "e7ce153e-5569-4f17-b65b-38303b2cdfd1",
+        "operation_id": "invoice:00053",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "e82a415c-80a5-4e05-833b-1755bf1eeb35",
+        "operation_id": "invoice:00100",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "ead7d356-82fd-4d8d-af00-72098265ff59",
+        "operation_id": "invoice:00055",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "ecbff9ba-1477-4de0-80da-475b9759218d",
+        "operation_id": "invoice:00067",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "ecc2f8ef-5672-4ce2-8d84-bcda3ae3ea53",
+        "operation_id": "invoice:00022",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "ee345599-d054-4afc-9574-a0d14e3a3fad",
+        "operation_id": "invoice:00093",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "f03cddf8-7b13-4a9b-af13-9e190028aa57",
+        "operation_id": "invoice:00047",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "f2ac1707-c847-4f89-a9ec-095270ef9d7d",
+        "operation_id": "invoice:00009",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "f39eab05-8b19-4f98-859b-9c7fd8e86a7c",
+        "operation_id": "invoice:00029",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "f4c29d57-2c02-4db6-9e96-0fe563f0912d",
+        "operation_id": "invoice:00087",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "f60de931-de98-4483-be98-858decdefd9d",
+        "operation_id": "invoice:00015",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "f63be1fb-295e-4ebe-8444-f0f61ba41710",
+        "operation_id": "invoice:00090",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "f677efc1-f275-4db8-a732-ebd377037871",
+        "operation_id": "invoice:00004",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "f757d32d-9db9-4709-9e96-39689281054b",
+        "operation_id": "invoice:00082",
+        "parent_id": null,
+        "stage": "ingestion"
+      },
+      {
+        "node_id": "fda8345e-2090-437a-98d4-715188097e63",
+        "operation_id": "invoice:00048",
+        "parent_id": null,
+        "stage": "ingestion"
+      }
+    ],
+    "operations": [
+      "invoice:00002",
+      "invoice:00003",
+      "invoice:00004",
+      "invoice:00005",
+      "invoice:00006",
+      "invoice:00007",
+      "invoice:00008",
+      "invoice:00009",
+      "invoice:00010",
+      "invoice:00011",
+      "invoice:00012",
+      "invoice:00013",
+      "invoice:00014",
+      "invoice:00015",
+      "invoice:00016",
+      "invoice:00017",
+      "invoice:00018",
+      "invoice:00019",
+      "invoice:00020",
+      "invoice:00021",
+      "invoice:00022",
+      "invoice:00023",
+      "invoice:00024",
+      "invoice:00025",
+      "invoice:00026",
+      "invoice:00027",
+      "invoice:00028",
+      "invoice:00029",
+      "invoice:00030",
+      "invoice:00031",
+      "invoice:00032",
+      "invoice:00033",
+      "invoice:00034",
+      "invoice:00035",
+      "invoice:00036",
+      "invoice:00037",
+      "invoice:00038",
+      "invoice:00039",
+      "invoice:00040",
+      "invoice:00041",
+      "invoice:00042",
+      "invoice:00043",
+      "invoice:00044",
+      "invoice:00045",
+      "invoice:00046",
+      "invoice:00047",
+      "invoice:00048",
+      "invoice:00049",
+      "invoice:00050",
+      "invoice:00051",
+      "invoice:00052",
+      "invoice:00053",
+      "invoice:00054",
+      "invoice:00055",
+      "invoice:00056",
+      "invoice:00057",
+      "invoice:00058",
+      "invoice:00059",
+      "invoice:00060",
+      "invoice:00061",
+      "invoice:00062",
+      "invoice:00063",
+      "invoice:00064",
+      "invoice:00065",
+      "invoice:00066",
+      "invoice:00067",
+      "invoice:00068",
+      "invoice:00069",
+      "invoice:00070",
+      "invoice:00071",
+      "invoice:00072",
+      "invoice:00073",
+      "invoice:00074",
+      "invoice:00075",
+      "invoice:00076",
+      "invoice:00077",
+      "invoice:00078",
+      "invoice:00079",
+      "invoice:00080",
+      "invoice:00081",
+      "invoice:00082",
+      "invoice:00083",
+      "invoice:00084",
+      "invoice:00085",
+      "invoice:00086",
+      "invoice:00087",
+      "invoice:00088",
+      "invoice:00089",
+      "invoice:00090",
+      "invoice:00091",
+      "invoice:00092",
+      "invoice:00093",
+      "invoice:00094",
+      "invoice:00095",
+      "invoice:00096",
+      "invoice:00097",
+      "invoice:00098",
+      "invoice:00099",
+      "invoice:00100",
+      "invoice:00101"
+    ],
     "passed": true,
-    "raster_only_ocr": true,
-    "tantivy_search": true,
-    "thumbnails": true
+    "per_operation": {
+      "invoice:00002": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00003": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00004": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00005": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00006": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00007": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00008": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00009": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00010": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00011": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00012": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00013": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00014": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00015": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00016": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00017": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00018": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00019": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00020": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00021": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00022": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00023": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00024": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00025": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00026": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00027": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00028": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00029": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00030": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00031": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00032": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00033": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00034": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00035": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00036": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00037": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00038": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00039": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00040": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00041": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00042": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00043": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00044": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00045": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00046": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00047": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00048": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00049": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00050": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00051": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00052": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00053": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00054": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00055": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00056": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00057": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00058": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00059": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00060": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00061": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00062": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00063": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00064": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00065": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00066": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00067": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00068": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00069": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00070": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00071": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00072": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00073": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00074": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00075": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00076": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00077": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00078": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00079": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00080": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00081": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00082": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00083": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00084": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00085": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00086": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00087": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00088": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00089": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00090": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00091": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00092": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00093": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00094": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00095": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00096": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00097": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00098": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00099": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00100": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      },
+      "invoice:00101": {
+        "edges": [],
+        "stages": {
+          "ingestion": 1
+        }
+      }
+    },
+    "schema_version": 1,
+    "stage_counts": {
+      "ingestion": 100
+    }
+  },
+  "workflow_trace": {
+    "path": "paperless_ngx-3-dbworker/workflow.jsonl",
+    "sha256": "60a5070a890c0365eeb0515316dfaf3fad678a096d720b33f54ecb9272e85aef"
   }
 }

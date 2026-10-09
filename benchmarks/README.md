@@ -18,8 +18,10 @@ task entry points. DBWorker variations replace scheduling while preserving busin
 work and individual job granularity. No benchmark-defined Celery task wraps an
 extracted business function. Child jobs remain separate jobs on both backends.
 
-**Complete full-profile validation of all six native workflows is pending.**
-Implementation, source checks, and unit tests are not a successful performance run.
+**All six native workflows passed full-profile validation in
+[GitHub Actions run 37860143841](https://github.com/zysilm/dbworker/actions/runs/37860143841).**
+The same run passed independent aggregate admission for all 80 measured samples.
+The measured source revision is `7b9435d43976819a3c19bd92e4a62af08a955edb`.
 Previously retained paired-callable and subprocess-bridge JSON files are historical
 results; they must not be relabeled or published as native workflow measurements.
 Capability research remains on the separate `extension1-research` branch.

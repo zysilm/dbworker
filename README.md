@@ -73,21 +73,19 @@ failure handling, and configuration.
 <!-- benchmark-results:start -->
 ## Benchmark Results
 
-The table below is a historical paired-callable run. Native application results are pending full validation.
-
 Median wall time in seconds; **bold** marks the faster backend. Each experiment runs in a fresh Docker container on its own GitHub-hosted Ubuntu VM.
 
 | Experiment | Scenario | Celery (s) | DBWorker (s) | Celery / DBWorker |
 |---|---|---:|---:|---:|
-| imagededup | build | **4.885** | 5.939 | 0.82 |
-| imagededup | comparison | 78.031 | **74.414** | 1.05 |
-| imagededup | mixed | **85.559** | 86.142 | 0.99 |
-| superset | sql_lab_group_by | **2.045** | 2.070 | 0.99 |
-| saleor | product_csv_export | **1.912** | 2.272 | 0.84 |
-| paperless_ngx | scanned_image_ingestion | 40.368 | **40.143** | 1.01 |
-| posthog | pre_rendered_notification_smtp | 2.006 | **1.511** | 1.33 |
-| sentry | historical_smtp_email | 157.003 | **150.927** | 1.04 |
+| imagededup | build | **5.681** | 7.499 | 0.76 |
+| imagededup | comparison | 83.828 | **81.913** | 1.02 |
+| imagededup | mixed | **95.483** | 96.080 | 0.99 |
+| superset | sql_lab_group_by | **3.482** | 3.587 | 0.97 |
+| saleor | product_csv_export | **9.557** | 10.930 | 0.87 |
+| paperless_ngx | native_unsplit_scan_ingestion | 128.512 | **46.870** | 2.74 |
+| posthog | native_two_factor_notification | **1.195** | 1.595 | 0.75 |
+| sentry | historical_native_email_fanout | **1.069** | 2.049 | 0.52 |
 
-Run: `github-37351143262-1`. [Details and scope](doc/benchmark-results.md) · [JSON results](benchmarks/results/latest/index.json).
+Run: `github-37860143841-1`. [Details and scope](doc/benchmark-results.md) · [JSON results](benchmarks/results/latest/index.json).
 Scoped application workloads; Sentry uses historical 24.1.0. Ratios above 1 favor DBWorker; no cross-project average is computed.
 <!-- benchmark-results:end -->
