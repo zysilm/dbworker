@@ -218,8 +218,8 @@ The original Celery application, registered task bodies, pool and lifecycle
 policies remain in use. DBWorker preserves task granularity and business effects.
 Image building remains one native bulk import; comparison requests use pacing.
 
-Fixed measured quantities are 1,000 SQL Lab queries, 500 exports of 256 products,
-200 complete OCR ingestions, 1,000 two-factor operations and 5,000 two-recipient
+Fixed measured quantities are 3,000 SQL Lab queries, 1,000 exports of 256 products,
+200 complete OCR ingestions, 5,000 two-factor operations and 20,000 two-recipient
 email sends. Image scenarios retain 1,000 images and 999,000 directed comparison
 pairs. No producer, worker, request-count or rate gradients are run.
 
