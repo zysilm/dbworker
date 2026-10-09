@@ -1,5 +1,8 @@
 """Offline checks of native upload API permissions, payloads and queue boundaries."""
 import ast
+import threading
+from concurrent.futures import ThreadPoolExecutor
+from unittest.mock import patch
 import os
 import subprocess
 import tempfile
@@ -17,9 +20,42 @@ class PaperlessProducerTests(unittest.TestCase):
         self.assertNotIn("force_authenticate", source)
         self.assertIn('client.post("/api/documents/post_document/"', source)
         self.assertIn('HTTP_AUTHORIZATION="Token "', source)
-        self.assertEqual(source.count("queued = submit_api_scan(api_client, fixture, upload)"), 2)
+        self.assertEqual(source.count("queued = submit_api_scan(isolated_client, fixture, upload)"), 2)
         self.assertIn("PaperlessTask.TriggerSource.API_UPLOAD", source)
         self.assertIn('fixture["task_id"] = queued', source)
+
+    def test_concurrent_routing_keeps_originals_until_last_producer_exits(self):
+        from celery import Celery
+        from celery.app.task import Task
+        from kombu import Producer
+        from examples.paperless_ngx_dbworker import runtime
+        app = Celery("paperless-concurrent-unit", broker="memory://")
+        self.addCleanup(app.close)
+        @app.task(name="documents.tasks.consume_file")
+        def consume(value):
+            raise AssertionError("Producer routing must never execute ingestion")
+        originals = (Task.apply_async, Producer.publish, Task.apply)
+        both_entered = threading.Barrier(2)
+        first_exited = threading.Event()
+        observed = []
+        def capture(task, args, kwargs, **options):
+            observed.append((runtime._current.get()[0], args[0]))
+            return args[0]
+        def run(operation_id):
+            with runtime.route_tasks(operation_id):
+                both_entered.wait(timeout=5)
+                if operation_id == "second":
+                    self.assertTrue(first_exited.wait(timeout=5))
+                self.assertEqual(consume.delay(operation_id), operation_id)
+            if operation_id == "first":
+                first_exited.set()
+        with patch.object(runtime, "enqueue", side_effect=capture):
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                futures = [pool.submit(run, operation_id) for operation_id in ("first", "second")]
+                for future in futures:
+                    future.result(timeout=10)
+        self.assertEqual(sorted(observed), [("first", "first"), ("second", "second")])
+        self.assertEqual((Task.apply_async, Producer.publish, Task.apply), originals)
 
     def test_real_api_permissions_payload_and_dbworker_publication_without_worker(self):
         interpreter = Path(os.environ.get("PAPERLESS_TEST_PYTHON", str(ROOT / "benchmarks/environments/paperless_ngx/dbworker/.venv/bin/python")))

@@ -205,3 +205,42 @@ Run harness checks in an environment containing the applicable dependencies:
 ```sh
 PYTHONPATH=.:src benchmarks/environments/superset/dbworker/.venv/bin/python -m unittest discover -s benchmarks/tests
 ```
+
+## Fixed concurrent load
+
+Each business scenario uses exactly one profile: eight independent producers,
+eight total execution slots and three repetitions per backend. Producers follow
+the same immutable input-index schedule in both arms, releasing waves of up to
+eight native API calls across a 60-second submission window. A producer does not
+wait for asynchronous business completion before its next API call. No requests
+are dropped, and a delayed schedule is reported rather than silently throttled.
+The original Celery application, registered task bodies, pool and lifecycle
+policies remain in use. DBWorker preserves task granularity and business effects.
+Image building remains one native bulk import; comparison requests use pacing.
+
+Fixed measured quantities are 1,000 SQL Lab queries, 500 exports of 256 products,
+200 complete OCR ingestions, 1,000 two-factor operations and 5,000 two-recipient
+email sends. Image scenarios retain 1,000 images and 999,000 directed comparison
+pairs. No producer, worker, request-count or rate gradients are run.
+
+Producer evidence records actual concurrent calls, submission latency and
+schedule delay. Admitted native lifecycle timestamps reconstruct queue waiting,
+task duration and published-task backlog over time. Connection and database-lock
+competition occur in the real applications; lock-wait durations are not directly
+instrumented and cannot be inferred from API latency alone. Queue waiting includes
+reservation and dispatch, and future child tasks are not yet published backlog.
+The single offered load can establish behavior at that load, not the exact
+maximum capacity. Short or unsaturated samples must not be described as sustained
+high-pressure capacity measurements. Timing includes submission and complete
+business outcomes; full correctness and native graph admission remain mandatory.
+
+Six fresh GitHub-hosted Docker jobs run in parallel, with the two backends
+sequential within each job. The target workflow duration is approximately one
+hour, not a performance guarantee; each experiment job has a 90-minute timeout.
+Timeouts or native failures fail the comparison without reducing either arm's
+workload. Branch runs aggregate artifacts without publishing results to main.
+
+Method references: [BullMQ fixed concurrent insertion benchmark](https://bullmq.io/articles/benchmarks/bullmq-python-vs-rq/),
+[RabbitMQ load-generator and backlog methodology](https://www.rabbitmq.com/blog/2020/06/04/how-to-run-benchmarks),
+and [GitHub-hosted runner resources](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
+The selected counts are project-specific CI budgets, not values mandated by those sources.

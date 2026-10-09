@@ -26,6 +26,8 @@ sys.path.insert(0, str(ROOT / "examples" / "saleor"))
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
+from benchmarks.common.load import run_load
+from benchmarks.common.load_evidence import task_load_metrics
 from benchmarks.common.reporting import write_json
 from examples.saleor_dbworker.runtime import Job, STAGES, coordinator, durable_children
 from benchmarks.common.native_observer import operation, argument_digest
@@ -196,7 +198,7 @@ def main():
         url = os.environ["DBWORKER_DATABASE_URL"]
         engine = create_engine(url)
         sessions = sessionmaker(engine)
-        runtime = coordinator(url, concurrency=2)
+        runtime = coordinator(url, concurrency=profile.get("worker_concurrency", 8))
         if args.backend == "celery":
             redis_port = reserve_port()
             redis_url = f"redis://127.0.0.1:{redis_port}/0"
@@ -216,7 +218,7 @@ def main():
             wait_for(redis_ready)
             launch([sys.executable, "-m", "celery", "-A", "saleor.celeryconf:app", "worker", "-E",
                     "--include", "benchmarks.common.native_observer",
-                    "--concurrency", "2", "--loglevel", "WARNING", "--hostname", f"saleor-{redis_port}@localhost"], "worker.log")
+                    "--concurrency", str(profile.get("worker_concurrency", 8)), "--loglevel", "WARNING", "--hostname", f"saleor-{redis_port}@localhost"], "worker.log")
             wait_for(lambda: celery.control.ping(timeout=1))
         else:
             runtime.start()
@@ -227,26 +229,42 @@ def main():
             operations = [f"warmup:{i}" if warmup else str(i - 2) for i in indices]
             items = []
             started = begin_window()
-            for index, op in zip(indices, operations, strict=True):
-                with operation(op):
-                    if args.backend == "celery":
-                        content = post_export(graphql_client, tokens[index], product_ids)
-                    else:
-                        # The unchanged mutation owns normalization, permissions,
-                        # ExportFile and pending event creation, and Task.delay.
-                        with durable_children(op, None):
-                            content = post_export(graphql_client, tokens[index], product_ids)
-                item = ExportFile.objects.get(pk=export_key(content))
+            def producer_factory(producer_index):
+                graphql_client = Client()
+                def submit(index, position):
+                    op = operations[position]
+                    try:
+                        with operation(op):
+                            if args.backend == "celery":
+                                content = post_export(graphql_client, tokens[index], product_ids)
+                            else:
+                                # The original mutation owns permission checks,
+                                # export creation and unchanged task publication.
+                                with durable_children(op, None):
+                                    content = post_export(graphql_client, tokens[index], product_ids)
+                        return {"export_file_id": export_key(content), "user_index": index, "operation_id": op}
+                    finally:
+                        # Django connections are thread-local; never leak them
+                        # across producer threads or retain transaction state.
+                        connections.close_all()
+                return submit
+            load = run_load(indices, None, producers=1 if warmup else profile.get("producers", 8),
+                            duration_seconds=0 if warmup else profile.get("submission_window_seconds", 60),
+                            producer_factory=producer_factory)
+            # Inspect publications once, after concurrent requests, rather than
+            # repeatedly scanning the growing trace during load generation.
+            observed_submissions = {}
+            for event in read_trace(os.environ["BENCHMARK_TRACE_PATH"]):
+                if event["stage"] == "export" and event["event"] == "submitted":
+                    observed_submissions.setdefault(event["operation_id"], []).append(event)
+            for submitted in load["results"]:
+                index, op = submitted["user_index"], submitted["operation_id"]
+                item = ExportFile.objects.get(pk=submitted["export_file_id"])
                 if item.user_id != users[index].pk:
                     raise AssertionError("GraphQL producer associated an incorrect authenticated user")
-                submissions = [event for event in read_trace(os.environ["BENCHMARK_TRACE_PATH"])
-                               if event["operation_id"] == op and event["stage"] == "export"
-                               and event["event"] == "submitted"]
+                submissions = observed_submissions.get(op, [])
                 if len(submissions) != 1:
                     raise AssertionError("Original GraphQL producer did not publish exactly one export task")
-                # Independently bind the public request's expected normalized
-                # arguments to the actual original producer publication. These
-                # values are an oracle, never submitted by the benchmark.
                 expected_arguments = (item.pk, {"ids": [str(product.pk) for product in products]},
                                       {"fields": ["name", "product type", "variant sku"]}, "csv")
                 expected_fingerprint = argument_digest(expected_arguments, {})
@@ -287,10 +305,10 @@ def main():
                 return len(successes) == len(items) * 2
 
             wait_for(complete)
-            return items, end_window(started)
+            return items, end_window(started), load
 
-        warmup_exports, _ = batch(list(range(2)), warmup=True)
-        measured_exports, measurement_window = batch(list(range(2, len(users))))
+        warmup_exports, _, _ = batch(list(range(2)), warmup=True)
+        measured_exports, measurement_window, load = batch(list(range(2, len(users))))
         exports = warmup_exports + measured_exports
         seconds = elapsed_seconds(measurement_window)
         connections.close_all()
@@ -327,14 +345,17 @@ def main():
                                warmup_operations=["warmup:0", "warmup:1"])
         row = {"scenario": "product_csv_export", "comparison_mode": "native_application_workflow",
                "backend": args.backend, "repetition": args.repetition, "status": "passed",
-               "metrics": {"wall_seconds": seconds, "exports_per_second": len(exports[2:]) / seconds},
+               "metrics": {"wall_seconds": seconds, "exports_per_second": len(exports[2:]) / seconds,
+                           "load": {key: value for key, value in load.items() if key != "results"},
+                           "task_load": task_load_metrics(read_trace(os.environ["BENCHMARK_TRACE_PATH"]),
+                                                          [str(index) for index in range(profile["requests"])])},
                "validation": {"passed": True, "output_digest": hashlib.sha256(json.dumps(normalized, sort_keys=True).encode()).hexdigest(),
                               "exports": len(exports[2:]), "products_per_export": count, "email_messages": len(exports[2:]), "business_jobs": graph["nodes"]},
                "environment": {"python": platform.python_version(), "interpreter": sys.executable,
                                "packages": {name: importlib.metadata.version(name) for name in ("saleor", "Django", "celery", "sqlalchemy", "dbworker")},
                                "postgres": subprocess.check_output(["postgres", "--version"], text=True).strip()}}
         row["configuration"] = {
-            "concurrency": 2, "business_database": "postgresql", "postgres_fsync": True,
+            "concurrency": profile.get("worker_concurrency", 8), "business_database": "postgresql", "postgres_fsync": True,
             "replica": "same primary", "coordination_database": "sqlite" if args.backend == "dbworker" else "redis",
             "comparison_mode": "native_application_workflow", "redis_aof": "everysec",
             "plugins": "upstream defaults; admin email active; no webhook subscriptions", "warmup_requests": 2, "profile": profile,
@@ -349,7 +370,7 @@ def main():
                 "STORAGES": "local filesystem instead of cloud infrastructure",
                 "CACHES": "process-local cache; no external deployment cache required",
                 "CELERY_TASK_ALWAYS_EAGER": "setup-only eager maintenance tasks; disabled during measurement",
-                "worker_concurrency": "two processes per backend for the entire workflow",
+                "worker_concurrency": "eight processes per backend for the entire workflow",
             },
         }
         row["dataset"] = {"products": count, "variants": count,

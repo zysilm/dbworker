@@ -32,6 +32,7 @@ def validate_graph(events, expected_operations, expected_stages, expected_edges=
     without operation identity are never silently ignored.
     """
     operations = list(expected_operations)
+    operation_set = set(operations)
     if any(not isinstance(value, str) or not value or value == 'None' for value in operations):
         raise WorkflowMismatch('Operation identities must be nonempty strings')
     if len(set(operations)) != len(operations) or not operations:
@@ -61,7 +62,7 @@ def validate_graph(events, expected_operations, expected_stages, expected_edges=
         op = row.get("operation_id")
         if not isinstance(op, str) or not op or op == 'None':
             raise WorkflowMismatch("Uncorrelated task in native workflow trace")
-        if op not in operations:
+        if op not in operation_set:
             if op in warmup_operations or (legacy_warmup and op.startswith("warmup:")):
                 warmup.append(row)
                 continue
@@ -103,8 +104,11 @@ def validate_graph(events, expected_operations, expected_stages, expected_edges=
         counts[stage] += 1
     phase_times = {node: {r["event"]: r["timestamp_ns"] for r in rows} for node, rows in jobs.items()}
     expected_edge_counts = Counter(tuple(edge) for edge in expected_edges)
+    by_operation = defaultdict(dict)
+    for node, row in normalized.items():
+        by_operation[row["operation_id"]][node] = row
     for op in operations:
-        selected = {node: row for node, row in normalized.items() if row['operation_id'] == op}
+        selected = by_operation[op]
         stages = Counter(row['stage'] for row in selected.values())
         if stages != Counter(expected_stages):
             raise WorkflowMismatch(f"Business job granularity differs for {op}: {dict(stages)}")

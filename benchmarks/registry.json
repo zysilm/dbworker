@@ -16,7 +16,10 @@
         "full": {
           "images": 1000,
           "warmup_images": 8,
-          "repetitions": 5
+          "repetitions": 3,
+          "producers": 8,
+          "submission_window_seconds": 60,
+          "worker_concurrency": 8
         }
       },
       "comparison_contract": "native-business-workflow-v1"
@@ -36,8 +39,11 @@
       },
       "profiles": {
         "full": {
-          "requests": 100,
-          "repetitions": 5
+          "requests": 1000,
+          "repetitions": 3,
+          "producers": 8,
+          "submission_window_seconds": 60,
+          "worker_concurrency": 8
         }
       },
       "python_version": "3.12",
@@ -58,9 +64,12 @@
       },
       "profiles": {
         "full": {
-          "requests": 100,
-          "repetitions": 5,
-          "products": 256
+          "requests": 500,
+          "repetitions": 3,
+          "products": 256,
+          "producers": 8,
+          "submission_window_seconds": 60,
+          "worker_concurrency": 8
         }
       },
       "python_version": "3.12",
@@ -81,8 +90,11 @@
       },
       "profiles": {
         "full": {
-          "requests": 100,
-          "repetitions": 5
+          "requests": 200,
+          "repetitions": 3,
+          "producers": 8,
+          "submission_window_seconds": 60,
+          "worker_concurrency": 8
         }
       },
       "python_version": "3.12",
@@ -103,8 +115,11 @@
       },
       "profiles": {
         "full": {
-          "requests": 100,
-          "repetitions": 5
+          "requests": 1000,
+          "repetitions": 3,
+          "producers": 8,
+          "submission_window_seconds": 60,
+          "worker_concurrency": 8
         }
       },
       "python_version": "3.14.7",
@@ -125,8 +140,11 @@
       },
       "profiles": {
         "full": {
-          "requests": 100,
-          "repetitions": 5
+          "requests": 5000,
+          "repetitions": 3,
+          "producers": 8,
+          "submission_window_seconds": 60,
+          "worker_concurrency": 8
         }
       },
       "python_version": "3.12",

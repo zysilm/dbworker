@@ -21,6 +21,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "examples/sentry/src"
 sys.path[:0] = [str(SOURCE), str(ROOT)]
+from benchmarks.common.load import run_load
+from benchmarks.common.load_evidence import task_load_metrics
 from benchmarks.common.timing_evidence import begin_window, end_window, elapsed_seconds, validate_timing_window
 from benchmarks.common.smtp_evidence import observe_messages, replay_messages, business_digest
 TASKS = ["sentry.tasks.email.send_email", "sentry.tasks.email.send_email_control"]
@@ -249,27 +251,37 @@ def main():
             # Only bootstrap differs from plain CLI: configure the app once first.
             launch([sys.executable, "-c", "from sentry.runner import configure; configure(skip_service_validation=True); from celery.__main__ import main; main()",
                     "-A", "sentry.celery:app", "worker", "-Q", "email,email.control",
-                    "--pool=prefork", "--concurrency=2", "--include", "benchmarks.common.native_observer",
+                    "--pool=prefork", "--concurrency=8", "--include", "benchmarks.common.native_observer",
                     "--loglevel=WARNING"], "worker.log")
             wait_for(lambda: app.control.ping(timeout=1), children=children)
             publication = nullcontext(([], []))
         else:
             from examples.sentry_dbworker.adapter import coordinator, initialize, publication_to_dbworker
             initialize()
-            runtime, engine, sessions = coordinator(f"sqlite:///{directory / 'deliveries.db'}", concurrency=2)
+            runtime, engine, sessions = coordinator(f"sqlite:///{directory / 'deliveries.db'}", concurrency=8)
             runtime.start()
             publication = publication_to_dbworker(sessions)
 
         with publication as (published, publication_errors):
             def execute_batch(operation_ids):
                 started = begin_window()
-                for operation_id in operation_ids:
-                    with observer.operation(operation_id):
-                        destination = recipients(operation_id)
-                        MessageBuilder(subject=f"Historical Sentry fixture {operation_id}\nDiscarded subject line",
-                            context={"operation_id": str(operation_id)}, template="benchmark.txt", html_template="benchmark.html",
-                            headers={"X-Benchmark": str(operation_id)}, from_email="sender@benchmark.invalid").send_async(
-                                to=[*destination, destination[0], ""])
+                warmup = operation_ids == ["warmup:-2", "warmup:-1"]
+                def submit(operation_id, index):
+                    from django.db import close_old_connections, connections
+                    close_old_connections()
+                    try:
+                        with observer.operation(operation_id):
+                            destination = recipients(operation_id)
+                            MessageBuilder(subject=f"Historical Sentry fixture {operation_id}\nDiscarded subject line",
+                                context={"operation_id": str(operation_id)}, template="benchmark.txt", html_template="benchmark.html",
+                                headers={"X-Benchmark": str(operation_id)}, from_email="sender@benchmark.invalid").send_async(
+                                    to=[*destination, destination[0], ""])
+                        return operation_id
+                    finally:
+                        connections.close_all()
+                load = run_load(operation_ids, submit, producers=1 if warmup else profile.get("producers", 8),
+                    duration_seconds=0 if warmup else profile.get("submission_window_seconds", 60))
+                load.pop("results")
                 if publication_errors:
                     raise RuntimeError("Native safe_execute suppressed a DBWorker publication error") from publication_errors[0]
                 def complete():
@@ -282,23 +294,19 @@ def main():
                             else ["warmup:-2", "warmup:-1"])
                     except (ValueError, FileNotFoundError):
                         return None
-                    wanted = set(map(str, operation_ids))
-                    from email.parser import BytesParser
-                    from email import policy
-                    matched = sum(str(BytesParser(policy=policy.default).parsebytes(raw)["X-Benchmark"]) in wanted
-                                  for _, _, raw in sink.messages)
-                    return graph if matched == len(operation_ids) * 2 else None
+                    expected_messages = len(operation_ids) * 2
+                    return graph if len(sink.messages) == expected_messages else None
                 graph = wait_for(complete, children=children, timeout=max(120, len(operation_ids) * 5))
                 window = end_window(started)
                 seconds = elapsed_seconds(window)
                 validate_timing_window(window, seconds, read_trace(trace), list(map(str, operation_ids)))
-                return seconds, graph, window
+                return seconds, graph, window, load
 
             execute_batch(["warmup:-2", "warmup:-1"])
             sink.messages.clear()
             operations = list(map(str, range(profile["requests"])))
             sampler = ResourceSampler()
-            seconds, graph, measurement_window = execute_batch(operations)
+            seconds, graph, measurement_window, load_metrics = execute_batch(operations)
             metrics = sampler.finish()
             sampler = None
         # Retain received bytes before validation, including failed-run evidence.
@@ -337,7 +345,7 @@ def main():
                        "reason": "Original C++ build failed with modern Clang; 1.59.3 provides verified Python 3.12 wheels and satisfies original grpcio-status>=1.56 constraint"}}
         row = {"scenario": "historical_native_email_fanout", "comparison_mode": "native_execution",
             "backend": args.backend, "repetition": args.repetition, "status": "passed",
-            "metrics": {**metrics, "wall_seconds": seconds, "messages_per_second": len(normalized) / seconds},
+            "metrics": {"load": load_metrics, **metrics, "wall_seconds": seconds, "messages_per_second": len(normalized) / seconds},
             "validation": {"passed": True, "messages": len(normalized), "smtp_envelope_and_mime": True,
                 "missing_or_duplicate": 0, "delivery_identity": "Exact unique operation ID and recipient pair",
                 "generated_message_ids": message_id_evidence(sink.messages),
@@ -354,7 +362,7 @@ def main():
             "workflow_trace": {"path": str(trace.relative_to(Path(config["output_directory"]).resolve())),
                                "sha256": hashlib.sha256(trace.read_bytes()).hexdigest()},
             "environment": environment,
-            "configuration": {"concurrency": 2, "native_protocol": 1, "native_serializer": "pickle",
+            "configuration": {"concurrency": 8, "native_protocol": 1, "native_serializer": "pickle",
                 "silo": "MONOLITH", "warmup_operations": 2, "profile": profile,
                 "application_log_level": "WARNING",
                 "environment_overrides": {"SENTRY_LOG_LEVEL": "Match producer/native worker/DBWorker child logging through upstream's supported setting",
@@ -369,6 +377,11 @@ def main():
                 "template_rendering", "css_inlining", "smtp_delivery", "individual_delivery_graph", "dbworker_ledger"],
                 "untested": ["current_sentry_taskbroker", "group_thread_models", "preceding_notification_tasks", "crash_recovery", "outage_recovery"],
                 "scope": "Historical 24.1 native two-recipient MessageBuilder delivery, successful workload only"}}
+        row["metrics"]["task_load"] = task_load_metrics(read_trace(trace), operations)
+        row["configuration"]["producer_concurrency"] = profile.get("producers", 8)
+        row["configuration"]["submission_window_seconds"] = profile.get("submission_window_seconds", 60)
+        row["configuration"]["load_profile"] = "One fixed open-loop schedule; no concurrency or rate sweep"
+        row["configuration"]["contention_observation"] = "Concurrent API submission latency, lateness and task backlog; database lock wait duration unavailable"
         write_json(directory / "sample.json", row)
     finally:
         if sampler:

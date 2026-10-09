@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import os
 import uuid
+import threading
+from contextvars import ContextVar
 from contextlib import contextmanager
 from types import SimpleNamespace
 
@@ -57,26 +59,50 @@ def enqueue(task_name, args, kwargs, operation_id, parent_id=None):
     return SimpleNamespace(id=identity)
 
 
+_dispatch_context = ContextVar("saleor_dbworker_dispatch", default=None)
+_dispatch_lock = threading.RLock()
+_dispatch_users = 0
+_dispatch_originals = None
+
+
 @contextmanager
 def durable_children(operation_id, parent_id):
+    """Replace publication with durable jobs while isolating concurrent contexts.
+
+    The process-wide interceptor is installed once for overlapping contexts.
+    Task arguments and correlation come from the calling thread's ContextVar,
+    never from a closure shared by another producer.
+    """
     from celery.app.task import Task
     from kombu import Producer
-
-    original, publish = Task.apply_async, Producer.publish
+    global _dispatch_users, _dispatch_originals
 
     def dispatch(task, args=None, kwargs=None, **options):
+        context = _dispatch_context.get()
+        if context is None:
+            raise RuntimeError("Saleor DBWorker publication has no durable context")
         if any(options.get(key) for key in ("countdown", "eta", "link", "link_error")):
             raise RuntimeError("Unsupported delayed or linked Saleor continuation")
-        return enqueue(task.name, args or (), kwargs or {}, operation_id, parent_id)
+        return enqueue(task.name, args or (), kwargs or {}, *context)
 
     def reject(*args, **kwargs):
         raise RuntimeError("Saleor DBWorker attempted broker publication")
 
-    Task.apply_async, Producer.publish = dispatch, reject
+    token = _dispatch_context.set((operation_id, parent_id))
+    with _dispatch_lock:
+        if _dispatch_users == 0:
+            _dispatch_originals = (Task.apply_async, Producer.publish)
+            Task.apply_async, Producer.publish = dispatch, reject
+        _dispatch_users += 1
     try:
         yield
     finally:
-        Task.apply_async, Producer.publish = original, publish
+        with _dispatch_lock:
+            _dispatch_users -= 1
+            if _dispatch_users == 0:
+                Task.apply_async, Producer.publish = _dispatch_originals
+                _dispatch_originals = None
+        _dispatch_context.reset(token)
 
 
 def handle(job, session):

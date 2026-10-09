@@ -15,6 +15,34 @@ from imagededup_benckmark.runtime import Stack
 
 
 class RunnerTest(unittest.TestCase):
+    def test_comparison_producers_use_independent_clients_and_preserve_input_order(self) -> None:
+        clients = []
+        class Client:
+            def __init__(self):
+                self.calls = []
+                self.closed = False
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                self.closed = True
+            def post(self, path, json):
+                self.calls.append((path, json))
+                key = int(path.rsplit("/", 1)[1])
+                return SimpleNamespace(raise_for_status=lambda: None, json=lambda: {"id": key + 100})
+        def new_client():
+            client = Client()
+            clients.append(client)
+            return client
+        load = run.submit_comparisons(SimpleNamespace(producer_client=new_client), list(range(1, 17)),
+                                      producers=8, duration_seconds=.01, top_k=10, max_distance=8,
+                                      measured_start=time.perf_counter())
+        self.assertEqual([row["id"] for row in load["results"]], list(range(101, 117)))
+        self.assertEqual(len(clients), 8)
+        self.assertTrue(all(client.closed for client in clients))
+        for index, client in enumerate(clients):
+            self.assertEqual([call[0] for call in client.calls], [f"/comparisons/{index + 1}", f"/comparisons/{index + 9}"])
+            self.assertTrue(all(call[1] == {"retained_max_k": 10, "max_distance": 8} for call in client.calls))
+
     def test_dataset_selection_is_exact_and_missing_images_fail(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

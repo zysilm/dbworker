@@ -8,6 +8,7 @@ import math
 from collections import Counter
 from pathlib import Path
 
+from benchmarks.common.load_evidence import task_load_metrics, validate_fixed_load
 from benchmarks.common.native_admission import APPLICATIONS, NativeAdmissionError
 from benchmarks.common.native_binding import validate_task_binding
 from benchmarks.common.business_evidence import validate_business_binding as _validate_business_binding
@@ -132,6 +133,10 @@ def replay_graph(row, suite, directory, expected_requests, *, expected_profile=N
                               warmup_operations=declared_warmup)
     validate_timing_window(row.get('measurement_window'), row.get('metrics', {}).get('wall_seconds'),
                            events, operations)
+    if expected_profile and "producers" in expected_profile:
+        validate_fixed_load(row, expected_profile)
+        if row.get("metrics", {}).get("task_load") != task_load_metrics(events, operations):
+            raise WorkflowMismatch("Reported load metrics differ from native lifecycle replay")
     _validate_business_binding(row, suite, events, expected_requests, expected_profile=expected_profile)
     if suite == 'superset':
         try:
@@ -375,6 +380,7 @@ def validate_native_report(report, directory, *, expected_profile=None):
             raise WorkflowMismatch('Native scenario lacks a paired backend')
         if suite == 'imagededup':
             for row in pair.values():
+                validate_fixed_load(row, expected_profile, image=True)
                 replay_image_workload(row, directory, expected_profile['images'])
                 evidence = row.get('operation_evidence', {})
                 if evidence.get('passed') is not True or evidence.get('quiescence_verified') is not True:

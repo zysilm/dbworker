@@ -6,6 +6,8 @@ Django middleware chain or an HTTP server. Credentials remain private fixtures.
 """
 from __future__ import annotations
 
+import contextvars
+import threading
 import hashlib
 import json
 import os
@@ -50,8 +52,8 @@ def prepare(user):
     current, other = login_session(), login_session()
     secret = os.urandom(20)
     cache = SessionCache(current.session)
-    cache.set(SETUP_KEYS[0], secret.hex(), timeout=600, store_in_session=True)
-    cache.set(SETUP_KEYS[1], "private-benchmark-setup-state", timeout=600, store_in_session=True)
+    cache.set(SETUP_KEYS[0], secret.hex(), timeout=3600, store_in_session=True)
+    cache.set(SETUP_KEYS[1], "private-benchmark-setup-state", timeout=3600, store_in_session=True)
     current.session.save()
     get_token(current)
     return Fixture(user.pk, current.session.session_key, other.session.session_key,
@@ -65,30 +67,48 @@ def identity(fixture, operation_id):
     return {**payload, "sha256": hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()}
 
 
+_notification_context = contextvars.ContextVar("posthog_notification_publication", default=None)
+_notification_lock = threading.Lock()
+_notification_users = 0
+_notification_original = None
+
+
 @contextmanager
 def route_notification(submit, expected_user_id):
-    """Replace only the original root publication for one synchronous API call."""
+    """Route concurrent producers independently without serializing native APIs."""
+    global _notification_users, _notification_original
     from posthog.tasks.email import send_two_factor_auth_enabled_email
     task = send_two_factor_auth_enabled_email
-    original = task.apply_async
     captured = []
+    token = _notification_context.set((submit, expected_user_id, captured))
 
     def capture(args=None, kwargs=None, **options):
-        if tuple(args or ()) != (expected_user_id,) or kwargs or options:
-            raise ValueError("Unreviewed original 2FA notification publication")
-        if captured:
-            raise ValueError("The validation API published duplicate notifications")
-        result = submit(expected_user_id)
-        captured.append(result)
+        context = _notification_context.get()
+        if context is None:
+            raise ValueError("Notification publication outside its producer context")
+        callback, user_id, publications = context
+        if tuple(args or ()) != (user_id,) or kwargs or options or publications:
+            raise ValueError("Unreviewed or duplicate original 2FA notification publication")
+        result = callback(user_id)
+        publications.append(result)
         return SimpleNamespace(id=str(result))
 
-    task.apply_async = capture
+    with _notification_lock:
+        if _notification_users == 0:
+            _notification_original = task.apply_async
+            task.apply_async = capture
+        _notification_users += 1
     try:
         yield
         if len(captured) != 1:
             raise ValueError("The validation API did not publish one notification")
     finally:
-        task.apply_async = original
+        _notification_context.reset(token)
+        with _notification_lock:
+            _notification_users -= 1
+            if _notification_users == 0:
+                task.apply_async = _notification_original
+                _notification_original = None
 
 
 def validate(fixture):

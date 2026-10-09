@@ -21,6 +21,25 @@ def distribution(values: list[float], *, scale: float = 1) -> dict[str, float | 
             "max": max(ordered) if ordered else None}
 
 
+def business_capacity(progress: list[dict[str, Any]], *, submission_start: float,
+                      submission_window: float) -> dict[str, Any]:
+    """Describe one fixed offered load without inferring maximum capacity."""
+    points = [point for point in progress if submission_start <= point["seconds"] <= submission_start + submission_window]
+    early = [point["unfinished_comparison_requests"] for point in points
+             if point["seconds"] - submission_start < submission_window / 3]
+    late = [point["unfinished_comparison_requests"] for point in points
+            if point["seconds"] - submission_start >= submission_window * 2 / 3]
+    first = statistics.mean(early) if early else None
+    last = statistics.mean(late) if late else None
+    growth = last - first if first is not None and last is not None else None
+    return {"scope": "unfinished persisted business comparisons during one fixed offered load",
+            "sample_count": len(points), "early_third_mean_backlog": first,
+            "late_third_mean_backlog": last, "late_minus_early_backlog": growth,
+            "backlog_growth_observed": growth > 1 if growth is not None else None,
+            "maximum_capacity_measured": False,
+            "interpretation": "Backlog growth indicates pressure at this offered load; bounded observations do not establish a maximum sustainable rate."}
+
+
 class Measurement:
     def __init__(self, stack: Stack, workspace_id: int, images: int, comparisons: int,
                  *, interval: float, timeout: float, new_builds: bool = True) -> None:
@@ -132,7 +151,8 @@ class Measurement:
                         continue
                     elapsed = time.perf_counter() - self.started
                     sample = {"seconds": elapsed, "built": ready, "requests": requests,
-                              "scored_pairs": scored, "completed_requests": completed}
+                              "scored_pairs": scored, "completed_requests": completed,
+                              "unfinished_comparison_requests": requests - completed}
                     self.last_progress = sample
                     self.probe_count += 1
                     self.samples.append(sample)

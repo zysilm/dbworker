@@ -216,6 +216,11 @@ print(json.dumps(evidence))
         response.raise_for_status()
         return response.json()
 
+    def producer_client(self) -> Any:
+        """Give each concurrent producer an independent HTTP connection pool."""
+        import httpx
+        return httpx.Client(base_url=f"http://127.0.0.1:{self.api_port}", timeout=30)
+
     def business_idle_snapshot(self) -> dict:
         if self.backend == "dbwork":
             import sqlite3

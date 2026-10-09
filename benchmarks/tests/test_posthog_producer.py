@@ -1,5 +1,7 @@
 """Socket-free tests of the original API publication seam and fixture identity."""
 import ast
+import threading
+from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import sys
 import types
@@ -62,6 +64,27 @@ class PostHogProducerTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "endpoint"):
             with route_notification(lambda user_id: 1, 17):
                 raise RuntimeError("endpoint failed")
+        self.assertEqual(self.task.apply_async, original)
+
+    def test_concurrent_notification_routes_do_not_cross_or_restore_early(self):
+        original = self.task.apply_async
+        both_entered = threading.Barrier(2)
+        first_exited = threading.Event()
+        observed = []
+        def run(user_id):
+            with route_notification(lambda actual: observed.append((user_id, actual)) or user_id, user_id):
+                both_entered.wait(timeout=5)
+                if user_id == 2:
+                    self.assertTrue(first_exited.wait(timeout=5))
+                result = self.task.delay(user_id)
+                self.assertEqual(result.id, str(user_id))
+            if user_id == 1:
+                first_exited.set()
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            futures = [pool.submit(run, user_id) for user_id in (1, 2)]
+            for future in futures:
+                future.result(timeout=10)
+        self.assertEqual(sorted(observed), [(1, 1), (2, 2)])
         self.assertEqual(self.task.apply_async, original)
 
     def test_operation_identity_does_not_publish_credentials(self):

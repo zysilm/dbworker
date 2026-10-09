@@ -92,18 +92,22 @@ class BusinessEvidenceTests(unittest.TestCase):
         return row, events
 
     def test_saleor_self_consistent_reduced_products_rejected_by_trusted_profile(self):
-        full_row, full_events = self.fixture('saleor', count=100)
-        _validate_business_binding(full_row, 'saleor', full_events, 100)
-        row, events = self.fixture('saleor', count=100, products=1)
+        from pathlib import Path
+        registry = json.loads((Path(__file__).resolve().parents[1] / 'registry.json').read_text())
+        trusted = next(suite for suite in registry['suites'] if suite['suite_id'] == 'saleor')['profiles']['full']
+        count = trusted['requests']
+        full_row, full_events = self.fixture('saleor', count=count)
+        _validate_business_binding(full_row, 'saleor', full_events, count)
+        row, events = self.fixture('saleor', count=count, products=1)
         row['configuration']['profile'] = {'requests': 100, 'repetitions': 5, 'products': 256}
         # Root fingerprints, dataset and validation all agree on the reduced work.
         # Neither this agreement nor the result's declared profile is authority.
         with self.assertRaisesRegex(WorkflowMismatch, 'trusted business workload count'):
-            _validate_business_binding(row, 'saleor', events, 100)
+            _validate_business_binding(row, 'saleor', events, count)
         row['dataset'].update(products=256, variants=256)
         row['validation']['products_per_export'] = 256
         with self.assertRaisesRegex(WorkflowMismatch, 'product identities'):
-            _validate_business_binding(row, 'saleor', events, 100)
+            _validate_business_binding(row, 'saleor', events, count)
 
     def test_saleor_trusted_custom_profile_and_business_count_tampering(self):
         row, events = self.fixture('saleor', count=3, products=4)
