@@ -18,18 +18,18 @@ task entry points. DBWorker variations replace scheduling while preserving busin
 work and individual job granularity. No benchmark-defined Celery task wraps an
 extracted business function. Child jobs remain separate jobs on both backends.
 
-Earlier native workflows passed the previous full profile and independent
-aggregate admission in
-[GitHub Actions run 37906191421](https://github.com/zysilm/dbworker/actions/runs/37906191421).
-The run contains 80 measured samples at source revision
-`18321cb73b7ea6406e29877520cac6cbc97b6403`: five repetitions per backend and scenario.
-These historical measurements cover the native public producers and their evidence,
-but do not establish the fixed concurrent profile below. Accepted current results
-are identified by their source revision and run ID in the main README and result index.
-The earlier run `37860143841` measured `7b9435d` and remains historical; it does
-not establish execution of the current producer or evidence format.
-Previously retained paired-callable and subprocess-bridge JSON files are historical
-results; they must not be relabeled or published as native workflow measurements.
+The fixed concurrent profile passed all six experiments and independent aggregate
+admission in
+[GitHub Actions run 37980453561](https://github.com/zysilm/dbworker/actions/runs/37980453561).
+The accepted run contains 48 measured samples at source revision
+`8e618707358c063a95164cc6aeff335e460281d0`: three repetitions per backend
+across eight business scenarios. Each task graph, native source binding, timing
+receipt and business output was independently replayed. The complete workflow,
+including provisioning and aggregation, finished in approximately 45 minutes.
+The main README and result index identify this accepted source revision and run.
+Earlier five-repetition or sequential-profile runs remain historical; they do not
+establish performance of this fixed concurrent profile. Historical wrapper results
+must not be relabeled or published as native workflow measurements.
 Capability research remains on the separate `extension1-research` branch.
 
 | Suite | Implemented native workflow | Per-backend full workload in each repetition |

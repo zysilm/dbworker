@@ -1,16 +1,52 @@
 import copy
 import json
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from benchmarks.ci_results import combine, package, publication_evidence, safe_evidence_path
 from benchmarks.common.reporting import digest, write_json
 from benchmarks.render_results import update_readme
 from benchmarks.tests.test_reporting import passed_report
+from benchmarks.publish_report import stage_publication_evidence
 
 
 class MatrixResultsTests(unittest.TestCase):
+    def test_publication_stages_removed_repetitions_without_unrelated_deletions(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            directory = root / "benchmarks/results/latest"
+            evidence = ["first/4/sample.json", "first/5/smtp-evidence.json",
+                        "first/5/output-evidence.json", "first/5/sql-results-evidence.json",
+                        "first/5/operations.jsonl"]
+            unrelated = ["first/5/worker.log", "first/5/settings.json", "unknown.json"]
+            tracked = [*(directory / name for name in evidence + unrelated), root / "unrelated.json"]
+            for path in tracked:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("{}")
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            subprocess.run(["git", "add", "."], cwd=root, check=True)
+            subprocess.run(["git", "-c", "user.name=Test", "-c", "user.email=test@example.com",
+                            "commit", "-qm", "Old five-repetition evidence"], cwd=root, check=True)
+            for path in tracked:
+                path.unlink()
+            (directory / "untracked.json").write_text("{}")
+            receipt = directory / "first/3/sample.json"
+            receipt.parent.mkdir(parents=True)
+            receipt.write_text("{}")
+            with patch("benchmarks.publish_report.ROOT", root):
+                stage_publication_evidence(directory, [receipt], ["first"])
+            staged = subprocess.check_output(
+                ["git", "diff", "--cached", "--no-renames", "--name-status"], cwd=root, text=True)
+            self.assertEqual(set(staged.splitlines()),
+                             {f"D\tbenchmarks/results/latest/{name}" for name in evidence}
+                             | {"A\tbenchmarks/results/latest/first/3/sample.json"})
+            self.assertTrue((directory / "untracked.json").is_file())
+            with patch("benchmarks.publish_report.ROOT", root), self.assertRaises(ValueError):
+                stage_publication_evidence(root / "elsewhere", [receipt], ["first"])
+
     def fixtures(self, root):
         incoming = root / "incoming"
         names = ["first", "second"]

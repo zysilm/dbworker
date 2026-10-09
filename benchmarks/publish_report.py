@@ -11,12 +11,35 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from benchmarks.render_results import render, update_readme
-from benchmarks.ci_results import publication_evidence
+from benchmarks.ci_results import publication_evidence, safe_evidence_path
 from benchmarks.common.performance_admission import validate_native_report
 
 
 def run(*command: str) -> None:
     subprocess.run(list(command), cwd=ROOT, check=True)
+
+
+def stage_publication_evidence(directory: Path, paths: list[Path], suite_ids: list[str]) -> None:
+    """Stage new receipts and obsolete tracked receipts without staging runtime files."""
+    if directory != ROOT / "benchmarks/results/latest":
+        raise ValueError("Publication requires the fixed latest result directory")
+    deleted = subprocess.check_output(
+        ["git", "ls-files", "--deleted", "-z", "--", "benchmarks/results/latest"],
+        cwd=ROOT,
+    ).decode().split("\0")
+    top_level = {"index.json", "report.md", "imagededup.raw.json", *(f"{suite}.json" for suite in suite_ids)}
+    receipts = {"sample.json", "smtp-evidence.json", "output-evidence.json", "sql-results-evidence.json"}
+    obsolete = []
+    for name in filter(None, deleted):
+        path = safe_evidence_path(directory, ROOT / name)
+        relative = path.relative_to(directory)
+        if ((len(relative.parts) == 1 and relative.name in top_level)
+                or relative.name in receipts or relative.suffix == ".jsonl"):
+            obsolete.append(name)
+    # Force-add only the explicit new publication allowlist, including ignored receipts.
+    run("git", "add", "-f", "--", *(str(path.relative_to(ROOT)) for path in paths))
+    if obsolete:
+        run("git", "add", "-u", "--", *obsolete)
 
 
 def main() -> None:
@@ -55,8 +78,7 @@ def main() -> None:
     paths = [report, readme, *publication_evidence(directory)]
     run("git", "config", "user.name", "github-actions[bot]")
     run("git", "config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com")
-    # Force-add only explicitly permitted JSON evidence in ignored private directories.
-    run("git", "add", "-f", "--", *(str(path.relative_to(ROOT)) for path in paths))
+    stage_publication_evidence(directory, paths, [suite["suite_id"] for suite in registry])
     run("git", "diff", "--cached", "--check")
     run("git", "commit", "-m", "docs: update full application benchmark results [skip ci]")
     # A normal push rejects races and honors main branch protection.
