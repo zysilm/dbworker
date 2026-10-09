@@ -167,7 +167,7 @@ evidence = check_original_tasks(app, ['images.build', 'images.compare', 'images.
                    'task_time_limit': app.conf.task_time_limit})
 print(json.dumps(evidence))
 """
-                self.native_execution = json.loads(subprocess.check_output(
+                self.native_execution = json.loads(subprocess.check_output(  # nosec B603 -- fixed interpreter/code argument vector, shell=False.
                     [str(self.python), "-c", admission_code, str(example_source)],
                     env=env, cwd=self.directory, text=True, timeout=30))
                 redis_binary = shutil.which(self.redis_server)
@@ -226,9 +226,14 @@ print(json.dumps(evidence))
             import sqlite3
             with sqlite3.connect(self.database, timeout=30) as connection:
                 connection.execute("PRAGMA query_only=ON")
-                counts = {table: connection.execute(
-                    f"SELECT COUNT(*) FROM {table} WHERE execution_status IS NULL OR execution_status!='finished'"
-                ).fetchone()[0] for table in ("artifact_build_work", "comparison_work")}
+                counts = {
+                    "artifact_build_work": connection.execute(
+                        "SELECT COUNT(*) FROM artifact_build_work WHERE execution_status IS NULL OR execution_status!='finished'"
+                    ).fetchone()[0],
+                    "comparison_work": connection.execute(
+                        "SELECT COUNT(*) FROM comparison_work WHERE execution_status IS NULL OR execution_status!='finished'"
+                    ).fetchone()[0],
+                }
             return {"backend": "dbworker", "observed_at": time.time(), "unfinished_work": counts,
                     "idle": not any(counts.values())}
         code = """import json
@@ -236,7 +241,7 @@ from imagededup_system_redis_celery.celery_app import app
 from imagededup_benckmark.runtime import native_celery_idle_snapshot
 print(json.dumps(native_celery_idle_snapshot(app)))
 """
-        result = subprocess.check_output([str(self.python), "-c", code], env=self.environment,
+        result = subprocess.check_output([str(self.python), "-c", code], env=self.environment,  # nosec B603 -- fixed local code and argument vector, shell=False.
                                          cwd=self.directory, text=True, timeout=30)
         snapshot = json.loads(result)
         import sqlite3

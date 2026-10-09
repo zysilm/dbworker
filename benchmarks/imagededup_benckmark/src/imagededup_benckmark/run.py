@@ -301,7 +301,9 @@ def main(argv: list[str] | None = None) -> None:
                           "build_workers": WORKERS, "comparison_workers": WORKERS, "page_size": args.page_size,
                           "top_k": args.top_k, "max_distance": args.max_distance, "poll_interval": args.poll_interval,
                           "timeout_seconds": args.timeout_seconds, "sqlite_journal_mode": "delete",
-                          "producers": args.producers, "submission_window_seconds": args.submission_window_seconds,
+                          "producers": args.producers, "submission_window_seconds": (
+                              int(args.submission_window_seconds) if args.submission_window_seconds.is_integer()
+                              else args.submission_window_seconds),
                           "worker_concurrency": WORKERS * 2,
                           "redis_appendonly": True, "redis_appendfsync": "everysec",
                           "hamming_kernel": "integer_xor_bit_count", "scientific_threads_per_process": 1,
