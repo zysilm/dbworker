@@ -54,10 +54,12 @@ class SentryNativeTest(unittest.TestCase):
             self.assertEqual(evidence["error"]["type"], "ModuleNotFoundError")
 
     def test_protocol_one_publication_keeps_two_independent_delivery_jobs(self):
-        app = Celery("email-transport-unit-test", broker="redis://127.0.0.1:1/0")
+        # Transport publication is intercepted below; an in-memory unit broker
+        # prevents resolving Redis dependencies before reaching that seam.
+        app = Celery("email-transport-unit-test", broker="memory://", set_as_current=False)
         app.conf.update(task_protocol=1, task_serializer="pickle", accept_content=["pickle"], task_ignore_result=True)
         delivered = []
-        @app.task(name="sentry.tasks.email.send_email", ignore_result=True)
+        @app.task(name="sentry.tasks.email.send_email", ignore_result=True, shared=False)
         def fixture_email(message):
             delivered.append(message.to[0])
         with tempfile.TemporaryDirectory() as directory:
@@ -73,6 +75,8 @@ class SentryNativeTest(unittest.TestCase):
                     patch.object(adapter, "worker_origin", return_value={"fixture": True}), \
                     adapter.publication_to_dbworker(sessions) as (published, errors):
                 with observer.operation("0"):
+                    self.assertEqual(fixture_email.app.conf.broker_url, "memory://")
+                    self.assertIs(fixture_email.app, app)
                     for index, recipient in enumerate(recipients("0")):
                         message = SimpleNamespace(to=[recipient], extra_headers={"X-Benchmark": "0"})
                         fixture_email.apply_async(kwargs={"message": message}, task_id=f"delivery-{index}")

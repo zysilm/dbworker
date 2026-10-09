@@ -16,6 +16,23 @@ from benchmarks.common.reporting import summarize, timestamp, validate_report, w
 from benchmarks.common.performance_admission import validate_native_report
 
 
+def run_native_correctness(config: dict, report: dict, output: Path, suite: str) -> None:
+    """Check pinned setup semantics once before any timed PostHog sample."""
+    if suite != "posthog":
+        return
+    interpreter = config["interpreters"]["dbworker_python"]
+    log = output / "posthog.totp-correctness.log"
+    report["artifacts"].setdefault("correctness", []).append(log.name)
+    environment = os.environ.copy()
+    environment.update(POSTHOG_TOTP_TEST_PYTHON=interpreter,
+                       PYTHONPATH=os.pathsep.join((str(ROOT), str(ROOT / "src"))))
+    code = run_command([interpreter, "-m", "unittest",
+                        "benchmarks.tests.test_posthog_totp", "-v"],
+                       cwd=ROOT, env=environment, log=log, timeout=180)
+    if code:
+        raise RuntimeError(f"PostHog native TOTP correctness exited with {code}; see {log.name}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", required=True, type=Path)
@@ -28,6 +45,7 @@ def main() -> int:
     try:
         profile = config["suite"]["profiles"][config["profile"]]
         report["configuration"] = {"profile": profile, "sequential": True, "backend_order": "alternating across repetitions"}
+        run_native_correctness(config, report, output, suite)
         for repetition in range(1, profile["repetitions"] + 1):
             order = ("celery", "dbworker") if repetition % 2 else ("dbworker", "celery")
             for backend in order:

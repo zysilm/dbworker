@@ -5,11 +5,11 @@ import sys
 import types
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from celery import Celery
 
-from examples.posthog_dbworker.producer import Fixture, identity, route_notification
+from examples.posthog_dbworker.producer import Fixture, identity, route_notification, validate
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -73,6 +73,30 @@ class PostHogProducerTests(unittest.TestCase):
         self.assertEqual(set(result), {"operation_id", "user_id", "recipient_sha256", "sha256"})
         self.assertNotEqual(result["sha256"], identity(fixture, "notification-0001")["sha256"])
         self.assertNotIn("private", str(result))
+
+    def test_failed_native_api_status_or_payload_is_not_admitted(self):
+        fixture = Fixture(17, "current", "other", b"secret", "csrf", "user@benchmark.invalid")
+        for status, payload in ((400, {"success": False}), (401, {}), (403, {}),
+                                (200, {"success": False}), (200, {"success": True, "extra": True})):
+            with self.subTest(status=status, payload=payload):
+                session = Mock()
+                request = types.SimpleNamespace(COOKIES={})
+                factory = types.SimpleNamespace(post=Mock(return_value=request))
+                middleware = types.SimpleNamespace(process_request=Mock())
+                handler = Mock(return_value=types.SimpleNamespace(status_code=status, data=payload))
+                modules = {
+                    "django.conf": types.SimpleNamespace(settings=types.SimpleNamespace(CSRF_COOKIE_NAME="csrftoken")),
+                    "django.contrib.auth.middleware": types.SimpleNamespace(AuthenticationMiddleware=lambda _: middleware),
+                    "django_otp.oath": types.SimpleNamespace(totp=lambda _: 123456),
+                    "posthog.api.user": types.SimpleNamespace(UserViewSet=types.SimpleNamespace(as_view=lambda _: handler)),
+                    "posthog.session.backend": types.SimpleNamespace(SessionStore=lambda **_: session),
+                    "rest_framework.test": types.SimpleNamespace(APIRequestFactory=lambda **_: factory),
+                }
+                with patch.dict(sys.modules, modules), patch("examples.posthog_dbworker.producer.verify") as verifier:
+                    with self.assertRaisesRegex(AssertionError, "Original 2FA validation API failed"):
+                        validate(fixture)
+                    session.save.assert_not_called()
+                    verifier.assert_not_called()
 
     def test_both_arms_call_original_drf_handler_instead_of_root_task_producer(self):
         backend = ast.parse((ROOT / "benchmarks/upstream/posthog_backend.py").read_text())

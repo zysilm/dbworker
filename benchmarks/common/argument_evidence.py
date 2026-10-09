@@ -20,6 +20,13 @@ def _qualified(value):
 def _canonical(value, active):
     if value is None or type(value) in (bool, int, str):
         return value
+    if _qualified(value) == 'django.utils.safestring.SafeString':
+        # Original Django template rendering preserves this safety marker in
+        # pickled email payloads. Keep its exact class distinct from plain text;
+        # accepting arbitrary string subclasses would hide application values.
+        from django.utils.safestring import SafeString
+        if type(value) is SafeString:
+            return {'type': _qualified(value), 'value': str.__str__(value)}
     if type(value) is float:
         if not math.isfinite(value):
             raise ValueError('Task argument contains a nonfinite number')

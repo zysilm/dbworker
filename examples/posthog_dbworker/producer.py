@@ -115,27 +115,41 @@ def validate(fixture):
     return {"status_code": response.status_code, "response": dict(response.data), "effects": effects}
 
 
-def verify(fixture):
-    """Require real TOTP, persistent session flags/cache cleanup and revocation."""
+def _verify_totp_device(fixture):
+    """Check the original setup form's persisted device, not a later OTP login.
+
+    Pinned two-factor 1.18.1 validates the token directly with ``oath.totp``
+    and creates the device afterwards. It does not call ``verify_token``;
+    django-otp 1.6.0 therefore retains the initial replay counter of -1.
+    """
     from django_otp.plugins.otp_totp.models import TOTPDevice
+
+    devices = list(TOTPDevice.objects.filter(user_id=fixture.user_id))
+    if (len(devices) != 1 or not devices[0].confirmed or devices[0].key != fixture.secret.hex()
+            or devices[0].name != "default" or devices[0].last_t != -1
+            or devices[0].step != 30 or devices[0].t0 != 0 or devices[0].digits != 6
+            or devices[0].tolerance != 1 or devices[0].drift not in (-1, 0, 1)):
+        raise AssertionError("Original API did not persist its verified TOTP setup device")
+    return devices[0]
+
+
+def verify(fixture):
+    """Require real TOTP setup, session flags/cache cleanup and revocation."""
     from posthog.helpers.session_cache import SessionCache
     from posthog.session.backend import SessionStore
     from posthog.session.models import Session
 
-    devices = list(TOTPDevice.objects.filter(user_id=fixture.user_id))
-    if (len(devices) != 1 or not devices[0].confirmed or devices[0].key != fixture.secret.hex()
-            or devices[0].last_t < 0):
-        raise AssertionError("Original API did not persist its verified TOTP device")
+    device = _verify_totp_device(fixture)
     session = SessionStore(session_key=fixture.session_key)
     if (session.get("two_factor_verified") is not True
-            or session.get("otp_device_id") != devices[0].persistent_id):
+            or session.get("otp_device_id") != device.persistent_id):
         raise AssertionError("Original API did not persist verified session state")
     if any(SessionCache(session).exists(key) for key in SETUP_KEYS):
         raise AssertionError("Original API did not clear its setup cache and session keys")
     sessions = list(Session.objects.filter(user_id=fixture.user_id).values_list("session_key", flat=True))
     if sessions != [fixture.session_key] or Session.objects.filter(session_key=fixture.other_session_key).exists():
         raise AssertionError("Original API did not revoke the other authenticated session")
-    return {"user_id": fixture.user_id, "totp_device_id": devices[0].pk,
+    return {"user_id": fixture.user_id, "totp_device_id": device.pk,
             "totp_verified": True, "session_verified": True, "otp_device_matches": True,
             "setup_cache_and_session_keys_removed": True, "other_session_revoked": True,
             "remaining_sessions": len(sessions)}

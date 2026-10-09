@@ -110,6 +110,7 @@ jobs:
           benchmarks.tests.test_posthog_trace
           benchmarks.tests.test_superset_binding
           benchmarks.tests.test_superset_output
+          benchmarks.tests.test_upstream_correctness
       - name: Assemble a complete validated result set
         env:
           RUN_ID: github-${{ github.run_id }}-${{ github.run_attempt }}
