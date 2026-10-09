@@ -1,5 +1,7 @@
 # Superset benchmark native Celery audit
 
+> Historical audit: the implementation inspected here is revision `8435d3cabd65f2c927e44f784272797a86f8fe9d` (the parent of `ea4e9a866b6194d23e51475d5e610d2785b1c529`, which introduced this audit). The wrapper verdict and blockers below describe that prior implementation. They do not describe the repaired native REST producer and original-worker variation. Preserve these findings as history; new full GitHub measurements and current evidence admission determine present benchmark status.
+
 ## Verdict
 
 The current SQL Lab suite does not meet the native application baseline requirement. It runs an original Superset SQL execution function, but schedules it through a benchmark-owned Celery application and writes completion into a benchmark-owned request table. The existing results are evidence for that paired function harness only, not for Superset's native asynchronous SQL Lab lifecycle.

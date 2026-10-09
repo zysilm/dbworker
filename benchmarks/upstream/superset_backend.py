@@ -98,6 +98,8 @@ def main():
     with sqlite3.connect(warehouse) as connection:
         connection.execute("CREATE TABLE facts (category INTEGER, value INTEGER)")
         connection.executemany("INSERT INTO facts VALUES (?,?)", ((i % 10, i) for i in range(10000)))
+        observed_fixture = connection.execute("SELECT category, value FROM facts ORDER BY value").fetchall()
+        fixture_evidence = {"rows": len(observed_fixture), "ordered_input_sha256": json_digest(observed_fixture)}
     with socket.socket() as reservation:
         reservation.bind(("127.0.0.1", 0))
         port = reservation.getsockname()[1]
@@ -209,15 +211,21 @@ def main():
 
             keys = wait_for(complete)
             results = []
+            result_receipts = []
             for binding, query_id in zip(bindings, query_ids):
                 response = client.get("/api/v1/sqllab/results/", query_string={"q": json.dumps({"key": keys[query_id]})})
                 if response.status_code != 200:
                     raise AssertionError(f"Native SQL Lab results unavailable: {response.status_code} {response.get_data(as_text=True)}")
+                retrieved_timestamp_ns = time.time_ns()
                 value = response.get_json()
                 results.append({"data": value["data"], "columns": value["columns"], "status": value["status"]})
                 if value["data"] != expected_rows(binding["operation_id"]) or value["status"] != "success":
                     raise AssertionError("Native retrieved SQL Lab output differs from the independent oracle")
                 binding.update(results_key=str(keys[query_id]), output_sha256=json_digest(results[-1]))
+                result_receipts.append({"operation_id": binding["operation_id"], "query_id": query_id,
+                                        "results_key": str(keys[query_id]), "sql_sha256": binding["sql_sha256"],
+                                        "retrieved_timestamp_ns": retrieved_timestamp_ns,
+                                        "http_status": response.status_code, "result": results[-1]})
             # All required scheduler terminal events and DBWorker ledger commits
             # complete inside the same timed interval, after native result reads.
             from benchmarks.common.workflow_graph import read_trace
@@ -242,13 +250,17 @@ def main():
                     raise AssertionError("SQL Lab operation must bind exactly one original publication")
                 binding.update(node_id=submitted[0]["node_id"],
                                argument_sha256=submitted[0]["details"]["argument_sha256"])
-            return elapsed_seconds(measurement_window), results, bindings, measurement_window
+            for binding, receipt in zip(bindings, result_receipts):
+                receipt.update(node_id=binding["node_id"], argument_sha256=binding["argument_sha256"])
+            return elapsed_seconds(measurement_window), results, bindings, measurement_window, result_receipts
 
         warmups = [f"warmup:{i}" for i in range(2)]
         operations = [f"query-{i}" for i in range(profile["requests"])]
         with executor_context:
             execute_batch(warmups)
-            seconds, results, bindings, measurement_window = execute_batch(operations)
+            seconds, results, bindings, measurement_window, result_receipts = execute_batch(operations)
+        evidence_path = directory / "sql-results-evidence.json"
+        write_json(evidence_path, {"schema_version": 1, "fixture": fixture_evidence, "results": result_receipts})
         from benchmarks.common.workflow_graph import read_trace, validate_graph
         events = read_trace(trace)
         graph = validate_graph(events, operations, {"sql_lab": 1}, [], warmup_operations=warmups)
@@ -269,6 +281,9 @@ def main():
                "workflow_graph": graph,
                "business_bindings": bindings, "warmup_operations": warmups,
                "measurement_window": measurement_window,
+               "sql_result_evidence": {"schema_version": 1,
+                                       "path": str(evidence_path.relative_to(Path(config["output_directory"]).resolve())),
+                                       "sha256": hashlib.sha256(evidence_path.read_bytes()).hexdigest()},
                "workflow_trace": {"path": str(trace.relative_to(Path(config["output_directory"]).resolve())),
                                   "sha256": hashlib.sha256(trace.read_bytes()).hexdigest()},
                "native_execution": native_execution,

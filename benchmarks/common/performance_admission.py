@@ -12,6 +12,7 @@ from benchmarks.common.native_admission import APPLICATIONS, NativeAdmissionErro
 from benchmarks.common.native_binding import validate_task_binding
 from benchmarks.common.business_evidence import validate_business_binding as _validate_business_binding
 from benchmarks.common.smtp_evidence import validate_smtp_evidence
+from benchmarks.common.superset_output import validate_superset_output
 from benchmarks.common.timing_evidence import elapsed_seconds, validate_timing_window
 from benchmarks.common.workflow_graph import WorkflowMismatch, compare_graphs, read_trace, validate_graph
 
@@ -105,7 +106,7 @@ def _validate_worker_and_arguments(events, suite):
                 raise WorkflowMismatch('Worker arguments differ from original publication intent')
 
 
-def replay_graph(row, suite, directory, expected_requests):
+def replay_graph(row, suite, directory, expected_requests, *, expected_profile=None):
     contract_stages, contract_edges = CONTRACTS[suite]
     trace = row.get('workflow_trace', {})
     path = _safe_relative(directory, trace.get('path'))
@@ -131,7 +132,12 @@ def replay_graph(row, suite, directory, expected_requests):
                               warmup_operations=declared_warmup)
     validate_timing_window(row.get('measurement_window'), row.get('metrics', {}).get('wall_seconds'),
                            events, operations)
-    _validate_business_binding(row, suite, events, expected_requests)
+    _validate_business_binding(row, suite, events, expected_requests, expected_profile=expected_profile)
+    if suite == 'superset':
+        try:
+            validate_superset_output(row, directory, expected_requests, events=events)
+        except (ValueError, TypeError, KeyError, OSError) as error:
+            raise WorkflowMismatch(f'Invalid persisted SQL Lab output evidence: {error}') from error
     if suite == 'sentry':
         try:
             validate_smtp_evidence(row, directory)
@@ -308,6 +314,14 @@ def replay_image_workload(row, directory, images):
     if replayed != row.get('operation_evidence'):
         raise WorkflowMismatch('Reported image work differs from persisted observations')
     validate_image_workload(row, images)
+    output_path = ROOT / "benchmarks/imagededup_benckmark/src/imagededup_benckmark/output_evidence.py"
+    output_spec = importlib.util.spec_from_file_location("benchmark_image_output_verifier", output_path)
+    output_verifier = importlib.util.module_from_spec(output_spec)
+    output_spec.loader.exec_module(output_verifier)
+    try:
+        output_verifier.validate(row, directory, images)
+    except (ValueError, TypeError, KeyError, OSError) as error:
+        raise WorkflowMismatch(f"Invalid image output receipt: {error}") from error
     return replayed
 
 
@@ -347,7 +361,16 @@ def validate_native_report(report, directory, *, expected_profile=None):
     if set(groups) != expected_groups:
         raise WorkflowMismatch('Missing configured scenarios or repetitions')
     parity = []
-    for (_, repetition), pair in sorted(groups.items()):
+    image_outputs = {}
+    image_hashes = None
+    image_comparisons = None
+    if suite == "imagededup":
+        # These are the reviewed official suite runner defaults; child-reported
+        # settings never select the oracle used by aggregate admission.
+        for setting, expected in (("top_k", 10), ("max_distance", 10), ("page_size", 250)):
+            if type(profile.get(setting)) is not int or profile[setting] != expected:
+                raise WorkflowMismatch(f"Image setting differs from official workload: {setting}")
+    for (scenario, repetition), pair in sorted(groups.items()):
         if set(pair) != {'celery', 'dbworker'}:
             raise WorkflowMismatch('Native scenario lacks a paired backend')
         if suite == 'imagededup':
@@ -364,11 +387,26 @@ def validate_native_report(report, directory, *, expected_profile=None):
             for name in names:
                 if pair['celery']['operation_evidence'].get(name) != pair['dbworker']['operation_evidence'].get(name):
                     raise WorkflowMismatch(f'Image business workload mismatch: {name}')
+            outputs = [row["validation"] for row in pair.values()]
+            if outputs[0] != outputs[1]:
+                raise WorkflowMismatch("Replayed image outputs differ between backends")
+            if scenario in image_outputs and image_outputs[scenario] != outputs[0]:
+                raise WorkflowMismatch("Replayed image outputs differ between repetitions")
+            image_outputs[scenario] = outputs[0]
+            hashes = outputs[0].get("hashes_digest")
+            if image_hashes is not None and image_hashes != hashes:
+                raise WorkflowMismatch("Replayed image hashes differ across identical-input scenarios")
+            image_hashes = hashes
+            if scenario != "build":
+                comparisons = outputs[0].get("top_k_digests")
+                if image_comparisons is not None and image_comparisons != comparisons:
+                    raise WorkflowMismatch("Replayed image top-K differs across identical-input scenarios")
+                image_comparisons = comparisons
             parity.append({'repetition': repetition, 'passed': True, 'contract': 'image_successful_business_work'})
         else:
             count = expected_profile['requests']
-            left = replay_graph(pair['celery'], suite, directory, count)
-            right = replay_graph(pair['dbworker'], suite, directory, count)
+            left = replay_graph(pair['celery'], suite, directory, count, expected_profile=expected_profile)
+            right = replay_graph(pair['dbworker'], suite, directory, count, expected_profile=expected_profile)
             parity.append({'repetition': repetition, **compare_graphs(left, right)})
     report['admission'] = {'passed': True, 'native_baseline': True, 'workflow_parity': parity,
                            'contract': 'successful_business_workflow',

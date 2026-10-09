@@ -50,7 +50,8 @@ def main() -> None:
         raise ValueError("Publication checkout differs from the measured revision")
     report.write_text(content)
     readme.write_text(compact)
-    # Stage only allowlisted evidence. Logs, configs, media and databases stay in artifacts.
+    # Stage only allowlisted replay evidence, including SMTP, image and SQL result receipts.
+    # Logs, configs, media and databases stay in artifacts.
     paths = [report, readme, *publication_evidence(directory)]
     run("git", "config", "user.name", "github-actions[bot]")
     run("git", "config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com")

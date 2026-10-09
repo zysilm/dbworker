@@ -1,5 +1,10 @@
 # Saleor native Celery and DBWorker parity audit
 
+> Historical pre-migration audit. References to the current implementation below
+> describe the implementation inspected at audit time, not the repaired native
+> benchmark. See [the audit scope](README.md) and
+> [the current benchmark contract](../README.md) for status and validation limits.
+
 ## Verdict
 
 The current Saleor experiment does **not** measure Saleor's native Celery export workflow. Both backends execute the same upstream export body through a custom adapter, but the Celery worker belongs to the benchmark rather than Saleor. The measured top-level workload is numerically matched today: 100 export operations on each backend, each exporting the same 256 products. That equality does not establish parity with a normally configured Saleor workflow, because notification plugins, native task invocation, and native task lifecycle are bypassed or disabled.

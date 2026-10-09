@@ -107,7 +107,9 @@ jobs:
           benchmarks.tests.test_business_input
           benchmarks.tests.test_performance_admission benchmarks.tests.test_saleor_producer
           benchmarks.tests.test_posthog_producer benchmarks.tests.test_paperless_producer
+          benchmarks.tests.test_posthog_trace
           benchmarks.tests.test_superset_binding
+          benchmarks.tests.test_superset_output
       - name: Assemble a complete validated result set
         env:
           RUN_ID: github-${{ github.run_id }}-${{ github.run_attempt }}

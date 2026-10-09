@@ -30,11 +30,16 @@ def node(operation_id, stage):
     return f"{stage}:{operation_id}"
 
 
+def task_name(stage):
+    """Use the same reviewed native identity for publication and execution."""
+    return next(name for name, task_stage in STAGES.items() if task_stage == stage)
+
+
 def enqueue(session, operation_id, user_id):
     job = Job(operation_id=operation_id, stage="notification", payload={"user_id": user_id})
     session.add(job)
     record("notification", operation_id, node(operation_id, "notification"), "submitted", backend="dbworker",
-           argument_sha256=argument_digest((user_id,), {}))
+           task_name=task_name("notification"), argument_sha256=argument_digest((user_id,), {}))
     return job
 
 
@@ -45,10 +50,10 @@ def handle(job, session):
     identity, op, stage, parent, payload, attempts = job.id, job.operation_id, job.stage, job.parent_id, dict(job.payload), job.attempts
     session.rollback()
     identity_node = node(op, stage)
-    task_name = next(name for name, task_stage in STAGES.items() if task_stage == stage)
-    origin = worker_origin(app.tasks[task_name], "posthog")
+    name = task_name(stage)
+    origin = worker_origin(app.tasks[name], "posthog")
     record(stage, op, identity_node, "started", parent, backend="dbworker",
-           task_name=task_name, native_worker_origin=origin,
+           task_name=name, native_worker_origin=origin,
            argument_sha256=argument_digest((payload["user_id"],), {}) if stage == "notification"
            else argument_digest((), payload))
     close_old_connections()
@@ -61,7 +66,7 @@ def handle(job, session):
                     session.add(child)
                     children.append(child)
                     record("delivery", op, node(op, "delivery"), "submitted", identity_node, backend="dbworker",
-                           argument_sha256=argument_digest((), arguments))
+                           task_name=task_name("delivery"), argument_sha256=argument_digest((), arguments))
                 adapter.notify(payload["user_id"], submit)
                 if len(children) != 1:
                     raise RuntimeError("Native notification did not produce exactly one independent delivery")

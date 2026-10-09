@@ -1,5 +1,10 @@
 # PostHog native baseline audit
 
+> Historical pre-migration audit. References to the current implementation below
+> describe the implementation inspected at audit time, not the repaired native
+> benchmark. See [the audit scope](README.md) and
+> [the current benchmark contract](../README.md) for status and validation limits.
+
 Date: 2026-10-05. Source pin: `526d64dd82340b1bf4293d6d9baea7e965997048`.
 This is a read-only source and retained-result audit. No experiments were rerun,
 no implementation was changed, and no Git metadata was modified.

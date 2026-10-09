@@ -141,6 +141,72 @@ class PerformanceAdmissionTests(unittest.TestCase):
                 with self.assertRaises(WorkflowMismatch):
                     validate_native_report(report, temporary, expected_profile={'requests': 2, 'repetitions': 5})
 
+    def test_superset_replay_reads_observed_results_and_rejects_common_wrong_output(self):
+        from benchmarks.tests.test_business_evidence import BusinessEvidenceTests
+        from benchmarks.tests.test_superset_output import SupersetOutputTests
+        from benchmarks.common.business_evidence import validate_business_binding
+        from benchmarks.common.superset_output import digest as sql_digest
+        with tempfile.TemporaryDirectory() as temporary:
+            row, events = BusinessEvidenceTests().fixture('superset', count=2)
+            output_row, receipt = SupersetOutputTests().fixture(count=2)
+            row.update(backend='celery', measurement_window=output_row['measurement_window'],
+                       metrics=output_row['metrics'])
+            row['validation']['output_digest'] = output_row['validation']['output_digest']
+            for index, (binding, observation) in enumerate(zip(row['business_bindings'], receipt['results'])):
+                binding['output_sha256'] = output_row['business_bindings'][index]['output_sha256']
+                for key in ('query_id', 'node_id', 'results_key', 'sql_sha256', 'argument_sha256'):
+                    observation[key] = binding[key]
+            task = next(iter(TASK_STAGES['superset']))
+            for event in events:
+                event.update(schema_version=1, backend='celery', timestamp_ns=
+                    (500 if event['operation_id'].startswith('warmup:') else 1100) +
+                    {'submitted': 1, 'started': 2, 'succeeded': 3}[event['event']])
+                event['details'].update(task_name=task, native_worker_origin=self.origin('superset', task))
+            trace = Path(temporary) / 'trace.jsonl'
+            trace.write_text(''.join(json.dumps(event) + '\n' for event in events))
+            row['workflow_trace'] = {'path': trace.name, 'sha256': hashlib.sha256(trace.read_bytes()).hexdigest()}
+            row['workflow_graph'] = validate_graph(events, ['query-0', 'query-1'], {'sql_lab': 1}, [],
+                                                   warmup_operations=['warmup:0', 'warmup:1'])
+            path = Path(temporary) / 'sql-results-evidence.json'
+
+            def save_receipt():
+                path.write_text(json.dumps(receipt))
+                row['sql_result_evidence'] = {'schema_version': 1, 'path': path.name,
+                                             'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+
+            save_receipt()
+            with patch('benchmarks.common.performance_admission._validate_business_binding',
+                       side_effect=validate_business_binding):
+                self.assertEqual(replay_graph(row, 'superset', temporary, 2)['nodes'], 2)
+                # A common wrong observation plus self-consistent hashes cannot
+                # be admitted by either arm: the independent fixture rejects it.
+                receipt['results'][0]['result']['data'][0]['total'] += 1
+                row['business_bindings'][0]['output_sha256'] = sql_digest(receipt['results'][0]['result'])
+                row['validation']['output_digest'] = sql_digest([item['result'] for item in receipt['results']])
+                save_receipt()
+                with self.assertRaisesRegex(WorkflowMismatch, 'independent oracle'):
+                    replay_graph(row, 'superset', temporary, 2)
+
+    def test_saleor_report_passes_trusted_profile_to_each_business_replay(self):
+        profile = {'requests': 3, 'products': 4, 'repetitions': 1}
+        rows = [{'backend': backend, 'scenario': 'product_csv_export', 'repetition': 1,
+                 'status': 'passed', 'validation': {'passed': True}}
+                for backend in ('celery', 'dbworker')]
+        report = {'status': 'passed', 'suite_id': 'saleor', 'profile': 'full',
+                  'configuration': {'profile': dict(profile)}, 'runs': rows}
+        graph = {'passed': True, 'operations': ['0', '1', '2'], 'nodes': 6,
+                 'stage_counts': {'export': 3, 'email': 3},
+                 'edge_counts': {'export->email': 3}}
+        # This isolates orchestration; production business replay is tested with
+        # self-consistent reduced native root arguments in test_business_evidence.
+        with patch('benchmarks.common.performance_admission.validate_native_sample'), \
+                patch('benchmarks.common.performance_admission.replay_graph', return_value=graph) as replay:
+            validate_native_report(report, '.', expected_profile=profile)
+        self.assertEqual(replay.call_count, 2)
+        for call, row in zip(replay.call_args_list, rows):
+            self.assertEqual(call.args, (row, 'saleor', '.', 3))
+            self.assertEqual(call.kwargs, {'expected_profile': profile})
+
     def test_empty_task_sets_cannot_forge_native_admission(self):
         row = {'backend': 'celery', 'native_execution': {'passed': True,
                'worker_app': 'posthog.celery:app', 'check': 'live_task_origin_and_ast',
@@ -176,7 +242,7 @@ class PerformanceAdmissionTests(unittest.TestCase):
                 row.update(backend=backend, status='passed', repetition=1)
                 rows.append(row)
         report = {'suite_id': 'imagededup', 'status': 'passed', 'profile': 'full',
-                  'configuration': {'images': 3, 'repetitions': 1}, 'runs': rows}
+                  'configuration': {'images': 3, 'repetitions': 1, 'top_k': 10, 'max_distance': 10, 'page_size': 250}, 'runs': rows}
 
         def replay_summary(row, directory, images):
             # Source origin and actual trace replay have separate direct tests.
@@ -192,6 +258,32 @@ class PerformanceAdmissionTests(unittest.TestCase):
         self.assertEqual(rows[0]['operation_evidence']['duplicate_build_deliveries'], 1)
         self.assertEqual(rows[0]['operation_evidence']['business_attempts'], 4)
         self.assertEqual(rows[1]['operation_evidence']['business_attempts'], 3)
+
+    def test_image_pair_repetition_outputs_and_official_settings_are_enforced(self):
+        rows = []
+        for repetition in (1, 2):
+            for scenario in ('build', 'comparison', 'mixed'):
+                for backend in ('celery', 'dbworker'):
+                    row = self.image_fixture(scenario=scenario)
+                    row.update(backend=backend, status='passed', repetition=repetition)
+                    rows.append(row)
+        baseline = {'suite_id': 'imagededup', 'status': 'passed', 'profile': 'full',
+                    'configuration': {'images': 3, 'repetitions': 2, 'top_k': 10,
+                                      'max_distance': 10, 'page_size': 250}, 'runs': rows}
+        with patch('benchmarks.common.performance_admission.validate_native_sample'), \
+                patch('benchmarks.common.performance_admission.replay_image_workload'):
+            validate_native_report(copy.deepcopy(baseline), '.', expected_profile={'images': 3, 'repetitions': 2})
+            for mutation in ('pair', 'repetition', 'top_k', 'max_distance', 'page_size'):
+                bad = copy.deepcopy(baseline)
+                if mutation == 'pair':
+                    bad['runs'][1]['validation']['hashes_digest'] = 'changed'
+                elif mutation == 'repetition':
+                    for row in bad['runs'][6:8]:
+                        row['validation']['hashes_digest'] = 'changed'
+                else:
+                    bad['configuration'][mutation] = 1
+                with self.subTest(mutation=mutation), self.assertRaises(WorkflowMismatch):
+                    validate_native_report(bad, '.', expected_profile={'images': 3, 'repetitions': 2})
 
     def test_mixed_ready_candidate_fragmentation_is_valid_but_comparison_fragmentation_is_not(self):
         mixed = self.image_fixture()
@@ -275,7 +367,33 @@ class PerformanceAdmissionTests(unittest.TestCase):
             row['operation_trace'] = {'path': path.name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
                 'workspace': 1, 'artifact_ids': [1, 2, 3], 'request_ids': [11, 12, 13],
                 'new_builds': True, 'page_size': 250, 'record_offset': 0}
+            output_spec = importlib.util.spec_from_file_location('test_image_output_verifier',
+                ROOT / 'benchmarks/imagededup_benckmark/src/imagededup_benckmark/output_evidence.py')
+            output_verifier = importlib.util.module_from_spec(output_spec)
+            output_spec.loader.exec_module(output_verifier)
+            manifest = {'schema_version': 1, 'workspace': 1, 'top_k': 10, 'max_distance': 10,
+                'artifacts': [{'artifact_id': identity, 'hash_value': '0000000000000000'}
+                              for identity in (1, 2, 3)],
+                'comparisons': [{'request_id': query + 10, 'query_artifact_id': query,
+                    'results': [{'candidate_artifact_id': candidate, 'distance': 0}
+                                for candidate in (1, 2, 3) if candidate != query]}
+                    for query in (1, 2, 3)]}
+            output_path = Path(temporary) / 'output-evidence.json'
+            output_path.write_text(json.dumps(manifest))
+            row['output_evidence'] = {'path': output_path.name, 'schema_version': 1,
+                'sha256': hashlib.sha256(output_path.read_bytes()).hexdigest()}
+            base_validation = output_verifier.replay(manifest, row['operation_trace'], 3, row['scenario'])
+            row['validation'] = {**base_validation, 'output_digest': hashlib.sha256(
+                json.dumps(base_validation, sort_keys=True).encode()).hexdigest()}
             self.assertEqual(replay_image_workload(row, temporary, 3)['completed_builds'], 3)
+            # Keep the real admitted trace intact while forging only reported
+            # outputs. Aggregate replay must reject every old blind spot.
+            for output_field in ('hashes_digest', 'top_k_digests', 'output_digest'):
+                forged_output = copy.deepcopy(row)
+                forged_output['validation'][output_field] = 'changed-output'
+                with self.subTest(output_field=output_field), self.assertRaises(WorkflowMismatch):
+                    replay_image_workload(forged_output, temporary, 3)
+
             for mutation in ('missing_origin', 'wrong_origin', 'reverse_phase', 'late_commit',
                              'late_submission', 'wrong_wall', 'missing_barrier', 'missing_priority_lane',
                              'short_attempt_receipt'):

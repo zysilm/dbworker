@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from pathlib import Path
 
 from benchmarks.common.argument_evidence import argument_digest
 from benchmarks.common.workflow_graph import WorkflowMismatch
@@ -79,7 +80,25 @@ def _unique(values, label):
     _require(len(set(values)) == len(values), label + ' reused across operations')
 
 
-def validate_business_binding(row, suite, events, expected_requests):
+def _trusted_profile(suite, expected_requests, expected_profile):
+    if expected_profile is None:
+        registry = json.loads((Path(__file__).resolve().parents[1] / 'registry.json').read_text())
+        declaration = next(item for item in registry['suites'] if item['suite_id'] == suite)
+        expected_profile = declaration['profiles']['full']
+    _require(isinstance(expected_profile, dict), 'missing trusted workload profile')
+    _require(type(expected_profile.get('requests')) is int
+             and expected_profile['requests'] == expected_requests, 'trusted request count differs')
+    return expected_profile
+
+
+def _counts(values, expected):
+    _require(isinstance(values, dict), 'missing business workload counts')
+    for name, count in expected.items():
+        _require(type(values.get(name)) is int and values[name] == count,
+                 'trusted business workload count differs: ' + name)
+
+
+def validate_business_binding(row, suite, events, expected_requests, *, expected_profile=None):
     """Reject missing, substituted or shortcut producer evidence before scoring."""
     _require(isinstance(row, dict) and isinstance(events, list) and all(isinstance(event, dict) and isinstance(event.get('operation_id'), str) for event in events), 'invalid evidence types')
     measured, warmups = expected_operations(suite, expected_requests)
@@ -92,6 +111,16 @@ def validate_business_binding(row, suite, events, expected_requests):
         # MIME/content admission is implemented by the independent SMTP oracle.
         return
     if suite == 'superset':
+        receipt = row.get('sql_result_evidence')
+        _require(isinstance(receipt, dict) and set(receipt) == {'schema_version', 'path', 'sha256'}
+                 and type(receipt['schema_version']) is int and receipt['schema_version'] == 1
+                 and isinstance(receipt['path'], str) and bool(receipt['path'])
+                 and not Path(receipt['path']).is_absolute() and '..' not in Path(receipt['path']).parts
+                 and Path(receipt['path']).name == 'sql-results-evidence.json',
+                 'missing independently replayable SQL output receipt')
+        _digest(receipt['sha256'])
+        _digest(row.get('validation', {}).get('output_digest'))
+        _counts(row.get('validation'), {'queries': expected_requests, 'retrieved_results': expected_requests, 'rows_per_query': 10})
         _require(configuration.get('submission') == 'authenticated original SQL Lab REST API', 'SQL Lab public API shortcut')
         bindings = _indexed(row.get('business_bindings'), measured)
         roots = _roots(events, 'sql_lab', measured)
@@ -113,13 +142,19 @@ def validate_business_binding(row, suite, events, expected_requests):
             _unique([value[key] for value in bindings.values()], 'SQL Lab ' + key)
         return
     if suite == 'saleor':
+        profile = _trusted_profile(suite, expected_requests, expected_profile)
+        product_count = profile.get('products')
+        _require(type(product_count) is int and product_count > 0, 'missing trusted product count')
+        _counts(row.get('dataset'), {'products': product_count, 'variants': product_count, 'exports': expected_requests})
+        _counts(row.get('validation'), {'products_per_export': product_count, 'exports': expected_requests,
+                                      'email_messages': expected_requests, 'business_jobs': expected_requests * 2})
         evidence = row.get('operation_binding')
         _require(isinstance(evidence, dict) and evidence.get('producer') == 'saleor.graphql.csv.mutations.export_products.ExportProducts'
                  and evidence.get('entrypoint') == 'authenticated POST /graphql/ exportProducts', 'Saleor GraphQL producer shortcut')
         public_input = evidence.get('public_input')
         _require(isinstance(public_input, dict), 'missing normalized GraphQL public input')
         products = public_input.get('product_ids')
-        _require(isinstance(products, list) and bool(products) and all(isinstance(value, str) and value.isdecimal() and int(value) > 0 for value in products), 'invalid exported product identities')
+        _require(isinstance(products, list) and len(products) == product_count and all(isinstance(value, str) and value.isdecimal() and int(value) > 0 for value in products), 'invalid exported product identities')
         _unique(products, 'exported product')
         _require(public_input.get('fields') == ['name', 'product type', 'variant sku'] and public_input.get('file_type') == 'csv', 'GraphQL field or format input differs')
         _require(isinstance(row.get('dataset'), dict) and type(row['dataset'].get('products')) is int and row['dataset']['products'] == len(products), 'export product count differs')

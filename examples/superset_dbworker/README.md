@@ -46,6 +46,11 @@ clock-bracketed monotonic measurement boundaries, trace paths and hashes, and qu
 SQL, user, root-node, result-key and output-digest bindings. Independent replay
 requires one complete job per query and an equal graph on both arms; missing,
 duplicate, unexpected or failed jobs prevent admission.
+An untimed receipt preserves actual authenticated result payloads and retrieval
+timestamps. Independent replay checks the warehouse fixture fingerprint, each
+query's ten-row aggregate against its arithmetic oracle, and both per-query and
+combined output fingerprints. This verifies returned results, not physical scan
+telemetry.
 
 The previously published full native run validates the earlier evidence format;
 the stronger worker, argument and timing evidence requires a fresh CI run. Older

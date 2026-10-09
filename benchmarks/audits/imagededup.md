@@ -1,5 +1,10 @@
 # Image deduplication benchmark audit
 
+> Historical pre-migration audit. References to the current implementation below
+> describe the implementation inspected at audit time, not the repaired native
+> benchmark. See [the audit scope](README.md) and
+> [the current benchmark contract](../README.md) for status and validation limits.
+
 ## Verdict
 
 The image suite already runs the native Celery application maintained in this repository. It does not use the shared Celery wrapper used by the external-project suites. The two applications submit equal image and comparison request counts and verify equal business results. There is no evidence of a reduction from hundreds of Celery business tasks to a handful of DBWorker business tasks.

@@ -6,9 +6,14 @@ import unittest
 
 from benchmarks.common.argument_evidence import argument_digest
 from benchmarks.common.business_evidence import (
-    POSTHOG_API_SHA256, expected_operations, validate_business_binding,
+    POSTHOG_API_SHA256, expected_operations, validate_business_binding as _validate_business_binding,
 )
 from benchmarks.common.workflow_graph import WorkflowMismatch
+
+
+def validate_business_binding(row, suite, events, count, *, expected_profile=None):
+    return _validate_business_binding(row, suite, events, count,
+        expected_profile=expected_profile or {'requests': count, 'products': 256})
 
 
 def sha(value):
@@ -16,7 +21,7 @@ def sha(value):
 
 
 class BusinessEvidenceTests(unittest.TestCase):
-    def fixture(self, suite, count=2):
+    def fixture(self, suite, count=2, products=256):
         measured, warmups = expected_operations(suite, count)
         operations = warmups + measured
         row = {'warmup_operations': warmups, 'configuration': {}}
@@ -24,7 +29,7 @@ class BusinessEvidenceTests(unittest.TestCase):
         stage = {'superset': 'sql_lab', 'saleor': 'export', 'paperless_ngx': 'ingestion',
                  'posthog': 'notification', 'sentry': 'delivery'}[suite]
         bindings, identities, outcomes = [], [], []
-        public_input = {'product_ids': ['21', '22'], 'fields': ['name', 'product type', 'variant sku'], 'file_type': 'csv'}
+        public_input = {'product_ids': [str(i + 21) for i in range(products)], 'fields': ['name', 'product type', 'variant sku'], 'file_type': 'csv'}
         for index, op in enumerate(operations):
             node = f'root-{index}'
             details = {'argument_sha256': sha(index)}
@@ -63,13 +68,15 @@ class BusinessEvidenceTests(unittest.TestCase):
                 events.append({'operation_id': op, 'node_id': node, 'parent_id': None,
                                'stage': stage, 'event': phase, 'details': copy.deepcopy(details)})
         if suite == 'superset':
-            row.update(business_bindings=bindings)
+            row.update(business_bindings=bindings, validation={'queries': count, 'retrieved_results': count, 'rows_per_query': 10, 'output_digest': sha('aggregate')},
+                sql_result_evidence={'schema_version': 1, 'path': 'sample/sql-results-evidence.json', 'sha256': sha('receipt')})
             row['configuration']['submission'] = 'authenticated original SQL Lab REST API'
         elif suite == 'saleor':
             row['operation_binding'] = {'producer': 'saleor.graphql.csv.mutations.export_products.ExportProducts',
                 'entrypoint': 'authenticated POST /graphql/ exportProducts', 'bindings': bindings,
                 'public_input': public_input}
-            row['dataset'] = {'products': 2}
+            row['dataset'] = {'products': products, 'variants': products, 'exports': count}
+            row['validation'] = {'products_per_export': products, 'exports': count, 'email_messages': count, 'business_jobs': count * 2}
         elif suite == 'paperless_ngx':
             row['submitted_inputs'] = bindings
             row['configuration']['submission'] = 'authenticated POST /api/documents/post_document/ via native APIClient routing'
@@ -83,6 +90,42 @@ class BusinessEvidenceTests(unittest.TestCase):
             row['configuration'] = {'producer_api': api, 'producer_api_timed': True,
                                      'producer_api_effects_validated': True}
         return row, events
+
+    def test_saleor_self_consistent_reduced_products_rejected_by_trusted_profile(self):
+        full_row, full_events = self.fixture('saleor', count=100)
+        _validate_business_binding(full_row, 'saleor', full_events, 100)
+        row, events = self.fixture('saleor', count=100, products=1)
+        row['configuration']['profile'] = {'requests': 100, 'repetitions': 5, 'products': 256}
+        # Root fingerprints, dataset and validation all agree on the reduced work.
+        # Neither this agreement nor the result's declared profile is authority.
+        with self.assertRaisesRegex(WorkflowMismatch, 'trusted business workload count'):
+            _validate_business_binding(row, 'saleor', events, 100)
+        row['dataset'].update(products=256, variants=256)
+        row['validation']['products_per_export'] = 256
+        with self.assertRaisesRegex(WorkflowMismatch, 'product identities'):
+            _validate_business_binding(row, 'saleor', events, 100)
+
+    def test_saleor_trusted_custom_profile_and_business_count_tampering(self):
+        row, events = self.fixture('saleor', count=3, products=4)
+        profile = {'requests': 3, 'products': 4, 'repetitions': 1}
+        _validate_business_binding(row, 'saleor', events, 3, expected_profile=profile)
+        for section, fields in {'dataset': ('products', 'variants', 'exports'),
+                'validation': ('products_per_export', 'exports', 'email_messages', 'business_jobs')}.items():
+            for field in fields:
+                bad = copy.deepcopy(row)
+                bad[section][field] -= 1
+                with self.subTest(section=section, field=field), self.assertRaises(WorkflowMismatch):
+                    _validate_business_binding(bad, 'saleor', events, 3, expected_profile=profile)
+        for bad_profile in ({'requests': 3}, {'requests': 3, 'products': True}, {'requests': 2, 'products': 4}):
+            with self.subTest(profile=bad_profile), self.assertRaises(WorkflowMismatch):
+                _validate_business_binding(row, 'saleor', events, 3, expected_profile=bad_profile)
+
+    def test_superset_reported_output_counts_are_not_self_authorizing(self):
+        for field in ('queries', 'retrieved_results', 'rows_per_query'):
+            row, events = self.fixture('superset')
+            row['validation'][field] = 1
+            with self.subTest(field=field), self.assertRaises(WorkflowMismatch):
+                validate_business_binding(row, 'superset', events, 2)
 
     def test_all_suite_fixtures(self):
         for suite in ('superset', 'saleor', 'paperless_ngx', 'posthog', 'sentry'):

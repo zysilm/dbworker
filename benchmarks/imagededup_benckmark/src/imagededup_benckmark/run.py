@@ -58,7 +58,7 @@ def prepare_images(files: list[Path], directory: Path) -> list[dict[str, Any]]:
 
 
 def validate(stack: Stack, workspace: int, artifact_ids: list[int], request_ids: list[int],
-             *, top_k: int, max_distance: int) -> dict[str, Any]:
+             *, top_k: int, max_distance: int, output_manifest: dict[str, Any] | None = None) -> dict[str, Any]:
     # Untimed, complete verification. SQL uses only shared application tables;
     # final statuses are verified through each application's public HTTP API.
     count = len(artifact_ids)
@@ -68,6 +68,7 @@ def validate(stack: Stack, workspace: int, artifact_ids: list[int], request_ids:
         if any(row["execution_status"] != "finished" or row["error"] is not None for row in rows):
             raise AssertionError(f"Build failures in workspace {workspace}: {rows}")
     result_digests: list[str] = []
+    observed_comparisons: list[dict[str, Any]] = []
     with sqlite3.connect(stack.database) as connection:
         hashes = dict(connection.execute("SELECT id,hash_value FROM feature_artifact WHERE workspace_id=?", (workspace,)))
         if len(hashes) != count or any(value is None for value in hashes.values()):
@@ -82,6 +83,8 @@ def validate(stack: Stack, workspace: int, artifact_ids: list[int], request_ids:
                                for key, value in hashes.items() if key != query_id), key=lambda item: (item[1], item[0]))
             expected = [item for item in expected if item[1] <= max_distance][:top_k]
             actual = [(row["candidate_artifact_id"], row["distance"]) for row in results]
+            observed_comparisons.append({"request_id": request_id, "query_artifact_id": query_id,
+                "results": [{"candidate_artifact_id": candidate, "distance": distance} for candidate, distance in actual]})
             if actual != expected:
                 raise AssertionError(f"Incorrect top-K for request {request_id}")
             ledger_count = connection.execute("SELECT COUNT(*) FROM scored_candidate WHERE request_id=?", (request_id,)).fetchone()[0]
@@ -89,6 +92,10 @@ def validate(stack: Stack, workspace: int, artifact_ids: list[int], request_ids:
                 raise AssertionError(f"Wrong completion ledger count: {request_id}")
             normalized = [(ordinal[key], distance) for key, distance in actual]
             result_digests.append(hashlib.sha256(json.dumps(normalized).encode()).hexdigest())
+    if output_manifest is not None:
+        output_manifest.update(schema_version=1, workspace=workspace, top_k=top_k, max_distance=max_distance,
+            artifacts=[{"artifact_id": key, "hash_value": hashes[key]} for key in artifact_ids],
+            comparisons=observed_comparisons)
     hash_digest = hashlib.sha256(json.dumps([hashes[key] for key in artifact_ids]).encode()).hexdigest()
     return {"passed": True, "hashes_digest": hash_digest, "top_k_digests": result_digests,
             "artifacts": count, "requests": len(request_ids), "scored_pairs": len(request_ids) * (count - 1)}
@@ -146,7 +153,17 @@ def scenario(stack: Stack, kind: str, directory: Path, count: int, *, page_size:
                       new_builds=existing is None, page_size=page_size, record_offset=record_offset)
     if evidence["quiescence_verified"] is not True:
         raise AssertionError("Image scenario lacks replayable live idle evidence")
-    checked = validate(stack, workspace, artifact_ids, request_ids, top_k=top_k, max_distance=max_distance)
+    output_manifest: dict[str, Any] = {}
+    checked = validate(stack, workspace, artifact_ids, request_ids, top_k=top_k, max_distance=max_distance,
+                       output_manifest=output_manifest)
+    output_path = stack.directory / kind / "output-evidence.json"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_bytes = (json.dumps(output_manifest, sort_keys=True, allow_nan=False) + "\n").encode()
+    output_temporary = output_path.with_suffix(".part")
+    output_temporary.write_bytes(output_bytes)
+    output_temporary.replace(output_path)
+    output_metadata = {"path": str(output_path.relative_to(trace_root)) if trace_root else str(output_path),
+                       "sha256": hashlib.sha256(output_bytes).hexdigest(), "schema_version": 1}
     snapshot_path = stack.directory / f"{kind}-observations.jsonl"
     snapshot_bytes = "".join(json.dumps(record, sort_keys=True) + "\n" for record in observations[record_offset:]).encode()
     temporary = snapshot_path.with_suffix(".part")
@@ -161,6 +178,7 @@ def scenario(stack: Stack, kind: str, directory: Path, count: int, *, page_size:
            "comparison_requests": comparison_count, "expected_pairs": comparison_count * (count - 1),
            "page_size": page_size, "workers": {"build": WORKERS, "comparison": WORKERS},
            "metrics": metrics, "validation": checked, "operation_evidence": evidence, "operation_trace": trace_metadata,
+           "output_evidence": output_metadata,
            "native_execution": {**stack.native_execution,
                                 "celery_app": "imagededup_system_redis_celery.celery_app:app",
                                 "native_tasks": ["images.build", "images.compare", "images.dispatch"],

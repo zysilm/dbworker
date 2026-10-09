@@ -47,7 +47,7 @@ def publication_evidence(directory: Path) -> list[Path]:
         if relative.is_absolute() or len(relative.parts) != 1 or relative.suffix != ".json":
             raise ValueError("Published report path must be a JSON basename")
         paths.append(directory / relative)
-    for pattern in ("sample.json", "smtp-evidence.json", "*.jsonl"):
+    for pattern in ("sample.json", "smtp-evidence.json", "output-evidence.json", "sql-results-evidence.json", "*.jsonl"):
         paths += sorted(directory.rglob(pattern))
     if (directory / "imagededup.raw.json").is_file():
         paths.append(directory / "imagededup.raw.json")
@@ -62,6 +62,8 @@ def package(source: Path, output: Path, suite: str) -> None:
         paths.append(source / "imagededup.raw.json")
     paths += sorted(source.rglob("sample.json"))
     paths += sorted(source.rglob("smtp-evidence.json"))
+    paths += sorted(source.rglob("output-evidence.json"))
+    paths += sorted(source.rglob("sql-results-evidence.json"))
     paths += sorted(source.rglob("*.log"))
     paths += sorted(source.rglob("*.jsonl"))
     paths += sorted(source.rglob("admission.json"))
@@ -121,7 +123,7 @@ def combine(incoming: Path, output: Path, *, run_id: str, commit: str,
     output.mkdir(parents=True, exist_ok=False)
     for directory, path, entry in validated:
         shutil.copyfile(path, output / path.name)
-        for evidence in [directory / "imagededup.raw.json", *directory.rglob("sample.json"), *directory.rglob("smtp-evidence.json"), *directory.rglob("*.jsonl")]:
+        for evidence in [directory / "imagededup.raw.json", *directory.rglob("sample.json"), *directory.rglob("smtp-evidence.json"), *directory.rglob("output-evidence.json"), *directory.rglob("sql-results-evidence.json"), *directory.rglob("*.jsonl")]:
             safe_evidence_path(directory, evidence)
             if evidence.is_file():
                 target = output / evidence.relative_to(directory)

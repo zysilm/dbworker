@@ -96,6 +96,8 @@ class MatrixResultsTests(unittest.TestCase):
             receipt = incoming / 'first/private/smtp-evidence.json'
             receipt.parent.mkdir()
             receipt.write_text('{"observations": []}')
+            image_receipt = receipt.parent / 'output-evidence.json'
+            image_receipt.write_text('{"artifacts": [], "comparisons": []}')
             (receipt.parent / 'smtp.log').write_text('raw MIME')
             (receipt.parent / 'request.db').write_bytes(b'private database')
             output = root / 'results'
@@ -103,6 +105,9 @@ class MatrixResultsTests(unittest.TestCase):
             copied = output / 'private/smtp-evidence.json'
             self.assertEqual(copied.read_bytes(), receipt.read_bytes())
             self.assertIn(copied.absolute(), publication_evidence(output))
+            copied_image = output / "private/output-evidence.json"
+            self.assertEqual(copied_image.read_bytes(), image_receipt.read_bytes())
+            self.assertIn(copied_image.absolute(), publication_evidence(output))
             self.assertFalse((output / 'private/smtp.log').exists())
             self.assertFalse((output / 'private/request.db').exists())
 
@@ -131,14 +136,14 @@ class MatrixResultsTests(unittest.TestCase):
             root = Path(directory)
             source = root / "source"
             for name in ["index.json", "first.json", "first.log", "first.config.json",
-                         "private/sample.json", "private/smtp-evidence.json", "private/request.db", "private/document.pdf"]:
+                         "private/sample.json", "private/smtp-evidence.json", "private/output-evidence.json", "private/request.db", "private/document.pdf"]:
                 path = source / name
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text("{}")
             output = root / "artifact"
             package(source, output, "first")
             self.assertEqual({str(p.relative_to(output)) for p in output.rglob("*") if p.is_file()},
-                             {"index.json", "first.json", "first.log", "private/sample.json", "private/smtp-evidence.json"})
+                             {"index.json", "first.json", "first.log", "private/sample.json", "private/smtp-evidence.json", "private/output-evidence.json"})
 
 
 if __name__ == "__main__":

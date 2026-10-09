@@ -1,5 +1,10 @@
 # Paperless-ngx native Celery benchmark audit
 
+> Historical pre-migration audit. References to the current implementation below
+> describe the implementation inspected at audit time, not the repaired native
+> benchmark. See [the audit scope](README.md) and
+> [the current benchmark contract](../README.md) for status and validation limits.
+
 ## Verdict
 
 The current suite is a real OCR ingestion experiment, but its Celery baseline is a benchmark-owned durable-request wrapper, not the upstream Paperless Celery task lifecycle. Existing successful results establish business-output agreement for the restricted fixture. They do not establish a native Celery replacement comparison and must remain labeled `paired_durable_request`.

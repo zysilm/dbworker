@@ -1,5 +1,10 @@
 # Historical Sentry native-task benchmark audit
 
+> Historical pre-migration audit. References to the current implementation below
+> describe the implementation inspected at audit time, not the repaired native
+> benchmark. See [the audit scope](README.md) and
+> [the current benchmark contract](../README.md) for status and validation limits.
+
 ## Finding
 
 The current suite is a real SMTP utility experiment, but it is **not a native
