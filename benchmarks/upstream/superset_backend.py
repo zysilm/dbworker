@@ -61,7 +61,7 @@ def wait_for(predicate, *, timeout=120):
     raise TimeoutError("Native SQL Lab completion deadline exceeded")
 
 
-def write_configuration(path, directory, port):
+def write_configuration(path, directory, port, *, results_capacity):
     """Load upstream Docker settings; change only isolated fixture/environment paths."""
     upstream = ROOT / "examples/superset/docker/pythonpath_dev/superset_config.py"
     cache = directory / "sql_lab_results"
@@ -70,6 +70,9 @@ def write_configuration(path, directory, port):
         f"_source = Path({str(upstream)!r}).read_text()\n"
         f"exec(compile(_source.replace('/app/superset_home/sqllab', {str(cache)!r}), "
         f"{str(upstream)!r}, 'exec'))\n"
+        # Preserve the native backend and timeout. Retain every result until the
+        # unchanged post-batch retrieval, rather than evicting at the default 500.
+        f"RESULTS_BACKEND = FileSystemCache({str(cache)!r}, threshold={results_capacity})\n"
         "SECRET_KEY = 'isolated-benchmark-only-secret'\n"
         f"SQLALCHEMY_DATABASE_URI = {'sqlite:///' + str(directory / 'metadata.db')!r}\n"
         "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE = 'aes-gcm'\n"
@@ -105,7 +108,8 @@ def main():
     with socket.socket() as reservation:
         reservation.bind(("127.0.0.1", 0))
         port = reservation.getsockname()[1]
-    write_configuration(directory / "superset_config.py", directory, port)
+    results_capacity = profile["requests"] + 2 + 8
+    write_configuration(directory / "superset_config.py", directory, port, results_capacity=results_capacity)
     children, streams = [], []
     runtime = None
     engine = None
@@ -158,7 +162,8 @@ def main():
             expected_application="superset.tasks.celery_app:app",
             configuration={"upstream_config": "docker/pythonpath_dev/superset_config.py",
                            "source_sha256": hashlib.sha256((ROOT / "examples/superset/docker/pythonpath_dev/superset_config.py").read_bytes()).hexdigest(),
-                           "overrides": "isolated Redis/cache/metadata/security fixture environment"})
+                           "overrides": "isolated Redis/cache/metadata/security fixture environment; result cache capacity retains all measured queries",
+                           "results_cache_capacity": results_capacity})
         client = app.test_client()
         login = client.post("/login/", data={"username": "benchmark", "password": "isolated-fixture-password"})
         if login.status_code != 302:
@@ -316,8 +321,8 @@ def main():
                                  "completion": "native success + stored results + authenticated retrieval + scheduler terminal event",
                                  "timing": "first API submission through all result retrieval and scheduler completion",
                                  "metadata_database": "sqlite", "warehouse_database": "sqlite",
-                                 "results_backend": "upstream FileSystemCache", "redis_aof": "everysec",
-                                 "environment_overrides": ["isolated Redis host/port", "isolated filesystem cache directory",
+                                 "results_backend": "upstream FileSystemCache", "results_cache_capacity": results_capacity, "redis_aof": "everysec",
+                                 "environment_overrides": ["isolated Redis host/port", "isolated filesystem cache directory", "results cache entry capacity covers measured queries and warmups",
                                      "isolated SQLite metadata URI", "fixture secret/encryption setting", "local test-client CSRF/TLS disabled"],
                                  "celery_acknowledgements": "upstream early acknowledgements",
                                  "dbworker_timeouts": "No equivalent native soft/hard task limits; normal completion only"},
