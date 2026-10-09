@@ -24,8 +24,29 @@ sys.path.insert(0, str(ROOT / "examples/superset/superset-core/src"))
 from sqlalchemy import select
 from benchmarks.common.reporting import write_json
 from benchmarks.common.native_observer import operation
+from benchmarks.common.timing_evidence import begin_window, end_window, elapsed_seconds
 
-SQL = "SELECT category, SUM(value) AS total FROM facts GROUP BY category ORDER BY category"
+SQL = "SELECT category, SUM(value) + {marker} AS total FROM facts GROUP BY category ORDER BY category"
+
+
+def operation_marker(identity):
+    prefix, number = identity.rsplit(":" if identity.startswith("warmup:") else "-", 1)
+    if prefix not in ("query", "warmup") or not number.isdecimal():
+        raise ValueError("Unexpected SQL Lab fixture operation")
+    return int(number) + (10000 if prefix == "warmup" else 0)
+
+
+def sql_for_operation(identity):
+    return SQL.format(marker=operation_marker(identity))
+
+
+def expected_rows(identity):
+    marker = operation_marker(identity)
+    return [{"category": k, "total": sum(range(k, 10000, 10)) + marker} for k in range(10)]
+
+
+def json_digest(value):
+    return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
 
 
 def wait_for(predicate, *, timeout=120):
@@ -77,7 +98,6 @@ def main():
     with sqlite3.connect(warehouse) as connection:
         connection.execute("CREATE TABLE facts (category INTEGER, value INTEGER)")
         connection.executemany("INSERT INTO facts VALUES (?,?)", ((i % 10, i) for i in range(10000)))
-    expected = [{"category": k, "total": sum(range(k, 10000, 10))} for k in range(10)]
     with socket.socket() as reservation:
         reservation.bind(("127.0.0.1", 0))
         port = reservation.getsockname()[1]
@@ -155,12 +175,14 @@ def main():
             executor_context = use_dbworker_executor(sessions)
 
         def execute_batch(operations):
-            started = time.perf_counter()
+            started = begin_window()
             query_ids = []
+            bindings = []
             for identity in operations:
+                sql = sql_for_operation(identity)
                 with operation(identity):
                     response = client.post("/api/v1/sqllab/execute/", json={
-                        "database_id": database_id, "sql": SQL, "client_id": identity,
+                        "database_id": database_id, "sql": sql, "client_id": identity,
                         "queryLimit": 100, "runAsync": True, "select_as_cta": False,
                         "expand_data": False, "templateParams": "{}",
                     })
@@ -169,6 +191,9 @@ def main():
                 with app.app_context():
                     query = db.session.query(Query).filter_by(client_id=identity).one()
                     query_ids.append(query.id)
+                    bindings.append({"operation_id": identity, "stage": "sql_lab",
+                                     "query_id": query.id, "sql_sha256": hashlib.sha256(sql.encode()).hexdigest(),
+                                     "username": "benchmark"})
 
             def complete():
                 if any(child.poll() is not None for child in children):
@@ -184,12 +209,15 @@ def main():
 
             keys = wait_for(complete)
             results = []
-            for query_id in query_ids:
+            for binding, query_id in zip(bindings, query_ids):
                 response = client.get("/api/v1/sqllab/results/", query_string={"q": json.dumps({"key": keys[query_id]})})
                 if response.status_code != 200:
                     raise AssertionError(f"Native SQL Lab results unavailable: {response.status_code} {response.get_data(as_text=True)}")
                 value = response.get_json()
                 results.append({"data": value["data"], "columns": value["columns"], "status": value["status"]})
+                if value["data"] != expected_rows(binding["operation_id"]) or value["status"] != "success":
+                    raise AssertionError("Native retrieved SQL Lab output differs from the independent oracle")
+                binding.update(results_key=str(keys[query_id]), output_sha256=json_digest(results[-1]))
             # All required scheduler terminal events and DBWorker ledger commits
             # complete inside the same timed interval, after native result reads.
             from benchmarks.common.workflow_graph import read_trace
@@ -205,18 +233,25 @@ def main():
                         states = session.execute(select(table.c.execution_status).where(table.c.source_id.in_(query_ids))).scalars().all()
                         return len(states) == len(query_ids) and all(str(s) == "finished" for s in states)
                 wait_for(ledger_done)
-            return time.perf_counter() - started, results
+            measurement_window = end_window(started)
+            events = read_trace(trace)
+            for binding in bindings:
+                submitted = [e for e in events if e["operation_id"] == binding["operation_id"]
+                             and e["event"] == "submitted"]
+                if len(submitted) != 1:
+                    raise AssertionError("SQL Lab operation must bind exactly one original publication")
+                binding.update(node_id=submitted[0]["node_id"],
+                               argument_sha256=submitted[0]["details"]["argument_sha256"])
+            return elapsed_seconds(measurement_window), results, bindings, measurement_window
 
         warmups = [f"warmup:{i}" for i in range(2)]
         operations = [f"query-{i}" for i in range(profile["requests"])]
         with executor_context:
             execute_batch(warmups)
-            seconds, results = execute_batch(operations)
-        if any(result["data"] != expected or result["status"] != "success" for result in results):
-            raise AssertionError("Native retrieved SQL Lab output differs from the independent oracle")
+            seconds, results, bindings, measurement_window = execute_batch(operations)
         from benchmarks.common.workflow_graph import read_trace, validate_graph
         events = read_trace(trace)
-        graph = validate_graph(events, operations, {"sql_lab": 1}, [])
+        graph = validate_graph(events, operations, {"sql_lab": 1}, [], warmup_operations=warmups)
         packages = {}
         for name in ("apache-superset", "celery", "sqlalchemy", "dbworker", "rich"):
             try:
@@ -232,6 +267,8 @@ def main():
                "validation": {"passed": True, "output_digest": hashlib.sha256(json.dumps(results, sort_keys=True).encode()).hexdigest(),
                               "queries": len(results), "rows_per_query": 10, "retrieved_results": len(results)},
                "workflow_graph": graph,
+               "business_bindings": bindings, "warmup_operations": warmups,
+               "measurement_window": measurement_window,
                "workflow_trace": {"path": str(trace.relative_to(Path(config["output_directory"]).resolve())),
                                   "sha256": hashlib.sha256(trace.read_bytes()).hexdigest()},
                "native_execution": native_execution,

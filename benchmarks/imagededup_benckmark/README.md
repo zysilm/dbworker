@@ -127,3 +127,31 @@ Builds are attributed to committed hash writes and comparisons to committed
 candidate inserts, rather than differences of shared counters. Mixed scenarios
 retain partial ready-candidate pages while enforcing the 250-item page bound
 and exact candidate coverage.
+
+
+## Evidence scope and timing barriers
+
+Each measured window starts before the first submitting HTTP call and ends only
+when the final HTTP response, persisted terminal business outcomes, and positive
+transaction-commit observations have all been observed. Compact commit
+receipts exclude later zero-work deliveries and retry/drain observations. A completion probe that wins the race with the final response
+cannot freeze the clock early. Final correctness checking and queue drain remain
+outside that window; the latter is a separate, recorded barrier.
+
+New operation traces contain replayable live idle receipts: native Celery
+active/reserved/scheduled business-task counts from both workers, LLEN counts for
+every configured Kombu Redis priority lane, and unpublished business outbox
+counts; DBWorker receipts contain unfinished counts from both durable work
+tables. Closed attempt records alone do not certify broker emptiness. Historical
+traces without these receipts do not gain retroactive quiescence evidence.
+
+The hard dependency contract is per submitted comparison: its original query
+artifact identity, every distinct non-self candidate exactly once, and independent
+pages bounded by the configured page size. Native source revisions and original
+Celery parent/root identifiers are recorded without changing the producer or task
+bodies. Positive native pages cannot share a source revision. These checks do not
+claim an identical publication or execution-attempt graph across backends. Mixed
+readiness can legitimately split pages differently, and native stale deliveries
+or proven recovered SQL retries remain visible instead of being fabricated for
+DBWorker. Retry policy, deadlines, crash recovery, and outage recovery parity are
+outside this throughput experiment.

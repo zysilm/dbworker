@@ -8,7 +8,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from benchmarks.common.native_admission import NativeAdmissionError
+from benchmarks.common.native_admission import APPLICATIONS, NativeAdmissionError
+from benchmarks.common.native_binding import BINDINGS, SOURCE_SHA256
+from benchmarks.common.argument_evidence import argument_digest
 from benchmarks.common.performance_admission import (
     ROOT, TASK_STAGES, replay_graph, replay_image_workload, validate_image_workload,
     validate_native_report, validate_native_sample,
@@ -17,19 +19,44 @@ from benchmarks.common.workflow_graph import WorkflowMismatch, validate_graph
 
 
 class PerformanceAdmissionTests(unittest.TestCase):
+    def setUp(self):
+        # These synthetic receipts isolate graph, origin, argument and timing gates.
+        # Public API/business identity validation has independent adversarial tests.
+        binding = patch('benchmarks.common.performance_admission._validate_business_binding')
+        binding.start()
+        self.addCleanup(binding.stop)
+
+    @staticmethod
+    def origin(suite, name):
+        source, module, function, factory = BINDINGS[suite][name]
+        return {'passed': True, 'worker_app': APPLICATIONS[suite],
+                'check': 'live_task_origin_and_ast', 'observer_only': True,
+                'task_names': [name], 'tasks': {name: {'source': source,
+                    'function': function, 'source_sha256': SOURCE_SHA256[(suite, source)]}}}
+
     def graph_fixture(self, directory, backend='celery'):
         events = []
-        for op in ('warmup:0', 'warmup:1', '0', '1'):
+        for index, op in enumerate(('warmup:0', 'warmup:1', '0', '1')):
             for task, stage in TASK_STAGES['posthog'].items():
                 parent = f'{backend}-{op}-notification' if stage == 'delivery' else None
                 for phase in ('submitted', 'started', 'succeeded'):
                     events.append({'schema_version': 1, 'backend': backend, 'operation_id': op,
                                    'node_id': f'{backend}-{op}-{stage}', 'stage': stage,
-                                   'parent_id': parent, 'event': phase, 'details': {'task_name': task}})
+                                   'parent_id': parent, 'event': phase,
+                                   'timestamp_ns': 1_000_000_000 + index * 100 +
+                                       (10 if stage == 'delivery' else 0) +
+                                       {'submitted': 1, 'started': 2, 'succeeded': 3}[phase],
+                                   'details': {'task_name': task, 'argument_sha256': argument_digest([op], {}),
+                                               'native_worker_origin': self.origin('posthog', task)}})
         path = Path(directory) / f'{backend}.jsonl'
         path.write_text(''.join(json.dumps(event) + '\n' for event in events))
         return {'backend': backend, 'scenario': 'native_two_factor_notification', 'status': 'passed',
                 'repetition': 1, 'validation': {'passed': True},
+                'warmup_operations': ['warmup:0', 'warmup:1'],
+                'measurement_window': {'schema_version': 1, 'clock_domain': 'unix_time_ns',
+                    'start': {'timestamp_ns': 1_000_000_200, 'monotonic_ns': 1_000_000_200, 'uncertainty_ns': 0},
+                    'end': {'timestamp_ns': 2_000_000_200, 'monotonic_ns': 2_000_000_200, 'uncertainty_ns': 0}},
+                'metrics': {'wall_seconds': 1.0},
                 'workflow_trace': {'path': path.name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()},
                 'workflow_graph': validate_graph(events, ['0', '1'], {'notification': 1, 'delivery': 1},
                                                  [('notification', 'delivery')])}
@@ -60,6 +87,41 @@ class PerformanceAdmissionTests(unittest.TestCase):
             row['workflow_trace']['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
             with self.assertRaises(WorkflowMismatch):
                 replay_graph(row, 'posthog', temporary, 2)
+
+    def test_worker_origin_argument_and_timing_proofs_are_required(self):
+        mutations = ('arguments', 'missing_arguments', 'wrong_function', 'missing_worker_origin',
+                     'out_of_window', 'reverse_phases', 'missing_warmups', 'different_wall')
+        for mutation in mutations:
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as temporary:
+                row = self.graph_fixture(temporary)
+                path = Path(temporary) / row['workflow_trace']['path']
+                events = [json.loads(line) for line in path.read_text().splitlines()]
+                started = next(event for event in events if event['event'] == 'started'
+                               and event['operation_id'] == '0')
+                if mutation == 'arguments':
+                    started['details']['argument_sha256'] = 'f' * 64
+                elif mutation == 'missing_arguments':
+                    started['details'].pop('argument_sha256')
+                elif mutation == 'wrong_function':
+                    origin = started['details']['native_worker_origin']
+                    origin['tasks'][started['details']['task_name']]['function'] = 'other_genuine_function'
+                elif mutation == 'missing_worker_origin':
+                    started['details'].pop('native_worker_origin')
+                elif mutation == 'out_of_window':
+                    row['measurement_window']['start']['timestamp_ns'] += 50
+                    row['measurement_window']['start']['monotonic_ns'] += 50
+                    row['measurement_window']['end']['timestamp_ns'] += 50
+                    row['measurement_window']['end']['monotonic_ns'] += 50
+                elif mutation == 'reverse_phases':
+                    started['timestamp_ns'] -= 2
+                elif mutation == 'missing_warmups':
+                    row.pop('warmup_operations')
+                else:
+                    row['metrics']['wall_seconds'] = 2.0
+                path.write_text(''.join(json.dumps(event) + '\n' for event in events))
+                row['workflow_trace']['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
+                with self.assertRaises((WorkflowMismatch, NativeAdmissionError)):
+                    replay_graph(row, 'posthog', temporary, 2)
 
     def test_empty_duplicate_and_missing_repetition_cannot_pass(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -165,19 +227,37 @@ class PerformanceAdmissionTests(unittest.TestCase):
                 for identity in sources:
                     start = {'backend': 'celery', 'stage': stage, 'source_id': identity,
                              'workspace_id': 1, 'attempt_id': f'{stage}-{identity}',
-                             'task_id': f'original-{stage}-{identity}', 'items': 0, 'event': 'started'}
+                             'task_id': f'original-{stage}-{identity}', 'items': 0, 'event': 'started',
+                             'timestamp': 1.1, 'timestamp_ns': 1_100_000_000,
+                             'source_revision': 0,
+                             'native_worker_origin': self.origin('imagededup',
+                                 'images.build' if stage == 'build' else 'images.compare')}
+                    if stage == 'comparison':
+                        start['query_artifact_id'] = identity - 10
                     finish = {**start, 'event': 'finished', 'state': 'SUCCESS',
-                              'items_after': width, 'page_items': width}
+                              'items_after': width, 'page_items': width, 'timestamp': 1.3,
+                              'timestamp_ns': 1_300_000_000,
+                              'business_committed_timestamp_ns': 1_200_000_000}
                     if stage == 'build':
                         finish.update(build_accounting='transaction_committed_hash_writes',
                                       built_artifact_ids=[identity])
                     if stage == 'comparison':
                         # Continuations may finish before the current task's callback.
                         finish['items_after'] = 99
+                        finish['query_artifact_id'] = identity - 10
                         finish.update(page_accounting='transaction_committed_orm_inserts',
                                       scored_rows=[[identity, candidate] for candidate in (1, 2, 3)
                                                    if candidate != identity - 10])
                     records.extend([start, finish])
+            records.append({'event': 'quiescence_barrier', 'stage': 'barrier',
+                'backend': 'celery', 'idle': True, 'observed_at': 2.1, 'timestamp': 2.2,
+                'workspace_id': None, 'observed_attempt_count': 6,
+                'worker_responses_complete': True, 'pending_business_outbox': 0,
+                'worker_states': {phase: {'build-worker': 0, 'comparison-worker': 0}
+                                  for phase in ('active', 'reserved', 'scheduled')},
+                'redis_priority_steps': [0, 3, 6, 9],
+                'redis_lanes': [{'queue': queue, 'priority': priority, 'messages': 0}
+                    for queue in ('image_build', 'image_compare') for priority in (0, 3, 6, 9)]})
             path = Path(temporary) / 'image.jsonl'
             path.write_text(''.join(json.dumps(record) + '\n' for record in records))
             spec = importlib.util.spec_from_file_location('test_image_verifier',
@@ -186,16 +266,52 @@ class PerformanceAdmissionTests(unittest.TestCase):
             spec.loader.exec_module(verifier)
             row = self.image_fixture()
             row['backend'] = 'celery'
+            row['measurement_window'] = {'schema_version': 1, 'clock_domain': 'unix_time_ns',
+                'start': {'timestamp_ns': 1_000_000_000, 'monotonic_ns': 1_000_000_000, 'uncertainty_ns': 0},
+                'end': {'timestamp_ns': 2_000_000_000, 'monotonic_ns': 2_000_000_000, 'uncertainty_ns': 0}}
+            row['metrics'] = {'wall_seconds': 1.0, 'submission_seconds': 0.2, 'business_finished_seconds': 0.3}
             row['operation_evidence'] = verifier.verify(records, workspace=1, artifact_ids=[1, 2, 3],
                 request_ids=[11, 12, 13], new_builds=True, page_size=250, record_offset=0)
             row['operation_trace'] = {'path': path.name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
                 'workspace': 1, 'artifact_ids': [1, 2, 3], 'request_ids': [11, 12, 13],
                 'new_builds': True, 'page_size': 250, 'record_offset': 0}
             self.assertEqual(replay_image_workload(row, temporary, 3)['completed_builds'], 3)
+            for mutation in ('missing_origin', 'wrong_origin', 'reverse_phase', 'late_commit',
+                             'late_submission', 'wrong_wall', 'missing_barrier', 'missing_priority_lane',
+                             'short_attempt_receipt'):
+                with self.subTest(image_receipt=mutation):
+                    bad_records = copy.deepcopy(records)
+                    bad_row = copy.deepcopy(row)
+                    if mutation == 'missing_origin':
+                        bad_records[0].pop('native_worker_origin')
+                    elif mutation == 'wrong_origin':
+                        bad_records[0]['native_worker_origin']['tasks']['images.build']['function'] = 'other'
+                    elif mutation == 'reverse_phase':
+                        bad_records[1]['timestamp_ns'] = 1_050_000_000
+                    elif mutation == 'late_commit':
+                        bad_records[1]['business_committed_timestamp_ns'] = 2_050_000_000
+                    elif mutation == 'late_submission':
+                        bad_row['metrics']['submission_seconds'] = 1.5
+                    elif mutation == 'wrong_wall':
+                        bad_row['metrics']['wall_seconds'] = 2.0
+                    elif mutation == 'missing_barrier':
+                        bad_records.pop()
+                    elif mutation == 'missing_priority_lane':
+                        bad_records[-1]['redis_lanes'].pop()
+                    else:
+                        bad_records[-1]['observed_attempt_count'] = 5
+                    bad_path = Path(temporary) / f'{mutation}.jsonl'
+                    bad_path.write_text(''.join(json.dumps(record) + '\n' for record in bad_records))
+                    bad_row['operation_trace'].update(path=bad_path.name,
+                        sha256=hashlib.sha256(bad_path.read_bytes()).hexdigest())
+                    with self.assertRaises((WorkflowMismatch, NativeAdmissionError)):
+                        replay_image_workload(bad_row, temporary, 3)
             # Actual DBWorker snapshots use the normalized public backend name.
             db_records = copy.deepcopy(records)
             for record in db_records:
                 record['backend'] = 'dbworker'
+                if record['event'] == 'quiescence_barrier':
+                    record['unfinished_work'] = {'artifact_build_work': 0, 'comparison_work': 0}
             db_path = Path(temporary) / 'dbworker-image.jsonl'
             db_path.write_text(''.join(json.dumps(record) + '\n' for record in db_records))
             db_row = copy.deepcopy(row)
@@ -210,7 +326,7 @@ class PerformanceAdmissionTests(unittest.TestCase):
                         record['backend'] = incorrect_backend
                     db_path.write_text(''.join(json.dumps(record) + '\n' for record in forged_backend))
                     db_row['operation_trace']['sha256'] = hashlib.sha256(db_path.read_bytes()).hexdigest()
-                    with self.assertRaisesRegex(WorkflowMismatch, 'backend differs'):
+                    with self.assertRaisesRegex(WorkflowMismatch, 'backend differs|Unknown image barrier backend'):
                         replay_image_workload(db_row, temporary, 3)
             altered = copy.deepcopy(row)
             altered['operation_evidence']['completed_builds'] = 2
@@ -227,9 +343,12 @@ class PerformanceAdmissionTests(unittest.TestCase):
                 replay_image_workload(row, temporary, 3)
             # A redelivery sees another attempt's commit but writes nothing itself.
             duplicate = {**records[0], 'attempt_id': 'stale-redelivery'}
+            records[-1]['observed_attempt_count'] = 7
             records.extend([duplicate, {**duplicate, 'event': 'finished', 'state': 'SUCCESS',
                 'items_after': 1, 'page_items': 0, 'built_artifact_ids': [],
-                'build_accounting': 'transaction_committed_hash_writes'}])
+                'build_accounting': 'transaction_committed_hash_writes',
+                'business_committed_timestamp_ns': None, 'timestamp_ns': 1_400_000_000,
+                'timestamp': 1.4}])
             path.write_text(''.join(json.dumps(record) + '\n' for record in records))
             row['operation_trace']['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
             row['operation_evidence'] = verifier.verify(records, workspace=1, artifact_ids=[1, 2, 3],

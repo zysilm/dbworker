@@ -2,6 +2,7 @@ import json
 import sqlite3
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -37,10 +38,11 @@ class RunnerTest(unittest.TestCase):
                     CREATE TABLE comparison_request (workspace_id INTEGER, candidates_scored_count INTEGER, execution_status TEXT);
                     INSERT INTO feature_artifact VALUES (1,'a','finished'),(1,'b','finished');
                     INSERT INTO comparison_request VALUES (1,1,'finished'),(1,1,'finished');''')
-            stack = cast(Stack, SimpleNamespace(backend="redis_celery", database=database, api_port=9, processes={}, check_alive=lambda: None))
+            stack = cast(Stack, SimpleNamespace(backend="redis_celery", database=database, business_commit_file=Path(directory, "commits.jsonl"), api_port=9, processes={}, check_alive=lambda: None))
             meter = Measurement(stack, 1, 2, 2, interval=.01, timeout=1)
+            meter.positive_commits_observed = lambda: True
             meter.start()
-            result = meter.finish()
+            result = meter.finish(submission_finished=time.perf_counter())
             self.assertEqual(result["progress"][-1]["scored_pairs"], 2)
             self.assertEqual(result["progress"][-1]["completed_requests"], 2)
             self.assertFalse(meter.thread.is_alive())
@@ -53,11 +55,12 @@ class RunnerTest(unittest.TestCase):
                     CREATE TABLE comparison_request (workspace_id INTEGER, candidates_scored_count INTEGER, execution_status TEXT);
                     INSERT INTO feature_artifact VALUES (1,'a','finished'),(1,'b','finished');
                     INSERT INTO comparison_request VALUES (1,1,'working'),(1,1,'finished');''')
-            stack = cast(Stack, SimpleNamespace(backend="redis_celery", database=database, api_port=9, processes={}, check_alive=lambda: None))
+            stack = cast(Stack, SimpleNamespace(backend="redis_celery", database=database, business_commit_file=Path(directory, "commits.jsonl"), api_port=9, processes={}, check_alive=lambda: None))
             meter = Measurement(stack, 1, 2, 2, interval=.01, timeout=.05)
+            meter.positive_commits_observed = lambda: True
             meter.start()
             with self.assertRaisesRegex(TimeoutError, "Scenario exceeded"):
-                meter.finish()
+                meter.finish(submission_finished=time.perf_counter())
             self.assertIsNone(meter.finished)
 
     def test_failed_start_closes_resources(self) -> None:

@@ -10,7 +10,8 @@ from sqlalchemy import LargeBinary, String, create_engine, event, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 from dbworker import Coordinator, Finished
-from benchmarks.common.native_observer import job_context, record
+from benchmarks.common.native_observer import job_context, record, worker_origin
+from benchmarks.common.argument_evidence import argument_digest
 
 
 class Base(DeclarativeBase):
@@ -54,10 +55,13 @@ def execute(delivery: Delivery, session):
     message = kwargs.get("message")
     if message is None or list(message.to) != [delivery.recipient]:
         raise ValueError("A delivery must contain exactly one distinct recipient message")
-    record("delivery", delivery.operation_id, delivery.id, "started", backend="dbworker")
+    task = app.tasks[delivery.task_name]
+    record("delivery", delivery.operation_id, delivery.id, "started", backend="dbworker",
+           task_name=task.name, native_worker_origin=worker_origin(task, "sentry"),
+           argument_sha256=argument_digest(envelope.get("args", ()), kwargs))
     try:
         with job_context(delivery.operation_id, delivery.id):
-            app.tasks[delivery.task_name].run(*envelope.get("args", ()), **kwargs)
+            task.run(*envelope.get("args", ()), **kwargs)
     except BaseException as exc:
         record("delivery", delivery.operation_id, delivery.id, "failed", backend="dbworker", error=type(exc).__name__)
         raise

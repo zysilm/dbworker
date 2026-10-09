@@ -106,7 +106,7 @@ def scenario(stack: Stack, kind: str, directory: Path, count: int, *, page_size:
     comparison_count = 0 if kind == "build" else count
     quiesce(stack, timeout=timeout)
     record_offset = len(read_records(stack.observation_file))
-    meter = Measurement(stack, workspace, count, comparison_count, interval=interval, timeout=timeout)
+    meter = Measurement(stack, workspace, count, comparison_count, interval=interval, timeout=timeout, new_builds=existing is None)
     stack.http_samples.clear()
     meter.start()
     import_finished: float | None = None
@@ -124,14 +124,15 @@ def scenario(stack: Stack, kind: str, directory: Path, count: int, *, page_size:
                 request_ids.append(int(created["id"]))
                 if first_request_submitted is None:
                     first_request_submitted = time.perf_counter() - meter.started
-        submission_finished = time.perf_counter() - meter.started
-        metrics = meter.finish()
+        submission_finished_absolute = time.perf_counter()
+        submission_finished = submission_finished_absolute - meter.started
+        metrics = meter.finish(submission_finished=submission_finished_absolute)
     finally:
         meter.cancel()
     metrics["submission_seconds"] = submission_finished
     metrics["import_response_seconds"] = import_finished
     metrics["first_comparison_submitted_seconds"] = first_request_submitted
-    metrics["post_submission_completion_seconds"] = max(0, metrics["wall_seconds"] - submission_finished)
+    metrics["post_submission_completion_seconds"] = metrics["wall_seconds"] - submission_finished
     metrics["submission_http_latency_ms"] = distribution([duration for _, duration in stack.http_samples], scale=1000)
     metrics["requests_submitted_before_builds_finished"] = (
         first_request_submitted is not None and metrics["builds_finished_seconds"] is not None
@@ -143,6 +144,8 @@ def scenario(stack: Stack, kind: str, directory: Path, count: int, *, page_size:
     metrics["untimed_business_drain_seconds"] = time.perf_counter() - drain_started
     evidence = verify(observations, workspace=workspace, artifact_ids=artifact_ids, request_ids=request_ids,
                       new_builds=existing is None, page_size=page_size, record_offset=record_offset)
+    if evidence["quiescence_verified"] is not True:
+        raise AssertionError("Image scenario lacks replayable live idle evidence")
     checked = validate(stack, workspace, artifact_ids, request_ids, top_k=top_k, max_distance=max_distance)
     snapshot_path = stack.directory / f"{kind}-observations.jsonl"
     snapshot_bytes = "".join(json.dumps(record, sort_keys=True) + "\n" for record in observations[record_offset:]).encode()
@@ -153,7 +156,8 @@ def scenario(stack: Stack, kind: str, directory: Path, count: int, *, page_size:
                       "sha256": hashlib.sha256(snapshot_bytes).hexdigest(), "workspace": workspace,
                       "artifact_ids": artifact_ids, "request_ids": request_ids,
                       "new_builds": existing is None, "page_size": page_size, "record_offset": 0}
-    row = {"backend": stack.backend, "scenario": kind, "status": "passed", "images": count,
+    measurement_window = metrics.pop("measurement_window")
+    row = {"measurement_window": measurement_window, "backend": stack.backend, "scenario": kind, "status": "passed", "images": count,
            "comparison_requests": comparison_count, "expected_pairs": comparison_count * (count - 1),
            "page_size": page_size, "workers": {"build": WORKERS, "comparison": WORKERS},
            "metrics": metrics, "validation": checked, "operation_evidence": evidence, "operation_trace": trace_metadata,

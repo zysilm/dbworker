@@ -2,6 +2,8 @@
 
 import hashlib
 import json
+import math
+import sqlite3
 import time
 
 
@@ -13,8 +15,20 @@ def quiesce(stack, *, timeout: float) -> list[dict]:
         records = read_records(stack.observation_file)
         opened = {row["attempt_id"] for row in records if row["event"] == "started" and row["stage"] != "dispatch"}
         closed = {row["attempt_id"] for row in records if row["event"] == "finished" and row["stage"] != "dispatch"}
-        if opened == closed and stack.native_business_idle():
-            return read_records(stack.observation_file)
+        if opened == closed:
+            try:
+                snapshot = stack.business_idle_snapshot()
+            except sqlite3.OperationalError:
+                # The worker service may still be registering its durable tables.
+                time.sleep(.1)
+                continue
+            final_records = read_records(stack.observation_file)
+            final_opened = {row["attempt_id"] for row in final_records if row["event"] == "started" and row["stage"] != "dispatch"}
+            final_closed = {row["attempt_id"] for row in final_records if row["event"] == "finished" and row["stage"] != "dispatch"}
+            if snapshot["idle"] and final_opened == final_closed and final_opened == opened:
+                return [*final_records, {"event": "quiescence_barrier", "stage": "barrier",
+                                        "timestamp": time.time(), "workspace_id": None,
+                                        "observed_attempt_count": len(final_opened), **snapshot}]
         time.sleep(.1)
     raise TimeoutError("Image business task quiescence was not observed")
 
@@ -31,7 +45,7 @@ def verify(records: list[dict], *, workspace: int, artifact_ids: list[int], requ
         raise AssertionError("Missing or duplicate image attempt completion evidence")
     for row in finishes:
         start = starts[row["attempt_id"]]
-        if any(row.get(key) != start.get(key) for key in ("stage", "source_id", "workspace_id", "backend", "task_id")):
+        if any(row.get(key) != start.get(key) for key in ("stage", "source_id", "workspace_id", "backend", "task_id", "source_revision", "query_artifact_id", "parent_task_id", "root_task_id")):
             raise AssertionError("Image attempt identity changed")
     if len({row["attempt_id"] for row in finishes}) != len(finishes):
         raise AssertionError("Duplicate image attempt completion evidence")
@@ -84,6 +98,8 @@ def verify(records: list[dict], *, workspace: int, artifact_ids: list[int], requ
     query_artifacts = dict(zip(request_ids, artifact_ids))
     if len(pages) != len(request_ids) or len(query_artifacts) != len(request_ids):
         raise AssertionError("Comparison input identities are duplicate or unpaired")
+    strict_dependencies = any(row.get("event") == "quiescence_barrier" for row in records[record_offset:])
+    positive_revisions = set()
     empty = 0
     for row in finishes:
         if row["stage"] != "comparison":
@@ -91,6 +107,18 @@ def verify(records: list[dict], *, workspace: int, artifact_ids: list[int], requ
         key, width = row["source_id"], row["page_items"]
         if key not in pages or not 0 <= width <= page_size:
             raise AssertionError(f"Unknown comparison identity or oversized scoring page: request={key}, observed={width}, bound={page_size}")
+        if strict_dependencies:
+            if row.get("query_artifact_id") != query_artifacts[key]:
+                raise AssertionError("Comparison page changed the submitted query dependency")
+            if row.get("backend") == "celery":
+                revision = row.get("source_revision")
+                if type(revision) is not int or revision < 0:
+                    raise AssertionError("Native page lacks original source revision")
+                identity = (key, revision)
+                if width and identity in positive_revisions:
+                    raise AssertionError("Duplicate successful native comparison revision")
+                if width:
+                    positive_revisions.add(identity)
         rows = row.get("scored_rows")
         if row.get("page_accounting") != "transaction_committed_orm_inserts" or not isinstance(rows, list) or len(rows) != width:
             raise AssertionError("Individual scoring page lacks transaction-attributed work evidence")
@@ -127,5 +155,51 @@ def verify(records: list[dict], *, workspace: int, artifact_ids: list[int], requ
                                          for row in records[record_offset:]),
         "failed_attempts": 0, "missing_attempts": 0,
         "workload_digest": hashlib.sha256(json.dumps(normalized, sort_keys=True).encode()).hexdigest(),
-        "quiescence_verified": True,
+        "quiescence_verified": validate_quiescence(records[record_offset:]),
+        "dependency_scope": "per_request_exact_candidates_and_bounded_pages",
+        "identical_execution_attempt_graph": False,
     }
+
+
+def validate_quiescence(records: list[dict]) -> bool:
+    """Replay actual live receipts; closed task traces alone cannot prove idle."""
+    receipts = [row for row in records if row.get("event") == "quiescence_barrier"]
+    if not receipts:
+        return False  # Historical traces have no broker/durable-work receipt.
+    row = receipts[-1]
+    def positive_time(value):
+        return type(value) in (float, int) and math.isfinite(value) and value > 0
+    if (row.get("idle") is not True or row.get("stage") != "barrier"
+            or not positive_time(row.get("observed_at")) or not positive_time(row.get("timestamp"))
+            or row["observed_at"] > row["timestamp"]):
+        raise AssertionError("Invalid image idle receipt")
+    finishes = [record for record in records if record.get("event") == "finished" and record.get("stage") != "dispatch"]
+    if any(record.get("timestamp", 0) > row["timestamp"] for record in finishes):
+        raise AssertionError("Image work finishes after quiescence barrier")
+    if row.get("backend") == "dbworker":
+        counts = row.get("unfinished_work")
+        if not isinstance(counts, dict) or set(counts) != {"artifact_build_work", "comparison_work"} or any(
+                type(value) is not int or value != 0 for value in counts.values()):
+            raise AssertionError("DBWorker durable work is not proven idle")
+    elif row.get("backend") == "celery":
+        states, lanes = row.get("worker_states"), row.get("redis_lanes")
+        if row.get("worker_responses_complete") is not True or type(row.get("pending_business_outbox")) is not int or row["pending_business_outbox"] != 0:
+            raise AssertionError("Celery worker or outbox receipt is incomplete")
+        if not isinstance(states, dict) or set(states) != {"active", "reserved", "scheduled"}:
+            raise AssertionError("Missing Celery inspection states")
+        workers = [set(state) for state in states.values() if isinstance(state, dict)]
+        if len(workers) != 3 or len(workers[0]) != 2 or any(worker != workers[0] for worker in workers):
+            raise AssertionError("Incomplete Celery worker responses")
+        if any(type(count) is not int or count != 0 for state in states.values() for count in state.values()):
+            raise AssertionError("Celery business tasks remain in workers")
+        if not isinstance(lanes, list) or not lanes or {lane.get("queue") for lane in lanes} != {"image_build", "image_compare"}:
+            raise AssertionError("Missing native Redis priority lanes")
+        if row.get("redis_priority_steps") != [0, 3, 6, 9] or any(type(lane.get("priority")) is not int for lane in lanes):
+            raise AssertionError("Redis receipt omits original configured priority lanes")
+        priorities = [{lane["priority"] for lane in lanes if lane["queue"] == queue} for queue in ("image_build", "image_compare")]
+        if priorities[0] != set(row.get("redis_priority_steps", [])) or priorities[0] != priorities[1] or not priorities[0] or len(lanes) != 2 * len(priorities[0]) or any(
+                type(lane.get("messages")) is not int or lane["messages"] != 0 for lane in lanes):
+            raise AssertionError("Redis lanes are incomplete or not empty")
+    else:
+        raise AssertionError("Unknown image barrier backend")
+    return True

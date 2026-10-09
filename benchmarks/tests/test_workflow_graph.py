@@ -12,12 +12,14 @@ def events(backend='celery', operations=('0', '1')):
             for phase in ('submitted', 'started', 'succeeded'):
                 rows.append({'schema_version': 1, 'backend': backend, 'operation_id': op,
                              'node_id': f'{backend}-{op}-{stage}', 'stage': stage,
-                             'parent_id': parent, 'event': phase})
+                             'parent_id': parent, 'event': phase,
+                             'timestamp_ns': {'submitted': 10, 'started': 20, 'succeeded': 50}[phase]
+                             + (20 if stage == 'delivery' else 0)})
     return rows
 
 
 def validate(rows, operations=('0', '1')):
-    return validate_graph(rows, operations, {'notification': 1, 'delivery': 1}, [('notification', 'delivery')])
+    return validate_graph(rows, operations, {'notification': 1, 'delivery': 1}, [('notification', 'delivery')], warmup_operations=('warmup:0',))
 
 
 class WorkflowGraphTests(unittest.TestCase):
@@ -69,6 +71,35 @@ class WorkflowGraphTests(unittest.TestCase):
             rows[0].update(override)
             with self.subTest(override=override), self.assertRaises(WorkflowMismatch):
                 validate(rows)
+
+    def test_phase_timestamps_are_strict_and_ordered(self):
+        for value in (None, True, 0, -1, 1.5, '10'):
+            rows = events()
+            rows[0]['timestamp_ns'] = value
+            with self.subTest(value=value), self.assertRaises(WorkflowMismatch):
+                validate(rows)
+        rows = events()
+        rows[0]['timestamp_ns'] = 21
+        with self.assertRaises(WorkflowMismatch):
+            validate(rows)
+
+    def test_trace_file_order_is_not_execution_order(self):
+        self.assertEqual(validate(list(reversed(events())))['nodes'], 4)
+
+    def test_children_can_run_before_parent_success_but_not_before_start(self):
+        rows = events()
+        self.assertEqual(validate(rows)['nodes'], 4)
+        for row in rows:
+            if row['stage'] == 'delivery' and row['event'] == 'submitted':
+                row['timestamp_ns'] = 19
+        with self.assertRaises(WorkflowMismatch):
+            validate(rows)
+
+    def test_warmup_prefix_alone_does_not_allow_exclusion(self):
+        with self.assertRaises(WorkflowMismatch):
+            validate_graph(events() + events(operations=('warmup:rogue',)),
+                           ('0', '1'), {'notification': 1, 'delivery': 1},
+                           [('notification', 'delivery')], warmup_operations=('warmup:0',))
 
     def test_missing_completion_and_truncated_trace_rejected(self):
         with self.assertRaises(WorkflowMismatch):

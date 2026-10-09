@@ -1,4 +1,4 @@
-"""Compare native Paperless folder-consumption tasks with durable DBWorker jobs."""
+"""Compare native Paperless authenticated API-upload tasks with durable DBWorker jobs."""
 from __future__ import annotations
 
 import argparse
@@ -20,6 +20,7 @@ sys.path[:0] = [str(ROOT), str(ROOT / "src"), str(SOURCE / "src")]
 from benchmarks.common.reporting import write_json
 from benchmarks.common.native_observer import operation
 from benchmarks.common.workflow_graph import read_trace, validate_graph
+from benchmarks.common.timing_evidence import begin_window, end_window, elapsed_seconds
 
 
 def wait_for(predicate, timeout=300):
@@ -69,8 +70,8 @@ def inspect_outputs(documents, fixtures):
             pages = len(archive.pages)
         # The original Tesseract parser only reports source page_count for PDFs;
         # PNG source documents retain NULL although their archive has one page.
-        if document.page_count is not None or pages != 1 or document.owner_id is not None:
-            raise AssertionError("Unexpected page count or folder-consumption owner")
+        if document.page_count is not None or pages != 1 or document.owner_id != fixture.get("owner_id"):
+            raise AssertionError("Unexpected page count or API-upload owner")
         if any(value is not None for value in (document.correspondent_id, document.document_type_id, document.storage_path_id)):
             raise AssertionError("Unconfigured matching rules unexpectedly changed document metadata")
         results.append({"content": document.content, "original_sha256": original,
@@ -83,6 +84,21 @@ def inspect_outputs(documents, fixtures):
                         "thumbnail_size": thumbnail_size, "archive_pages": pages,
                         "archive_text": archive_text.strip(), "search_ready": True})
     return results
+
+
+def submit_api_scan(client, fixture, upload):
+    """Invoke the original routed, authenticated upload API and retain its UUID."""
+    import uuid
+    response = client.post("/api/documents/post_document/", {
+        "document": upload, "title": fixture["path"].stem,
+        "created": "2021-01-01T00:00:00Z",
+    }, format="multipart")
+    if response.status_code != 200:
+        raise RuntimeError(f"Native Paperless upload API rejected scan: {response.status_code}")
+    identity = response.data
+    if not isinstance(identity, str) or str(uuid.UUID(identity)) != identity:
+        raise AssertionError("Native upload API returned no canonical task UUID")
+    return identity
 
 
 def main():
@@ -151,7 +167,15 @@ def main():
         from paperless.config import AIConfig
         if AIConfig().llm_index_enabled:
             raise RuntimeError("AI indexing is outside this declared graph")
-        from documents.management.commands.document_consumer import _consume_file
+        from django.contrib.auth import get_user_model
+        from django.contrib.auth.models import Permission
+        from rest_framework.authtoken.models import Token
+        from rest_framework.test import APIClient
+        user = get_user_model().objects.create_user(username="benchmark-uploader", password="isolated-api-upload")
+        user.user_permissions.add(Permission.objects.get(content_type__app_label="documents", codename="add_document"))
+        token = Token.objects.create(user=user)
+        api_client = APIClient()
+        api_client.credentials(HTTP_AUTHORIZATION="Token " + token.key)
         from paperless.celery import app
         from benchmarks.common.native_admission import check_original_tasks
         native_settings = {"task_serializer": app.conf.task_serializer,
@@ -179,11 +203,10 @@ def main():
             draw.text((90, 220), "Benchmark orchard payment received", fill="black", font=font)
             path = directory / "consume" / f"invoice-{i:05d}.png"
             image.save(path, dpi=(200, 200))
-            # Native folder consumption derives creation date from file mtime
-            # when OCR has no date. Supply the identical timestamp to both arms.
+            # Explicit API metadata fixes creation date identically on both arms.
             os.utime(path, (1609459200, 1609459200))
             fixtures.append({"path": path, "marker": marker, "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
-                             "operation": f"warmup:{i}" if i < 2 else f"invoice:{i:05d}"})
+                             "operation": f"warmup:{i}" if i < 2 else str(i - 2), "owner_id": user.id})
         from sqlalchemy import create_engine, select
         from sqlalchemy.orm import sessionmaker
         from examples.paperless_ngx_dbworker.runtime import coordinator, route_tasks, Job
@@ -203,16 +226,25 @@ def main():
             runtime.start()
 
         def execute_batch(batch):
-            started = time.perf_counter()
-            for fixture in batch:
+            from django.core.files.uploadedfile import SimpleUploadedFile
+            # Read fixture bytes before timing; native multipart parsing, MIME
+            # validation, scratch persistence and publication remain timed.
+            uploads = [SimpleUploadedFile(f["path"].name, f["path"].read_bytes(), content_type="image/png") for f in batch]
+            window = begin_window()
+            for fixture, upload in zip(batch, uploads, strict=True):
                 with operation(fixture["operation"]):
                     if args.backend == "celery":
-                        queued = _consume_file(fixture["path"], directory / "consume", subdirs_as_tags=False)
+                        queued = submit_api_scan(api_client, fixture, upload)
                     else:
                         with route_tasks(fixture["operation"]):
-                            queued = _consume_file(fixture["path"], directory / "consume", subdirs_as_tags=False)
-                if not queued:
-                    raise RuntimeError("The original folder producer failed to submit a scan")
+                            queued = submit_api_scan(api_client, fixture, upload)
+                fixture["task_id"] = queued
+                publications = [event for event in read_trace(trace)
+                                if event["operation_id"] == fixture["operation"]
+                                and event["stage"] == "ingestion" and event["event"] == "submitted"]
+                if len(publications) != 1 or publications[0]["node_id"] != queued:
+                    raise AssertionError("Upload API must publish exactly its returned task")
+                fixture["argument_sha256"] = publications[0]["details"]["argument_sha256"]
             ops = [fixture["operation"] for fixture in batch]
             native_terminal_since = None
             def completed():
@@ -228,7 +260,9 @@ def main():
                 submitted = [event for event in selected if event["event"] == "submitted"]
                 if len(submitted) != len(batch) or sum(event["event"] == "succeeded" for event in selected) != len(batch):
                     return None
-                graph = validate_graph(selected, ops, {"ingestion": 1}, [])
+                graph = validate_graph(selected, ops, {"ingestion": 1}, [], warmup_operations=[])
+                if {(e["operation_id"], e["node_id"]) for e in submitted} != {(f["operation"], f["task_id"]) for f in batch}:
+                    raise AssertionError("API-returned task identity differs from observed publication")
                 tasks = {task.task_id: task for task in PaperlessTask.objects.filter(task_id__in=[e["node_id"] for e in submitted])}
                 # Celery stores SUCCESS before native task_postrun tracking. Allow
                 # that signal to finish, but never synthesize its missing state.
@@ -249,8 +283,8 @@ def main():
                         return None
                     if not tracked.date_started or tracked.duration_seconds is None or tracked.wait_time_seconds is None:
                         raise AssertionError("Native-equivalent task lifecycle timestamps are incomplete")
-                    if tracked.trigger_source != PaperlessTask.TriggerSource.FOLDER_CONSUME:
-                        raise AssertionError("Folder submission lost trigger metadata")
+                    if tracked.trigger_source != PaperlessTask.TriggerSource.API_UPLOAD:
+                        raise AssertionError("API submission lost trigger metadata")
                     result = tracked.result_data
                     if args.backend == "celery":
                         async_result = app.AsyncResult(identity)
@@ -275,16 +309,18 @@ def main():
                     documents.append(document)
                 return documents
             documents = wait_for(completed, max(300, len(batch) * 15))
-            return time.perf_counter() - started, documents
+            window = end_window(window)
+            return elapsed_seconds(window), documents, window
 
         execute_batch(fixtures[:2])
         from benchmarks.upstream.paperless_ngx_metrics import StackMetrics
         with StackMetrics(os.getpid()) as resource_measurement:
-            seconds, documents = execute_batch(fixtures[2:])
+            seconds, documents, measurement_window = execute_batch(fixtures[2:])
         results = inspect_outputs(documents, fixtures[2:])
         if Document.objects.count() != len(fixtures) or PaperlessTask.objects.count() != len(fixtures):
             raise AssertionError("Missing or duplicate documents or tracked ingestion jobs")
-        graph = validate_graph(read_trace(trace), [f["operation"] for f in fixtures[2:]], {"ingestion": 1}, [])
+        graph = validate_graph(read_trace(trace), [f["operation"] for f in fixtures[2:]], {"ingestion": 1}, [],
+                               warmup_operations=[f["operation"] for f in fixtures[:2]])
         if args.backend == "dbworker":
             with sessions() as session:
                 if len(session.scalars(select(Job)).all()) != len(fixtures):
@@ -295,22 +331,25 @@ def main():
             "metrics": {"wall_seconds": seconds, "documents_per_second": len(results) / seconds, **resource_measurement.values()},
             "validation": {"passed": True, "documents": len(results), "native_lifecycle": True,
                            "output_digest": hashlib.sha256(json.dumps(results, sort_keys=True).encode()).hexdigest()},
-            "workflow_graph": graph,
+            "workflow_graph": graph, "measurement_window": measurement_window,
+            "warmup_operations": [f["operation"] for f in fixtures[:2]],
+            "submitted_inputs": [{"operation_id": f["operation"], "task_id": f["task_id"], "input_sha256": f["sha256"],
+                                  "argument_sha256": f["argument_sha256"]} for f in fixtures[2:]],
             "workflow_trace": {"path": str(trace.relative_to(output)), "sha256": hashlib.sha256(trace.read_bytes()).hexdigest()},
             "native_execution": native_execution if args.backend == "celery" else None,
             "environment": {"python": platform.python_version(), "interpreter": sys.executable, "packages": packages},
             "configuration": {"concurrency": 2, "application_database": "sqlite", "dbworker_job_database": "sqlite",
                 "native_application": "paperless.celery:app", "native_settings": native_settings, "profile": profile,
-                "submission": "original folder _consume_file producer", "completion": "all native-equivalent tracked task states/results, search readiness and scheduler terminal events",
-                "timing": "first original producer call through final business and scheduler completion; oracle hashing outside timer",
+                "submission": "authenticated POST /api/documents/post_document/ via native APIClient routing", "completion": "all native-equivalent tracked task states/results, search readiness and scheduler terminal events",
+                "timing": "first authenticated API upload through final expected business and task completion; oracle hashing outside timer",
                 "warmup_documents": 2, "redis_aof": "everysec", "auxiliary_progress_redis_both": True,
                 "overrides": ["isolated paths/Redis/secret", "English forced OCR", "PDF output", "no clean/deskew/rotate", "2 worker slots, 1 OCR thread"],
                 "celery_pool": "native prefork with max_tasks_per_child=1", "dbworker_pool": "persistent spawn processes",
                 "lifecycle_limits": "DBWorker has no equivalent hard timeout, cancellation or child recycling; success contract only"},
             "dataset": {"documents": profile["requests"], "format": "raster-only PNG", "size": [1800, 700], "dpi": 200},
-            "capabilities": {"verified": ["original_celery_app_and_task", "original_folder_producer", "tracked_lifecycle", "signed_results", "real_ocr", "originals_thumbnails_archives_search", "one_ingestion_job_per_scan"],
+            "capabilities": {"verified": ["original_celery_app_and_task", "original_authenticated_api_upload", "tracked_lifecycle", "signed_results", "real_ocr", "originals_thumbnails_archives_search", "one_ingestion_job_per_scan"],
                 "untested": ["barcode_split", "workflow_webhook", "AI", "mail_chords", "index_retry", "crash_recovery", "timeouts", "cancellation", "cross_orm_atomicity"],
-                "scope": "Restricted successful unsplit folder scans; no configured workflows/AI. Any unexpected child graph fails admission."}}
+                "scope": "Restricted successful unsplit API-upload scans; no configured workflows/AI. Any unexpected child graph fails admission."}}
         write_json(directory / "sample.json", row)
     finally:
         if runtime is not None:

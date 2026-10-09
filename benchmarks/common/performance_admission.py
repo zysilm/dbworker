@@ -2,13 +2,17 @@
 from __future__ import annotations
 
 import hashlib
-import ast
 import json
 import importlib.util
+import math
 from collections import Counter
 from pathlib import Path
 
 from benchmarks.common.native_admission import APPLICATIONS, NativeAdmissionError
+from benchmarks.common.native_binding import validate_task_binding
+from benchmarks.common.business_evidence import validate_business_binding as _validate_business_binding
+from benchmarks.common.smtp_evidence import validate_smtp_evidence
+from benchmarks.common.timing_evidence import elapsed_seconds, validate_timing_window
 from benchmarks.common.workflow_graph import WorkflowMismatch, compare_graphs, read_trace, validate_graph
 
 CONTRACTS = {
@@ -45,17 +49,17 @@ def _safe_relative(root, value):
     return path
 
 
-def validate_native_sample(row, suite):
-    if row.get('backend') != 'celery':
-        return
-    evidence = row.get('native_execution', {})
+def _validate_origin(evidence, suite, expected):
+    if not isinstance(evidence, dict):
+        raise NativeAdmissionError(f'{suite}: missing native worker source evidence')
     if evidence.get('passed') is not True or evidence.get('worker_app') != APPLICATIONS[suite]:
         raise NativeAdmissionError(f'{suite}: missing original Celery application admission')
-    if evidence.get('check') != 'live_task_origin_and_ast' or not evidence.get('tasks'):
+    if (evidence.get('check') != 'live_task_origin_and_ast'
+            or not isinstance(evidence.get('tasks'), dict) or not evidence['tasks']):
         raise NativeAdmissionError(f'{suite}: missing live native task body origin checks')
     if evidence.get('observer_only') is not True:
         raise NativeAdmissionError(f'{suite}: baseline observation must not replace tasks')
-    expected = set(TASK_STAGES[suite])
+    expected = set(expected)
     if set(evidence['tasks']) != expected or set(evidence.get('task_names', [])) != expected or len(evidence.get('task_names', [])) != len(expected):
         raise NativeAdmissionError(f'{suite}: native task declaration is incomplete or changed')
     source = ROOT / 'examples' / suite
@@ -64,13 +68,41 @@ def validate_native_sample(row, suite):
     if suite == 'imagededup':
         source = ROOT / 'examples/imagededup_system_redis_celery/src'
     for name, task in evidence['tasks'].items():
+        if not isinstance(task, dict):
+            raise NativeAdmissionError(f'{suite}: malformed native task body evidence')
         path = _safe_relative(source, task.get('source'))
         if hashlib.sha256(path.read_bytes()).hexdigest() != task.get('source_sha256'):
             raise NativeAdmissionError(f'{suite}: native source checksum differs: {name}')
-        functions = {node.name for node in ast.walk(ast.parse(path.read_text()))
-                     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
-        if task.get('function') not in functions:
-            raise NativeAdmissionError(f'{suite}: native function evidence absent: {name}')
+        validate_task_binding(suite, name, task, source)
+
+
+def validate_native_sample(row, suite):
+    if row.get('backend') == 'celery':
+        _validate_origin(row.get('native_execution', {}), suite, TASK_STAGES[suite])
+
+
+def _validate_worker_and_arguments(events, suite):
+    published = {}
+    for event in events:
+        details = event.get('details', {})
+        name = details.get('task_name')
+        if ((event.get('event') in ('submitted', 'started') or name is not None)
+                and TASK_STAGES[suite].get(name) != event.get('stage')):
+            raise WorkflowMismatch('Observed task name differs from the original business stage')
+        if event.get('event') in ('submitted', 'started'):
+            fingerprint = details.get('argument_sha256')
+            if (not isinstance(fingerprint, str) or len(fingerprint) != 64
+                    or any(character not in '0123456789abcdef' for character in fingerprint)):
+                raise WorkflowMismatch('Missing original task argument fingerprint')
+            key = event.get('node_id')
+            if event['event'] == 'submitted':
+                published[key] = fingerprint
+            else:
+                _validate_origin(details.get('native_worker_origin', {}), suite, [name])
+    for event in events:
+        if event.get('event') == 'started':
+            if event['details']['argument_sha256'] != published.get(event.get('node_id')):
+                raise WorkflowMismatch('Worker arguments differ from original publication intent')
 
 
 def replay_graph(row, suite, directory, expected_requests):
@@ -90,12 +122,21 @@ def replay_graph(row, suite, directory, expected_requests):
         raise WorkflowMismatch('Persisted native trace must contain exactly two complete warmup operations')
     if any(event.get('backend') != row['backend'] for event in events):
         raise WorkflowMismatch('Trace backend differs from sample backend')
-    if row['backend'] == 'celery':
-        for event in events:
-            task_name = event.get('details', {}).get('task_name')
-            if TASK_STAGES[suite].get(task_name) != event.get('stage'):
-                raise WorkflowMismatch('Observed Celery task name differs from declared native stage')
-    replayed = validate_graph(events, operations, contract_stages, contract_edges)
+    declared_warmup = row.get('warmup_operations')
+    if (not isinstance(declared_warmup, list) or len(declared_warmup) != 2
+            or len(set(declared_warmup)) != 2 or set(declared_warmup) != warmups):
+        raise WorkflowMismatch('Missing or changed explicit warmup identities')
+    _validate_worker_and_arguments(events, suite)
+    replayed = validate_graph(events, operations, contract_stages, contract_edges,
+                              warmup_operations=declared_warmup)
+    validate_timing_window(row.get('measurement_window'), row.get('metrics', {}).get('wall_seconds'),
+                           events, operations)
+    _validate_business_binding(row, suite, events, expected_requests)
+    if suite == 'sentry':
+        try:
+            validate_smtp_evidence(row, directory)
+        except (ValueError, TypeError, KeyError, OSError) as error:
+            raise WorkflowMismatch(f'Invalid persisted SMTP business evidence: {error}') from error
     if replayed != graph:
         raise WorkflowMismatch('Reported workflow differs from replayed events')
     return replayed
@@ -169,11 +210,44 @@ def replay_image_workload(row, directory, images):
             raise WorkflowMismatch(f'Image submitted source identities differ from profile: {key}')
     records = read_trace(path)
     backend = row['backend']
+    if any(record.get('backend') != backend for record in records):
+        raise WorkflowMismatch('Image snapshot backend differs from sample')
+    verifier_path = ROOT / 'benchmarks/imagededup_benckmark/src/imagededup_benckmark/evidence.py'
+    spec = importlib.util.spec_from_file_location('benchmark_image_artifact_verifier', verifier_path)
+    verifier = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(verifier)
+    try:
+        if sum(record.get('event') == 'quiescence_barrier' for record in records) != 1:
+            raise WorkflowMismatch('Image snapshot must contain one final live idle receipt')
+        if verifier.validate_quiescence(records) is not True:
+            raise WorkflowMismatch('Image snapshot lacks a live quiescence receipt')
+    except (AssertionError, ValueError, TypeError, KeyError) as error:
+        raise WorkflowMismatch(f'Invalid image live quiescence receipt: {error}') from error
+    window = row.get('measurement_window')
+    duration = elapsed_seconds(window)
+    metrics = row.get('metrics', {})
+    wall = metrics.get('wall_seconds')
+    if (type(wall) not in (int, float) or not math.isfinite(wall)
+            or abs(wall - duration) > 1e-9):
+        raise WorkflowMismatch('Image duration differs from captured monotonic boundaries')
+    for name in ('submission_seconds', 'business_finished_seconds'):
+        value = metrics.get(name)
+        if (type(value) not in (int, float) or not math.isfinite(value)
+                or not 0 <= value <= duration):
+            raise WorkflowMismatch('Image measured window excludes submission or completion barrier')
+    lower = window['start']['timestamp_ns'] - window['start']['uncertainty_ns']
+    upper = window['end']['timestamp_ns'] + window['end']['uncertainty_ns']
     attempts = {}
     for record in records:
         if record.get('backend') != backend:
             raise WorkflowMismatch('Image snapshot backend differs from sample')
+        if record.get('event') == 'quiescence_barrier':
+            if record.get('stage') != 'barrier' or record.get('workspace_id') is not None:
+                raise WorkflowMismatch('Image barrier has invalid record scope')
+            continue  # Only the independently validated typed idle receipt.
         if record.get('stage') == 'dispatch':
+            if backend == 'celery' and record.get('event') == 'started':
+                _validate_origin(record.get('native_worker_origin', {}), 'imagededup', ['images.dispatch'])
             continue  # Control polls are retained separately from business work.
         if record.get('stage') not in ('build', 'comparison') or record.get('workspace_id') != trace['workspace']:
             raise WorkflowMismatch('Unexpected business work in image scenario snapshot')
@@ -181,6 +255,12 @@ def replay_image_workload(row, directory, images):
         if not isinstance(identity, str) or not identity:
             raise WorkflowMismatch('Missing image business attempt identity')
         attempts.setdefault(identity, []).append(record)
+    barrier = next(record for record in records if record.get('event') == 'quiescence_barrier')
+    # This receipt counts all completed business attempts since stack startup;
+    # a scenario snapshot deliberately excludes previous scenarios and warmup.
+    if (type(barrier.get('observed_attempt_count')) is not int
+            or barrier['observed_attempt_count'] < len(attempts)):
+        raise WorkflowMismatch('Image idle receipt business-attempt scope differs')
     for identity, phases in attempts.items():
         if Counter(record.get('event') for record in phases) != Counter({'started': 1, 'finished': 1}):
             raise WorkflowMismatch(f'Missing or duplicate image business attempt phases: {identity}')
@@ -188,6 +268,10 @@ def replay_image_workload(row, directory, images):
         end = next(record for record in phases if record['event'] == 'finished')
         if any(start.get(key) != end.get(key) for key in ('task_id', 'source_id', 'workspace_id', 'stage', 'backend')):
             raise WorkflowMismatch('Image business attempt identity changed')
+        started_ns, finished_ns = start.get('timestamp_ns'), end.get('timestamp_ns')
+        if (type(started_ns) is not int or type(finished_ns) is not int
+                or started_ns <= 0 or finished_ns < started_ns):
+            raise WorkflowMismatch('Image attempt has missing or reversed actual timestamps')
         if (type(start.get('items')) is not int or type(end.get('items_after')) is not int
                 or type(end.get('page_items')) is not int):
             raise WorkflowMismatch('Image observed work counts must be integers')
@@ -204,10 +288,18 @@ def replay_image_workload(row, directory, images):
         if backend == 'celery':
             if not isinstance(start.get('task_id'), str) or not start['task_id']:
                 raise WorkflowMismatch('Missing original Celery image task identity')
-    verifier_path = ROOT / 'benchmarks/imagededup_benckmark/src/imagededup_benckmark/evidence.py'
-    spec = importlib.util.spec_from_file_location('benchmark_image_artifact_verifier', verifier_path)
-    verifier = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(verifier)
+            name = 'images.build' if start['stage'] == 'build' else 'images.compare'
+            _validate_origin(start.get('native_worker_origin', {}), 'imagededup', [name])
+            if type(start.get('source_revision')) is not int or start['source_revision'] < 0:
+                raise WorkflowMismatch('Image worker lacks an original source revision')
+        if end['page_items'] > 0:
+            committed_ns = end.get('business_committed_timestamp_ns')
+            if (type(committed_ns) is not int or committed_ns < started_ns
+                    or committed_ns > finished_ns or not lower <= started_ns <= upper
+                    or not lower <= committed_ns <= upper):
+                raise WorkflowMismatch('Positive image business commit lies outside measured boundaries')
+            # Native task_postrun can occur after the measured SQL commit and
+            # final API response. Its later diagnostic time is not completion.
     try:
         replayed = verifier.verify(records, workspace=trace['workspace'], artifact_ids=trace['artifact_ids'],
             request_ids=trace['request_ids'], new_builds=trace['new_builds'], page_size=250, record_offset=0)

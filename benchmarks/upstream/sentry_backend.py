@@ -21,6 +21,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "examples/sentry/src"
 sys.path[:0] = [str(SOURCE), str(ROOT)]
+from benchmarks.common.timing_evidence import begin_window, end_window, elapsed_seconds, validate_timing_window
+from benchmarks.common.smtp_evidence import observe_messages, replay_messages, business_digest
 TASKS = ["sentry.tasks.email.send_email", "sentry.tasks.email.send_email_control"]
 
 
@@ -260,7 +262,7 @@ def main():
 
         with publication as (published, publication_errors):
             def execute_batch(operation_ids):
-                started = time.perf_counter()
+                started = begin_window()
                 for operation_id in operation_ids:
                     with observer.operation(operation_id):
                         destination = recipients(operation_id)
@@ -275,7 +277,9 @@ def main():
                     if any(row.get("event") in ("failed", "retried", "revoked", "unknown") for row in events):
                         raise RuntimeError("Success-only native Sentry workflow observed a non-successful attempt")
                     try:
-                        graph = validate_graph(events, operation_ids, {"delivery": 2}, [])
+                        graph = validate_graph(events, operation_ids, {"delivery": 2}, [],
+                            warmup_operations=[] if operation_ids == ["warmup:-2", "warmup:-1"]
+                            else ["warmup:-2", "warmup:-1"])
                     except (ValueError, FileNotFoundError):
                         return None
                     wanted = set(map(str, operation_ids))
@@ -285,13 +289,16 @@ def main():
                                   for _, _, raw in sink.messages)
                     return graph if matched == len(operation_ids) * 2 else None
                 graph = wait_for(complete, children=children, timeout=max(120, len(operation_ids) * 5))
-                return time.perf_counter() - started, graph
+                window = end_window(started)
+                seconds = elapsed_seconds(window)
+                validate_timing_window(window, seconds, read_trace(trace), list(map(str, operation_ids)))
+                return seconds, graph, window
 
             execute_batch(["warmup:-2", "warmup:-1"])
             sink.messages.clear()
             operations = list(map(str, range(profile["requests"])))
             sampler = ResourceSampler()
-            seconds, graph = execute_batch(operations)
+            seconds, graph, measurement_window = execute_batch(operations)
             metrics = sampler.finish()
             sampler = None
         # Retain received bytes before validation, including failed-run evidence.
@@ -301,6 +308,12 @@ def main():
             "raw_base64": base64.b64encode(raw).decode("ascii")}
             for sender, destinations, raw in sink.messages])
         normalized = validate_messages(sink.messages, operations)
+        smtp_evidence = directory / "smtp-evidence.json"
+        manifest = observe_messages(sink.messages)
+        replayed, generated_ids = replay_messages(manifest, operations)
+        if replayed != normalized:
+            raise AssertionError("Independent persisted SMTP oracle differs from native MIME oracle")
+        write_json(smtp_evidence, manifest)
         if args.backend == "dbworker":
             from sqlalchemy import select
             table = runtime.workers["sentry_delivery"].table
@@ -328,10 +341,15 @@ def main():
             "validation": {"passed": True, "messages": len(normalized), "smtp_envelope_and_mime": True,
                 "missing_or_duplicate": 0, "delivery_identity": "Exact unique operation ID and recipient pair",
                 "generated_message_ids": message_id_evidence(sink.messages),
-                "output_digest": hashlib.sha256(json.dumps(normalized, sort_keys=True).encode()).hexdigest()},
+                "output_digest": business_digest(normalized)},
             "smtp_receipts": {"storage": "Matrix artifact diagnostics; excluded from published result evidence",
                               "path": str(receipts.relative_to(Path(config["output_directory"]).resolve())),
                               "sha256": hashlib.sha256(receipts.read_bytes()).hexdigest()},
+            "smtp_evidence": {"schema_version": 1,
+                "path": str(smtp_evidence.relative_to(Path(config["output_directory"]).resolve())),
+                "sha256": hashlib.sha256(smtp_evidence.read_bytes()).hexdigest()},
+            "warmup_operations": ["warmup:-2", "warmup:-1"],
+            "measurement_window": measurement_window,
             "native_execution": native, "workflow_graph": graph,
             "workflow_trace": {"path": str(trace.relative_to(Path(config["output_directory"]).resolve())),
                                "sha256": hashlib.sha256(trace.read_bytes()).hexdigest()},

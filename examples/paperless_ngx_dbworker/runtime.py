@@ -11,10 +11,11 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
-from sqlalchemy import DateTime, JSON, String, Text, create_engine, select
+from sqlalchemy import event, DateTime, JSON, String, Text, create_engine, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 from dbworker import Coordinator, Finished
-from benchmarks.common.native_observer import job_context, record
+from benchmarks.common.business_input import business_input
+from benchmarks.common.native_observer import argument_digest, job_context, record
 
 STAGES = {"documents.tasks.consume_file": "ingestion",
           "documents.tasks.index_document": "deferred_index",
@@ -80,9 +81,10 @@ def enqueue(task, args=(), kwargs=None, *, headers=None, countdown=0, eta=None, 
         with Session(engine) as session, session.begin():
             session.add(Job(id=identity, operation_id=op, parent_id=parent, task_name=task.name,
                             arguments=encode_arguments(args, values), headers=headers, available_at=available))
+            # Publication intent precedes eligibility visibility at commit.
+            record(STAGES[task.name], op, identity, "submitted", parent, backend="dbworker", task_name=task.name, argument_sha256=argument_digest(args, values), business_input=business_input(task.name, args, values))
     finally:
         engine.dispose()
-    record(STAGES[task.name], op, identity, "submitted", parent, backend="dbworker", task_name=task.name)
     return SimpleNamespace(id=identity)
 
 
@@ -118,7 +120,12 @@ def handle(job: Job, session: Session):
     context = SimpleNamespace(name=name, request=SimpleNamespace(id=identity, headers=headers, retries=0))
     close_old_connections()
     task_prerun_handler(task_id=identity, task=context)
-    record(STAGES[name], op, identity, "started", parent, backend="dbworker", task_name=name)
+    from benchmarks.common.native_observer import worker_origin
+    try:
+        proof = {"native_worker_origin": worker_origin(task, "paperless_ngx")}
+    except Exception as error:
+        proof = {"native_worker_origin_error": type(error).__name__ + ": " + str(error)}
+    record(STAGES[name], op, identity, "started", parent, backend="dbworker", task_name=name, argument_sha256=argument_digest(args, kwargs), business_input=business_input(name, args, kwargs), **proof)
     try:
         with job_context(op, identity), route_tasks(op, identity):
             body = inspect.unwrap(task.run)
@@ -130,8 +137,9 @@ def handle(job: Job, session: Session):
         task_postrun_handler(task_id=identity, task=context, retval=result, state="SUCCESS")
         stored = session.get(Job, identity)
         stored.result = {"value": result}
-        # The actual DBWorker ledger commit occurs after this handler returns.
-        record(STAGES[name], op, identity, "succeeded", parent, backend="dbworker", task_name=name)
+        # Completion becomes observable only after the source and ledger commit.
+        event.listen(session, "after_commit", lambda committed: record(
+            STAGES[name], op, identity, "succeeded", parent, backend="dbworker", task_name=name), once=True)
         return Finished()
     except Exception as exc:
         task_failure_handler(task_id=identity, sender=context, exception=exc, traceback=exc.__traceback__)

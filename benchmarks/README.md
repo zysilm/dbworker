@@ -18,10 +18,13 @@ task entry points. DBWorker variations replace scheduling while preserving busin
 work and individual job granularity. No benchmark-defined Celery task wraps an
 extracted business function. Child jobs remain separate jobs on both backends.
 
-**All six native workflows passed full-profile validation in
+The previous native workflows passed full-profile validation in
 [GitHub Actions run 37860143841](https://github.com/zysilm/dbworker/actions/runs/37860143841).**
 The same run passed independent aggregate admission for all 80 measured samples.
 The measured source revision is `7b9435d43976819a3c19bd92e4a62af08a955edb`.
+Those scores do not measure the expanded public producers or the stronger
+input, worker, timing and SMTP evidence implemented below. New full GitHub
+measurements are required before publishing updated scores.
 Previously retained paired-callable and subprocess-bridge JSON files are historical
 results; they must not be relabeled or published as native workflow measurements.
 Capability research remains on the separate `extension1-research` branch.
@@ -30,9 +33,9 @@ Capability research remains on the separate `extension1-research` branch.
 | --- | --- | --- |
 | `imagededup` | This repository's original Celery example; image hashing, bounded comparison pages and mixed workloads | 1,000 measured images per scenario; actual build and scoring-page jobs are checked against matching inputs and page bounds |
 | `superset` | Authenticated SQL Lab REST submission, original async task, result storage and authenticated retrieval | 100 query jobs against 10,000 fixture rows; one `sql_lab` job per query |
-| `saleor` | Original export task and lifecycle, upstream plugins, separately queued admin-email notification | 100 exports of 256 products plus 100 email jobs; one export-to-email edge per operation; no webhook subscriptions |
-| `paperless_ngx` | Original folder producer and unsplit ingestion task, tracked lifecycle and real OCR pipeline | 100 scans and 100 ingestion jobs; original documents, OCR text, archives, thumbnails and search are checked |
-| `posthog` | Original 2FA notification task and child delivery task, with full native application/settings | 100 notification jobs plus 100 delivery jobs; rendering and SMTP delivery remain inside timing |
+| `saleor` | Authenticated original GraphQL export mutation, export lifecycle, upstream plugins and queued admin-email notification | 100 exports of 256 products plus 100 email jobs; one export-to-email edge per operation; no webhook subscriptions |
+| `paperless_ngx` | Authenticated original document-upload API and unsplit ingestion task, tracked lifecycle and real OCR pipeline | 100 scans and 100 ingestion jobs; original documents, OCR text, archives, thumbnails and search are checked |
+| `posthog` | Authenticated original 2FA validation handler, real device/session effects, notification and child delivery | 100 notification jobs plus 100 delivery jobs; API effects, rendering and SMTP delivery remain inside timing |
 | `sentry` | Historical original `MessageBuilder.send_async` and native email tasks with persistent workers | 100 operations, each with two distinct recipients, producing 200 individual delivery jobs |
 
 The upstream suites use sibling `*_dbworker` packages without editing the pinned
@@ -119,6 +122,9 @@ append-only JSONL traces describe submitted, started and terminal business jobs,
 including operation identities and parent/child relationships. Result JSON includes
 the trace path and SHA-256. Independent report admission replays these traces,
 checks the expected graph per operation, and compares the two backend graphs.
+Exact task-to-function source bindings, actual worker-side origin proofs and
+canonical argument fingerprints bind submission to execution. Captured monotonic
+and Unix-clock boundaries bind trace chronology to the reported duration.
 Submission observations record publication intent before transport, so a fast
 worker can correlate protocol-1 tasks. Intent alone is insufficient: every job
 must also have matching execution and successful completion evidence.
@@ -176,7 +182,8 @@ full workload coverage, source revision and pins, result checksums, native execu
 evidence and persisted JSONL task traces. Only a complete admitted run replaces
 `benchmarks/results/latest`, generates `doc/benchmark-results.md`, and updates the
 compact final README table with median timings and a bold faster backend. Published
-evidence includes result JSON and JSONL traces. Failure diagnostics are uploaded
+evidence includes result JSON, JSONL traces and independently replayable Sentry
+SMTP content receipts. Failure diagnostics are uploaded
 separately with seven-day artifact retention.
 
 Failed, blocked, incomplete or stale runs never update the official table. Publication

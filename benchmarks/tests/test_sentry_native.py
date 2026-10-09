@@ -67,7 +67,11 @@ class SentryNativeTest(unittest.TestCase):
             trace = Path(directory, "workflow.jsonl")
             environment = {"BENCHMARK_TRACE_PATH": str(trace), "BENCHMARK_BACKEND": "dbworker",
                            "BENCHMARK_TASK_STAGES": json.dumps({fixture_email.name: "delivery"})}
-            with patch.dict(os.environ, environment), adapter.publication_to_dbworker(sessions) as (published, errors):
+            with patch.dict(os.environ, environment), \
+                    patch.object(observer, "argument_digest", return_value="unit-fixture-only"), \
+                    patch.object(adapter, "argument_digest", return_value="unit-fixture-only"), \
+                    patch.object(adapter, "worker_origin", return_value={"fixture": True}), \
+                    adapter.publication_to_dbworker(sessions) as (published, errors):
                 with observer.operation("0"):
                     for index, recipient in enumerate(recipients("0")):
                         message = SimpleNamespace(to=[recipient], extra_headers={"X-Benchmark": "0"})
@@ -92,6 +96,21 @@ class SentryNativeTest(unittest.TestCase):
                 self.assertEqual(sorted(delivered), recipients("0"))
             engine.dispose()
             app.close()
+
+    def test_original_django_message_arguments_survive_pickle_roundtrip(self):
+        try:
+            from django.core.mail import EmailMultiAlternatives
+        except ImportError:
+            self.skipTest("Django is not installed in this unit-test interpreter")
+        from benchmarks.common.argument_evidence import argument_digest
+        message = EmailMultiAlternatives(subject="Native fixture", body="café",
+            from_email="sender@benchmark.invalid", to=recipients("0")[:1],
+            headers={"X-Benchmark": "0"})
+        message.attach_alternative('<p style="color:red">café</p>', "text/html")
+        kwargs = {"message": message, "__start_time": 1700000000.25}
+        restored = pickle.loads(pickle.dumps({"args": (), "kwargs": kwargs}))
+        self.assertEqual(argument_digest((), kwargs),
+                         argument_digest(restored["args"], restored["kwargs"]))
 
     def test_publication_rejects_recipient_batching_and_restores_transport(self):
         from kombu import Producer

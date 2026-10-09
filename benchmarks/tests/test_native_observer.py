@@ -40,7 +40,7 @@ class NativeObserverTests(unittest.TestCase):
             unchanged = copy.deepcopy(body)
             task = SimpleNamespace(name=body['task'], request=SimpleNamespace(headers=None, parent_id=None))
             with observer.operation('worker-unrelated-context'):
-                observer._started(task_id=body['id'], task=task)
+                observer._started(task_id=body['id'], task=task, args=body['args'], kwargs=body['kwargs'])
                 observer._finished(task_id=body['id'], task=task, state='SUCCESS')
             self.assertEqual(body, unchanged)
             self.assertNotIn('benchmark_operation', kwargs.get('headers', {}))
@@ -57,6 +57,13 @@ class NativeObserverTests(unittest.TestCase):
                             fixture.apply_async(args=(index,), task_id=f'delivery-{index}')
                     graph = validate_graph(read_trace(trace), ['operation'], {'delivery': 2}, [])
                     self.assertEqual(graph['nodes'], 2)
+                    events = read_trace(trace)
+                    for identity in delivered:
+                        phases = [event for event in events if event['node_id'] == identity]
+                        self.assertEqual(phases[0]['details']['argument_sha256'],
+                                         phases[1]['details']['argument_sha256'])
+                    self.assertNotEqual(events[0]['details']['argument_sha256'],
+                                        events[3]['details']['argument_sha256'])
                     self.assertEqual(delivered, ['delivery-0', 'delivery-1'])
                     self.assertEqual(len(after), 2)
         finally:

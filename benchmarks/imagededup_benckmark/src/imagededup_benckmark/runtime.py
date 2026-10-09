@@ -24,31 +24,43 @@ def free_port() -> int:
         return int(listener.getsockname()[1])
 
 
-def native_celery_business_idle(app: Any) -> bool:
-    """Observe worker state and every Redis priority lane without declaring queues."""
+def native_celery_idle_snapshot(app: Any) -> dict:
+    """Record read-only inspector counts and every actual Redis priority lane."""
+    inspected = time.time()
     inspect = app.control.inspect(timeout=2)
-    responses = [inspect.active(), inspect.reserved(), inspect.scheduled()]
-    if not all(response and len(response) == 2 for response in responses):
-        return False
-    worker_sets = [set(response) for response in responses]
-    if any(workers != worker_sets[0] for workers in worker_sets[1:]):
-        return False
-    for response in responses:
-        for tasks in response.values():
-            for task in tasks:
-                item = task.get("request", task)
-                if item.get("name") in ("images.build", "images.compare"):
-                    return False
+    responses = {name: getattr(inspect, name)() for name in ("active", "reserved", "scheduled")}
+    complete = all(response and len(response) == 2 for response in responses.values())
+    worker_sets = [set(response or {}) for response in responses.values()]
+    complete = bool(complete and all(workers == worker_sets[0] for workers in worker_sets))
+    states = {name: {worker: sum((task.get("request", task)).get("name") in
+                                ("images.build", "images.compare") for task in tasks)
+                     for worker, tasks in (response or {}).items()}
+              for name, response in responses.items()}
+    lanes = []
     with app.connection_for_read() as connection:
         if connection.transport.driver_type != "redis":
             raise RuntimeError("Image Celery idle observation requires the native Redis transport")
         channel = connection.channel()
-        # Redis removes a list key when its final message is consumed. Passive
-        # queue declaration tests key existence and consequently rejects a
-        # healthy empty queue. Kombu's Redis _size uses LLEN for every configured
-        # priority lane, including key-prefix handling, without changing broker
-        # state. Missing lanes have length zero.
-        return all(channel._size(queue) == 0 for queue in ("image_build", "image_compare"))
+        # Use exactly the LLEN pipeline employed by native Kombu Redis _size.
+        # No passive declarations, queue mutations, or message payload reads.
+        for queue in ("image_build", "image_compare"):
+            with channel.conn_or_acquire() as client:
+                with client.pipeline() as pipeline:
+                    for priority in channel.priority_steps:
+                        pipeline = pipeline.llen(channel._q_for_pri(queue, priority))
+                    sizes = pipeline.execute()
+            lanes.extend({"queue": queue, "priority": priority, "messages": int(size)}
+                         for priority, size in zip(channel.priority_steps, sizes, strict=True))
+    idle = complete and not any(count for workers in states.values() for count in workers.values()) and not any(
+        lane["messages"] for lane in lanes)
+    return {"backend": "celery", "inspect_started": inspected, "observed_at": time.time(),
+            "worker_responses_complete": complete, "worker_states": states, "redis_lanes": lanes,
+            "redis_priority_steps": list(channel.priority_steps),
+            "idle": bool(idle)}
+
+
+def native_celery_business_idle(app: Any) -> bool:
+    return native_celery_idle_snapshot(app)["idle"]
 
 
 class Stack(AbstractContextManager["Stack"]):
@@ -71,6 +83,7 @@ class Stack(AbstractContextManager["Stack"]):
         self.versions: dict[str, Any] = {}
         self.http_samples: list[tuple[str, float]] = []
         self.observation_file = directory / "operations.jsonl"
+        self.business_commit_file = directory / "business-commits.jsonl"
         self.native_execution: dict[str, Any] = {}
 
     def start_process(self, role: str, command: list[str], env: dict[str, str]) -> None:
@@ -203,17 +216,34 @@ print(json.dumps(evidence))
         response.raise_for_status()
         return response.json()
 
-    def native_business_idle(self) -> bool:
-        if self.backend != "redis_celery":
-            return True
+    def business_idle_snapshot(self) -> dict:
+        if self.backend == "dbwork":
+            import sqlite3
+            with sqlite3.connect(self.database, timeout=30) as connection:
+                connection.execute("PRAGMA query_only=ON")
+                counts = {table: connection.execute(
+                    f"SELECT COUNT(*) FROM {table} WHERE execution_status IS NULL OR execution_status!='finished'"
+                ).fetchone()[0] for table in ("artifact_build_work", "comparison_work")}
+            return {"backend": "dbworker", "observed_at": time.time(), "unfinished_work": counts,
+                    "idle": not any(counts.values())}
         code = """import json
 from imagededup_system_redis_celery.celery_app import app
-from imagededup_benckmark.runtime import native_celery_business_idle
-print(json.dumps({'idle': native_celery_business_idle(app)}))
+from imagededup_benckmark.runtime import native_celery_idle_snapshot
+print(json.dumps(native_celery_idle_snapshot(app)))
 """
         result = subprocess.check_output([str(self.python), "-c", code], env=self.environment,
                                          cwd=self.directory, text=True, timeout=30)
-        return bool(json.loads(result)["idle"])
+        snapshot = json.loads(result)
+        import sqlite3
+        with sqlite3.connect(self.database, timeout=30) as connection:
+            connection.execute("PRAGMA query_only=ON")
+            pending = connection.execute("SELECT COUNT(*) FROM outbox_message WHERE task_name IN ('images.build','images.compare')").fetchone()[0]
+        snapshot["pending_business_outbox"] = pending
+        snapshot["idle"] = snapshot["idle"] and pending == 0
+        return snapshot
+
+    def native_business_idle(self) -> bool:
+        return self.business_idle_snapshot()["idle"]
 
     def __exit__(self, *args: object) -> None:
         self.client.close()

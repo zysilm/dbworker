@@ -11,6 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from benchmarks.render_results import render, update_readme
+from benchmarks.ci_results import publication_evidence
 from benchmarks.common.performance_admission import validate_native_report
 
 
@@ -50,17 +51,9 @@ def main() -> None:
     report.write_text(content)
     readme.write_text(compact)
     # Stage only allowlisted evidence. Logs, configs, media and databases stay in artifacts.
-    index = json.loads((directory / "index.json").read_text())
-    paths = [report, readme, directory / "index.json", directory / "report.md"]
-    paths += [directory / entry["path"] for entry in index["reports"]]
-    paths += sorted(directory.rglob("sample.json"))
-    paths += sorted(directory.rglob("*.jsonl"))
-    raw = directory / "imagededup.raw.json"
-    if raw.is_file():
-        paths.append(raw)
+    paths = [report, readme, *publication_evidence(directory)]
     run("git", "config", "user.name", "github-actions[bot]")
     run("git", "config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com")
-    run("git", "add", "-A", "--", "benchmarks/results/latest")
     # Force-add only explicitly permitted JSON evidence in ignored private directories.
     run("git", "add", "-f", "--", *(str(path.relative_to(ROOT)) for path in paths))
     run("git", "diff", "--cached", "--check")

@@ -1,42 +1,54 @@
-# Native PostHog two-stage notification variation
+# Native PostHog 2FA validation variation
 
-The baseline now starts the original `posthog.celery:app`, its original Django
-application/settings/import graph and its existing email queue. It publishes the
-original `posthog.tasks.email.send_two_factor_auth_enabled_email` task. That task
-loads a genuine User, renders/inlines the original notification template and
-publishes the original `posthog.email._send_email` task. Both stages are timed.
-No benchmark Celery application/task, eager execution, projected AST module,
-two-model synthetic application or pre-rendered payload replaces this baseline.
+Both arms dispatch the original authenticated
+`posthog.api.user.UserViewSet.two_factor_validate` DRF handler. The request
+fixture retains native session authentication, CSRF checks, permissions and
+throttles. Genuine TOTP validation, device creation, OTP login, persistent session
+verification, setup cache cleanup and revocation of another real login session
+run inside the measured interval. The fixture does not run a complete HTTP server
+or the entire Django middleware chain.
 
-The DBWorker sibling has one durable notification row and a separate durable
-delivery row per operation. The original notification callable runs with a narrow
-process-local interception of only its delivery publication. The child payload
-is persisted separately; another handler invokes the original delivery callable.
-Actual user lookup, original subject/campaign generation, user display metadata,
-empty native plain body, template/CSS work, SMTP fallback and MessagingRecord
-transactions are retained. The two stages share two process slots. Exception
-retries persist attempts and next-run times with native max-three exponential
-backoff/jitter; successful-work admission rejects observed retry/duplicate traces.
-Crash/replay correctness is not claimed merely from that policy implementation.
+User creation, two authenticated sessions, private TOTP setup keys and service
+startup occur before measurement. Tokens are generated at invocation time. Each
+successful response and its original device/session/cache/revocation effects are
+validated before completing the interval. Private credentials and session keys
+are not published; safe user/recipient hashes bind each operation to its fixture.
 
-The business boundary starts before notification publication and ends after both
-observed stages succeed, the receiver accepts mail, and DBWorker source completion
-is durable. Full-scale 100 operations require 200 observed business nodes per arm,
-one notification-to-delivery edge per operation. Control ping is not business work.
-The native observer does not replace task bodies; origin checks verify task bodies
-and the original exported application. Sample JSON retains the observed graph and
-the trace path/hash. Existing paired-send results are historical diagnostics and
-must not be relabeled as native measurements.
+The Celery baseline uses the original `posthog.celery:app`, full native Django
+settings/import graph and existing email queue. The handler's unchanged `.delay`
+submits `send_two_factor_auth_enabled_email`, which performs the original user
+lookup, template/CSS work and campaign generation before publishing a separate
+original `_send_email` task. That task delivers to real local SMTP and commits the
+original MessagingRecord. No benchmark Celery app or task replaces this workflow.
 
-A pristine full native application dependency installation is now necessary.
-The earlier notification-slice lock is insufficient: an actual initialization
-attempt fails on missing `django_structlog`, before database/SMTP work. Further
-native dependency or service requirements are not presumed resolved. PostgreSQL,
-Redis and SMTP listeners are also prohibited in the current restricted execution
-environment. No native live experiment or new performance result is claimed.
-Admission failures produce `admission.json`, a nonzero exit and no successful
-sample; there is no fallback to the old sliced application.
+For DBWorker, a narrow synchronous context replaces only the original handler's
+root notification publication. It persists one independent notification job for
+each API call. Its handler invokes the original notification callable and captures
+only the original delivery publication into a separate durable child job. Another
+handler invokes the original delivery callable. Both stages share two process
+slots, matching the native worker's total concurrency. The full 100-operation
+profile therefore requires 100 genuine API successes, 100 notification executions
+and 100 separate delivery executions per arm, plus two excluded warmup operations.
 
-Offline checks verify the original worker command, absence of AST/module
-projection and separate durable row/trace graph accounting. They do not claim
-that native models, migrations, hooks, transport or retries were executed.
+Root and child submission intent is observed before jobs become visible to
+workers; successful DBWorker execution is observed after the source/ledger commit.
+Actual worker processes verify the unchanged original registered callables. Trace
+admission checks job identities, counts, edges, chronological phases and explicit
+warmup identities. Captured clock boundaries cover publication, all API effects,
+SMTP acceptance and both successful business stages. Final output validation
+checks native message content and MessagingRecord/user/campaign correspondence.
+
+The previous native notification-only experiment completed successfully on GitHub
+CI; its measurements remain historical and do not represent this expanded API
+workload. The current handler-based workload requires new full GitHub measurements
+before publishing scores. Provisioning keeps the complete frozen original
+application dependencies and verified native schema; no sliced dependency app or
+fallback model graph is used.
+
+Native Celery signals, metrics hooks, acknowledgments and autoretry wrappers are
+retained on the baseline. DBWorker invokes the original business callable and owns
+its execution lifecycle. Its exception policy persists max-three exponential
+backoff/jitter, but successful-work admission rejects observed retries or duplicate
+attempts. Fault recovery, ambiguous SMTP acceptance, crash/replay, deduplication,
+ClickHouse work and complete middleware/network behavior are not established by
+this successful-work benchmark.

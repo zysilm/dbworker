@@ -8,11 +8,11 @@ from contextlib import contextmanager
 from types import SimpleNamespace
 
 from kombu.serialization import dumps, loads
-from sqlalchemy import Integer, String, Text, create_engine
+from sqlalchemy import Integer, String, Text, create_engine, event
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 from dbworker import Coordinator, Finished
-from benchmarks.common.native_observer import job_context, record
+from benchmarks.common.native_observer import job_context, record, worker_origin, argument_digest
 
 STAGES = {
     "export-products": "export",
@@ -39,13 +39,19 @@ def enqueue(task_name, args, kwargs, operation_id, parent_id=None):
     if task_name not in STAGES:
         raise RuntimeError(f"Unsupported Saleor continuation: {task_name}")
     _, _, encoded = dumps([list(args), kwargs], serializer="json")
+    encoded_args, encoded_kwargs = loads(encoded, "application/json", "utf-8")
+    fingerprint = argument_digest(encoded_args, encoded_kwargs)
     identity = str(uuid.uuid4())
     engine = create_engine(os.environ["DBWORKER_DATABASE_URL"])
     try:
         with sessionmaker(engine).begin() as session:
             session.add(Job(task_id=identity, operation_id=str(operation_id), parent_id=parent_id,
                             task_name=task_name, payload=encoded))
-        record(STAGES[task_name], operation_id, identity, "submitted", parent_id, backend="dbworker")
+            # Record publication intent before making the durable row visible,
+            # just as native observation precedes broker transport. A failed
+            # commit leaves an unmatched intent that fails trace admission.
+            record(STAGES[task_name], operation_id, identity, "submitted", parent_id,
+                   backend="dbworker", task_name=task_name, argument_sha256=fingerprint)
     finally:
         engine.dispose()
     return SimpleNamespace(id=identity)
@@ -85,7 +91,10 @@ def handle(job, session):
     task = app.tasks[task_name]
     args, kwargs = loads(payload, "application/json", "utf-8")
     stage = STAGES[task_name]
-    record(stage, operation_id, identity, "started", parent_id, backend="dbworker")
+    origin = worker_origin(task, "saleor")
+    fingerprint = argument_digest(args, kwargs)
+    record(stage, operation_id, identity, "started", parent_id, backend="dbworker",
+           task_name=task_name, native_worker_origin=origin, argument_sha256=fingerprint)
     close_old_connections()
     try:
         with job_context(operation_id, identity), durable_children(operation_id, identity):
@@ -96,11 +105,17 @@ def handle(job, session):
                 raise
             task.on_success(result, identity, args, kwargs)
     except Exception:
-        record(stage, operation_id, identity, "failed", parent_id, backend="dbworker")
+        record(stage, operation_id, identity, "failed", parent_id, backend="dbworker", task_name=task_name)
         raise
     finally:
         close_old_connections()
-    record(stage, operation_id, identity, "succeeded", parent_id, backend="dbworker")
+    # The coordinator commits Finished after this handler returns. Trace success
+    # only after that durable transaction, not before Work reaches FINISHED.
+    def committed(committed_session):
+        record(stage, operation_id, identity, "succeeded", parent_id,
+               backend="dbworker", task_name=task_name, argument_sha256=fingerprint)
+
+    event.listen(session, "after_commit", committed, once=True)
     return Finished()
 
 

@@ -16,6 +16,44 @@ from benchmarks.common.performance_admission import validate_native_report
 from benchmarks.render_results import render
 
 
+def safe_evidence_path(root: Path, path: Path) -> Path:
+    """Reject evidence that escapes its directory through traversal or symlinks."""
+    root = root.absolute()
+    if root.is_symlink():
+        raise ValueError("Symlink evidence directory is not permitted")
+    path = path.absolute()
+    try:
+        relative = path.relative_to(root)
+    except ValueError as error:
+        raise ValueError("Evidence path escapes its directory") from error
+    if not relative.parts or any(part in (".", "..") for part in relative.parts):
+        raise ValueError("Unsafe evidence path")
+    current = root
+    for part in relative.parts:
+        current /= part
+        if current.is_symlink():
+            raise ValueError("Symlink evidence is not permitted")
+    if path.resolve() != root.resolve() / relative:
+        raise ValueError("Evidence path escapes its directory")
+    return path
+
+
+def publication_evidence(directory: Path) -> list[Path]:
+    """Select only persisted replay receipts; runtime files are never published."""
+    paths = [directory / "index.json", directory / "report.md"]
+    index = json.loads((directory / "index.json").read_text())
+    for entry in index["reports"]:
+        relative = Path(entry["path"])
+        if relative.is_absolute() or len(relative.parts) != 1 or relative.suffix != ".json":
+            raise ValueError("Published report path must be a JSON basename")
+        paths.append(directory / relative)
+    for pattern in ("sample.json", "smtp-evidence.json", "*.jsonl"):
+        paths += sorted(directory.rglob(pattern))
+    if (directory / "imagededup.raw.json").is_file():
+        paths.append(directory / "imagededup.raw.json")
+    return [safe_evidence_path(directory, path) for path in paths]
+
+
 def package(source: Path, output: Path, suite: str) -> None:
     """Retain report evidence and logs, excluding databases, media and configs."""
     output.mkdir(parents=True, exist_ok=False)
@@ -23,11 +61,13 @@ def package(source: Path, output: Path, suite: str) -> None:
     if suite == "imagededup":
         paths.append(source / "imagededup.raw.json")
     paths += sorted(source.rglob("sample.json"))
+    paths += sorted(source.rglob("smtp-evidence.json"))
     paths += sorted(source.rglob("*.log"))
     paths += sorted(source.rglob("*.jsonl"))
     paths += sorted(source.rglob("admission.json"))
     for path in paths:
-        if path.is_file() and not path.is_symlink():
+        safe_evidence_path(source, path)
+        if path.is_file():
             target = output / path.relative_to(source)
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(path, target)
@@ -45,14 +85,15 @@ def combine(incoming: Path, output: Path, *, run_id: str, commit: str,
     validated = []
     for suite in suites:
         name = suite["suite_id"]
-        directory = incoming / name
+        directory = safe_evidence_path(incoming, incoming / name)
+        safe_evidence_path(directory, directory / "index.json")
         part = json.loads((directory / "index.json").read_text())
         if (part.get("run_id"), part.get("profile"), part.get("status")) != (run_id, "full", "passed"):
             raise ValueError(f"Invalid matrix index identity: {name}")
         if part.get("required_suites") != identifiers or len(part["reports"]) != 1:
             raise ValueError(f"Invalid matrix coverage: {name}")
         entry = part["reports"][0]
-        path = directory / f"{name}.json"
+        path = safe_evidence_path(directory, directory / f"{name}.json")
         if (entry["suite_id"], entry["path"], entry["status"], entry["sha256"]) != (
                 name, path.name, "passed", digest(path)):
             raise ValueError(f"Matrix checksum or status mismatch: {name}")
@@ -80,8 +121,9 @@ def combine(incoming: Path, output: Path, *, run_id: str, commit: str,
     output.mkdir(parents=True, exist_ok=False)
     for directory, path, entry in validated:
         shutil.copyfile(path, output / path.name)
-        for evidence in [directory / "imagededup.raw.json", *directory.rglob("sample.json"), *directory.rglob("*.jsonl")]:
-            if evidence.is_file() and not evidence.is_symlink():
+        for evidence in [directory / "imagededup.raw.json", *directory.rglob("sample.json"), *directory.rglob("smtp-evidence.json"), *directory.rglob("*.jsonl")]:
+            safe_evidence_path(directory, evidence)
+            if evidence.is_file():
                 target = output / evidence.relative_to(directory)
                 target.parent.mkdir(parents=True, exist_ok=True)
                 if target.exists():

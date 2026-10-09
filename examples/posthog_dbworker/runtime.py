@@ -5,7 +5,7 @@ import time
 from sqlalchemy import JSON, Float, Integer, String, create_engine, event, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 from dbworker import Coordinator, Finished, Unfinished
-from benchmarks.common.native_observer import job_context, record
+from benchmarks.common.native_observer import job_context, record, worker_origin, argument_digest
 from examples.dbworker_integration.runtime import forbid_task_dispatch
 
 STAGES = {"posthog.tasks.email.send_two_factor_auth_enabled_email": "notification",
@@ -33,18 +33,24 @@ def node(operation_id, stage):
 def enqueue(session, operation_id, user_id):
     job = Job(operation_id=operation_id, stage="notification", payload={"user_id": user_id})
     session.add(job)
-    record("notification", operation_id, node(operation_id, "notification"), "submitted", backend="dbworker")
+    record("notification", operation_id, node(operation_id, "notification"), "submitted", backend="dbworker",
+           argument_sha256=argument_digest((user_id,), {}))
     return job
 
 
 def handle(job, session):
     from examples.posthog_dbworker import adapter
-    adapter.initialize()
+    app = adapter.initialize()
     from django.db import close_old_connections
     identity, op, stage, parent, payload, attempts = job.id, job.operation_id, job.stage, job.parent_id, dict(job.payload), job.attempts
     session.rollback()
     identity_node = node(op, stage)
-    record(stage, op, identity_node, "started", parent, backend="dbworker")
+    task_name = next(name for name, task_stage in STAGES.items() if task_stage == stage)
+    origin = worker_origin(app.tasks[task_name], "posthog")
+    record(stage, op, identity_node, "started", parent, backend="dbworker",
+           task_name=task_name, native_worker_origin=origin,
+           argument_sha256=argument_digest((payload["user_id"],), {}) if stage == "notification"
+           else argument_digest((), payload))
     close_old_connections()
     try:
         with job_context(op, identity_node), forbid_task_dispatch():
@@ -54,7 +60,8 @@ def handle(job, session):
                     child = Job(operation_id=op, stage="delivery", parent_id=identity_node, payload=arguments)
                     session.add(child)
                     children.append(child)
-                    record("delivery", op, node(op, "delivery"), "submitted", identity_node, backend="dbworker")
+                    record("delivery", op, node(op, "delivery"), "submitted", identity_node, backend="dbworker",
+                           argument_sha256=argument_digest((), arguments))
                 adapter.notify(payload["user_id"], submit)
                 if len(children) != 1:
                     raise RuntimeError("Native notification did not produce exactly one independent delivery")

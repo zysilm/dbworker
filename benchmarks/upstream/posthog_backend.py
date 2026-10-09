@@ -31,6 +31,8 @@ from examples.posthog_dbworker.runtime import Job, STAGES, coordinator, enqueue
 from benchmarks.common.native_observer import operation
 from benchmarks.common.native_admission import check_original_tasks
 from benchmarks.common.workflow_graph import read_trace, validate_graph
+from benchmarks.common.timing_evidence import begin_window, end_window, elapsed_seconds, validate_timing_window
+from examples.posthog_dbworker import producer
 
 
 def port():
@@ -139,8 +141,6 @@ def main():
             rebuild=os.environ.get('POSTHOG_BENCHMARK_REBUILD_SETUP_CACHE') == '1')
         from posthog.models import User
         from posthog.models.messaging import MessagingRecord
-        from posthog.tasks.email import send_two_factor_auth_enabled_email
-        from posthog.email import _send_email
         native_execution = check_original_tasks(app, list(STAGES), ROOT / "examples/posthog",
             expected_application="posthog.celery:app", configuration={
                 "native_settings": "posthog.settings", "task_queue": "email",
@@ -151,12 +151,13 @@ def main():
                 "worker_prefetch_multiplier": app.conf.worker_prefetch_multiplier,
                 "worker_total_concurrency": 2, "dbworker_shared_stage_pool": 2,
                 "task_acks_late": app.conf.task_acks_late})
-        users, expected = [], {}
+        users, expected, fixtures = [], {}, []
         for index in range(profile["requests"] + 2):
             recipient = f"recipient-{index:04d}@benchmark.invalid"
             user = User.objects.create_user(email=recipient, password=None,
                 first_name=f"Benchmark User {index:04d}", distinct_id=f"benchmark-user-{index:04d}")
             users.append(user)
+            fixtures.append(producer.prepare(user))
             expected[recipient] = {"recipient": recipient, "name": user.first_name,
                                   "subject": "You've enabled 2FA protection"}
         trace = directory / "workflow.jsonl"
@@ -173,17 +174,27 @@ def main():
         else:
             runtime.start()
 
-        def execute_batch(values, warmup=False):
+        warmup_operations = [f"warmup:notification-{i:04d}" for i in range(2)]
+        producer_identities, api_outcomes = [], []
+
+        def execute_batch(values, fixture_values, warmup=False):
             ops = [("warmup:" if warmup else "") + f"notification-{i:04d}" for i in range(len(values))]
-            started = time.perf_counter()
-            if args.backend == "celery":
-                for op, user in zip(ops, values, strict=True):
-                    with operation(op):
-                        send_two_factor_auth_enabled_email.apply_async(args=(user.pk,))
-            else:
-                with sessions.begin() as session:
-                    for op, user in zip(ops, values, strict=True):
-                        enqueue(session, op, user.pk)
+            started = begin_window()
+            for op, user, fixture in zip(ops, values, fixture_values, strict=True):
+                # Capture identity before the original endpoint can publish work.
+                producer_identities.append(producer.identity(fixture, op))
+                with operation(op):
+                    if args.backend == "celery":
+                        outcome = producer.validate(fixture)
+                    else:
+                        def submit(user_id):
+                            with sessions.begin() as session:
+                                job = enqueue(session, op, user_id)
+                                session.flush()
+                                return job.id
+                        with producer.route_notification(submit, user.pk):
+                            outcome = producer.validate(fixture)
+                api_outcomes.append({"operation_id": op, **outcome})
             recipients = {user.email for user in values}
             latest_graph_error = None
             def complete():
@@ -195,7 +206,8 @@ def main():
                     return False
                 try:
                     graph = validate_graph(read_trace(trace), ops,
-                        {"notification": 1, "delivery": 1}, [("notification", "delivery")])
+                        {"notification": 1, "delivery": 1}, [("notification", "delivery")],
+                        warmup_operations=[] if warmup else warmup_operations)
                 except ValueError as error:
                     latest_graph_error = str(error)
                     return False
@@ -214,9 +226,12 @@ def main():
                 accepted = sum(row['rcpt_tos'][0] in recipients for row in sink.messages)
                 raise TimeoutError(f'{error}; accepted SMTP messages: {accepted}/{len(values)}; '
                                    f'latest workflow admission error: {latest_graph_error}') from error
-            return time.perf_counter() - started, graph
-        execute_batch(users[:2], warmup=True)
-        seconds, graph = execute_batch(users[2:])
+            window = end_window(started)
+            seconds = elapsed_seconds(window)
+            validate_timing_window(window, seconds, read_trace(trace), ops)
+            return seconds, graph, window
+        execute_batch(users[:2], fixtures[:2], warmup=True)
+        seconds, graph, measurement_window = execute_batch(users[2:], fixtures[2:])
         expected_recipients = sorted(user.email for user in users[2:])
         normalized, ids = [], set()
         for envelope in sink.messages:
@@ -257,7 +272,8 @@ def main():
         normalized.sort(key=lambda item: item["recipient"])
         source = ROOT / "examples/posthog/posthog"
         source_files = {relative: hashlib.sha256((source / relative).read_bytes()).hexdigest()
-                        for relative in ("email.py", "tasks/email.py", "celery.py", "settings/celery.py")}
+                        for relative in ("email.py", "tasks/email.py", "celery.py", "settings/celery.py", "api/user.py",
+                                         "helpers/session_cache.py", "session/activity.py")}
         packages = {name: importlib.metadata.version(name) for name in ("django", "celery", "css-inline", "sqlalchemy", "posthoganalytics")}
         row = {"scenario": "native_two_factor_notification", "comparison_mode": "native_execution",
                "backend": args.backend, "repetition": args.repetition, "status": "passed",
@@ -271,14 +287,28 @@ def main():
                                "upstream_files": source_files},
                "configuration": {"concurrency": 2, "database": "postgresql", "transport": "real_local_smtp",
                                  "rendering_timed": True, "rendering_validated": True,
-                                 "application_scope": "original notification and delivery stages with full native app/settings",
-                                 "celery_publication": "native notification submission and native nested delivery publication",
+                                 "application_scope": "original authenticated two_factor_validate DRF handler plus notification and delivery",
+                                 "producer_api": "posthog.api.user.UserViewSet.two_factor_validate",
+                                 "request_transport": "DRF handler with native session authentication, CSRF, permissions and throttles; no full middleware/server",
+                                 "producer_api_timed": True, "producer_api_effects_validated": True,
+                                 "celery_publication": "original API .delay and native nested delivery publication",
                                  "fault_recovery": "untested"},
                "dataset": {"template": "2fa_enabled", "requests": profile["requests"], "warmup_requests": 2,
                            "content": "real users and original 2FA notification content"},
-               "capabilities": {"verified": ["upstream_template_rendering", "css_inlining", "smtp_acceptance", "messaging_records", "two_stage_workflow", "native_task_origin"],
-                                "untested": ["whole_2fa_api_operation", "clickhouse_queries", "delivery_retries", "ambiguous_acceptance_recovery",
+               "capabilities": {"verified": ["upstream_template_rendering", "css_inlining", "smtp_acceptance", "messaging_records", "two_stage_workflow", "native_task_origin", "two_factor_validation_api",
+                                             "totp_device", "session_verification", "setup_cache_cleanup", "other_session_revocation"],
+                                "untested": ["whole_http_middleware_stack", "clickhouse_queries", "delivery_retries", "ambiguous_acceptance_recovery",
                                              "campaign_deduplication", "salt_rotation", "rejection_and_error_capture"]}}
+        row["measurement_window"] = measurement_window
+        row["warmup_operations"] = warmup_operations
+        row["producer_identities"] = producer_identities
+        row["producer_api_outcomes"] = api_outcomes
+        row["producer_execution"] = {
+            "passed": True, "api": "posthog.api.user.UserViewSet.two_factor_validate",
+            "source_file": "posthog/api/user.py", "sha256": source_files["api/user.py"],
+            "measured_calls": profile["requests"], "warmup_calls": 2,
+            "effects": ["verified_totp_device", "persistent_session_flags", "setup_cache_cleanup", "other_session_revocation"],
+            "root_jobs_per_call": 1, "delivery_jobs_per_call": 1}
         row["native_execution"] = native_execution
         row["setup"] = setup
         row["workflow_graph"] = graph

@@ -157,3 +157,44 @@ class EvidenceTest(unittest.TestCase):
                 rows[5]["built_artifact_ids"] = built
                 with self.assertRaisesRegex(AssertionError, "transaction-attributed hash"):
                     self.check(rows)
+
+
+class DependencyReceiptTest(unittest.TestCase):
+    records = EvidenceTest.records
+    check = EvidenceTest.check
+    def strict_records(self):
+        rows = self.records()
+        for row in rows:
+            row['backend'] = 'celery'
+            row['timestamp'] = 1.
+            row['source_revision'] = int(row['attempt_id'])
+            if row['stage'] == 'comparison':
+                row['query_artifact_id'] = 1
+        rows.append({'event': 'quiescence_barrier', 'stage': 'barrier', 'workspace_id': None,
+                     'timestamp': 3., 'observed_at': 2.9, 'backend': 'celery', 'idle': True,
+                     'worker_responses_complete': True, 'pending_business_outbox': 0,
+                     'worker_states': {state: {'build': 0, 'comparison': 0}
+                                       for state in ('active', 'reserved', 'scheduled')},
+                     'redis_priority_steps': [0, 3, 6, 9],
+                     'redis_lanes': [{'queue': queue, 'priority': priority, 'messages': 0}
+                                     for queue in ('image_build', 'image_compare') for priority in (0, 3, 6, 9)]})
+        return rows
+
+    def test_actual_query_dependencies_and_revision_receipt_pass(self):
+        self.assertTrue(self.check(self.strict_records())['quiescence_verified'])
+
+    def test_reparented_query_dependency_rejected(self):
+        rows = self.strict_records()
+        for row in rows:
+            if row['stage'] == 'comparison':
+                row['query_artifact_id'] = 2
+        with self.assertRaisesRegex(AssertionError, 'query dependency'):
+            self.check(rows)
+
+    def test_duplicate_positive_native_revision_rejected(self):
+        rows = self.strict_records()
+        for row in rows:
+            if row['stage'] == 'comparison':
+                row['source_revision'] = 0
+        with self.assertRaisesRegex(AssertionError, 'comparison revision'):
+            self.check(rows)

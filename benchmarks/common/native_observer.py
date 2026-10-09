@@ -13,12 +13,62 @@ import threading
 from contextlib import contextmanager
 from pathlib import Path
 
+from benchmarks.common.argument_evidence import argument_digest
+from benchmarks.common.business_input import business_input
+
 _current = contextvars.ContextVar("benchmark_operation", default=None)
 _parent = contextvars.ContextVar("benchmark_parent", default=None)
 _published_context = {}
 _trace_offset = 0
 _trace_identity = None
 _context_lock = threading.RLock()
+_worker_origins = {}
+
+
+def worker_origin(task, suite):
+    """Inspect the original registered body inside its actual worker process.
+
+    Cache by process and callable/code identity, so original pool recycling stays
+    observable and changing a registered callable cannot reuse an old verdict.
+    """
+    from benchmarks.common.native_admission import APPLICATIONS, check_original_tasks
+    root = Path(__file__).resolve().parents[2] / 'examples' / suite
+    if suite == 'sentry':
+        root /= 'src'
+    elif suite == 'imagededup':
+        root = Path(__file__).resolve().parents[2] / 'examples/imagededup_system_redis_celery/src'
+    candidate = task.run
+    if task.app.tasks[task.name] is not task:
+        raise ValueError('Observed worker task differs from the original registry entry')
+    identities = []
+    while True:
+        physical = getattr(candidate, '__func__', candidate)
+        identities.append((id(physical), id(getattr(physical, '__code__', None))))
+        if not hasattr(candidate, '__wrapped__'):
+            break
+        candidate = candidate.__wrapped__
+    original = getattr(task, '_orig_run', None)
+    if original is not None:
+        physical = getattr(original, '__func__', original)
+        identities.append((id(physical), id(getattr(physical, '__code__', None))))
+    key = (os.getpid(), suite, task.name, id(task.app), tuple(identities))
+    if key not in _worker_origins:
+        _worker_origins[key] = check_original_tasks(
+            task.app, [task.name], root, expected_application=APPLICATIONS[suite])
+    return _worker_origins[key]
+
+
+def _observed_worker_origin(task):
+    from benchmarks.common.performance_admission import TASK_STAGES
+    matches = [suite for suite, tasks in TASK_STAGES.items() if task.name in tasks]
+    if len(matches) != 1:
+        return {}  # Non-application unit fixtures are outside native admission.
+    try:
+        return {'native_worker_origin': worker_origin(task, matches[0])}
+    except Exception as error:
+        # Signal receivers must retain a failed proof, even when Celery catches
+        # receiver exceptions and continues executing the original task.
+        return {'native_worker_origin_error': type(error).__name__ + ': ' + str(error)}
 
 
 @contextmanager
@@ -85,7 +135,11 @@ def _publish(sender=None, headers=None, body=None, **kwargs):
     node_id = headers.get("id") or legacy.get("id")
     op = headers.get("benchmark_operation") or _current.get()
     parent = headers.get("benchmark_parent") or headers.get("parent_id") or legacy.get("parent_id") or _parent.get()
-    record(_stage(sender), op, node_id, "submitted", parent, task_name=sender)
+    arguments, keywords = (legacy.get('args', ()), legacy.get('kwargs', {})) if legacy else (body[0], body[1])
+    semantic = business_input(sender, arguments, keywords)
+    record(_stage(sender), op, node_id, "submitted", parent, task_name=sender,
+           argument_sha256=argument_digest(arguments, keywords),
+           **({'business_input': semantic} if semantic else {}))
 
 
 def _context(node_id):
@@ -119,15 +173,19 @@ def _context(node_id):
     return _published_context.get(str(node_id), (None, None))
 
 
-def _started(sender=None, task_id=None, task=None, **kwargs):
+def _started(sender=None, task_id=None, task=None, args=None, kwargs=None, **signal_kwargs):
     task = task or sender
     headers = getattr(task.request, "headers", None) or {}
     observed_op, observed_parent = _context(task_id)
     op = headers.get("benchmark_operation") or observed_op
     _current.set(op)
     _parent.set(task_id)
+    semantic = business_input(task.name, args or (), kwargs or {})
     record(_stage(task.name), op, task_id, "started",
-           headers.get("benchmark_parent") or getattr(task.request, "parent_id", None) or observed_parent, task_name=task.name)
+           headers.get("benchmark_parent") or getattr(task.request, "parent_id", None) or observed_parent,
+           task_name=task.name, argument_sha256=argument_digest(args or (), kwargs or {}),
+           **({'business_input': semantic} if semantic else {}),
+           **_observed_worker_origin(task))
 
 
 def _finished(sender=None, task_id=None, task=None, state=None, **kwargs):

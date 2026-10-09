@@ -23,7 +23,7 @@ def read_trace(path):
     return records
 
 
-def validate_graph(events, expected_operations, expected_stages, expected_edges=()):
+def validate_graph(events, expected_operations, expected_stages, expected_edges=(), *, warmup_operations=None):
     """Validate a successful-work contract using actual observed task identities.
 
     expected_stages maps each stage to its per-operation job count. Expected
@@ -38,6 +38,14 @@ def validate_graph(events, expected_operations, expected_stages, expected_edges=
         raise WorkflowMismatch("Expected operation identities must be nonempty and unique")
     if not expected_stages or any(not isinstance(v, int) or isinstance(v, bool) or v < 1 for v in expected_stages.values()):
         raise WorkflowMismatch("Expected stages require positive job counts")
+    # None is reserved for legacy offline replay. New admission supplies known
+    # fixture identities explicitly; a prefix alone is not authorization.
+    legacy_warmup = warmup_operations is None
+    warmup_operations = [] if legacy_warmup else list(warmup_operations)
+    if (any(not isinstance(op, str) or not op.startswith("warmup:") for op in warmup_operations)
+            or len(set(warmup_operations)) != len(warmup_operations)
+            or set(operations) & set(warmup_operations)):
+        raise WorkflowMismatch("Warmup identities must be explicit, unique and disjoint")
     jobs = defaultdict(list)
     warmup = []
     backends = set()
@@ -54,7 +62,7 @@ def validate_graph(events, expected_operations, expected_stages, expected_edges=
         if not isinstance(op, str) or not op or op == 'None':
             raise WorkflowMismatch("Uncorrelated task in native workflow trace")
         if op not in operations:
-            if op.startswith("warmup:"):
+            if op in warmup_operations or (legacy_warmup and op.startswith("warmup:")):
                 warmup.append(row)
                 continue
             raise WorkflowMismatch(f"Unexpected operation: {op}")
@@ -81,11 +89,19 @@ def validate_graph(events, expected_operations, expected_stages, expected_edges=
         if len(identities) != 1:
             raise WorkflowMismatch(f"Task identity changed: {node}")
         op, stage, parent = next(iter(identities))
-        phases = Counter(r['event'] for r in rows)
+        if any(r.get("event") not in ("submitted", "started", "succeeded") for r in rows):
+            raise WorkflowMismatch(f"Missing or unknown task phase: {node}")
+        phases = Counter(r["event"] for r in rows)
         if phases != Counter({'submitted': 1, 'started': 1, 'succeeded': 1}):
             raise WorkflowMismatch(f"Missing, duplicate or failed task attempts: {node}: {dict(phases)}")
+        timestamps = {r["event"]: r.get("timestamp_ns") for r in rows}
+        if any(type(value) is not int or value <= 0 for value in timestamps.values()):
+            raise WorkflowMismatch(f"Missing or invalid task timestamp: {node}")
+        if not timestamps["submitted"] <= timestamps["started"] <= timestamps["succeeded"]:
+            raise WorkflowMismatch(f"Task phase chronology differs: {node}")
         normalized[node] = {'operation_id': op, 'stage': stage, 'parent_id': parent}
         counts[stage] += 1
+    phase_times = {node: {r["event"]: r["timestamp_ns"] for r in rows} for node, rows in jobs.items()}
     expected_edge_counts = Counter(tuple(edge) for edge in expected_edges)
     for op in operations:
         selected = {node: row for node, row in normalized.items() if row['operation_id'] == op}
@@ -99,6 +115,8 @@ def validate_graph(events, expected_operations, expected_stages, expected_edges=
                 continue
             if parent not in selected:
                 raise WorkflowMismatch(f"Missing or cross-operation parent: {node}")
+            if phase_times[node]["submitted"] < phase_times[parent]["started"]:
+                raise WorkflowMismatch(f"Child submitted before parent started: {node}")
             operation_edges[(selected[parent]['stage'], row['stage'])] += 1
             visited = {node}
             cursor = parent

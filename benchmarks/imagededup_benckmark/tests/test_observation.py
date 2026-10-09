@@ -172,8 +172,8 @@ class ObservationTest(unittest.TestCase):
             engine = create_engine(f"sqlite:///{database}")
             Base.metadata.create_all(engine)
             with engine.begin() as connection:
-                connection.exec_driver_sql("CREATE TABLE comparison_request(id INTEGER, workspace_id INTEGER, candidates_scored_count INTEGER)")
-                connection.exec_driver_sql("INSERT INTO comparison_request VALUES(1, 1, 0)")
+                connection.exec_driver_sql("CREATE TABLE comparison_request(id INTEGER, workspace_id INTEGER, candidates_scored_count INTEGER, query_artifact_id INTEGER)")
+                connection.exec_driver_sql("INSERT INTO comparison_request VALUES(1, 1, 0, 1)")
             environment = {"IMAGE_OBSERVATION_DATABASE": str(database), "IMAGE_OBSERVATION_FILE": str(output),
                            "IMAGE_OBSERVATION_BACKEND": "celery"}
             observation.install_transaction_observers()
@@ -216,8 +216,8 @@ class ObservationTest(unittest.TestCase):
             engine = create_engine(f"sqlite:///{database}")
             Base.metadata.create_all(engine)
             with engine.begin() as connection:
-                connection.exec_driver_sql("CREATE TABLE comparison_request(id INTEGER, workspace_id INTEGER, candidates_scored_count INTEGER)")
-                connection.exec_driver_sql("INSERT INTO comparison_request VALUES(1, 1, 0)")
+                connection.exec_driver_sql("CREATE TABLE comparison_request(id INTEGER, workspace_id INTEGER, candidates_scored_count INTEGER, query_artifact_id INTEGER)")
+                connection.exec_driver_sql("INSERT INTO comparison_request VALUES(1, 1, 0, 1)")
             environment = {"IMAGE_OBSERVATION_DATABASE": str(database), "IMAGE_OBSERVATION_FILE": str(output),
                            "IMAGE_OBSERVATION_BACKEND": "dbworker"}
             with patch.dict(os.environ, environment), Session(engine) as session:
@@ -237,8 +237,8 @@ class ObservationTest(unittest.TestCase):
             engine = create_engine(f"sqlite:///{database}")
             Base.metadata.create_all(engine)
             with engine.begin() as connection:
-                connection.exec_driver_sql("CREATE TABLE comparison_request(id INTEGER, workspace_id INTEGER, candidates_scored_count INTEGER)")
-                connection.exec_driver_sql("INSERT INTO comparison_request VALUES(1, 1, 0)")
+                connection.exec_driver_sql("CREATE TABLE comparison_request(id INTEGER, workspace_id INTEGER, candidates_scored_count INTEGER, query_artifact_id INTEGER)")
+                connection.exec_driver_sql("INSERT INTO comparison_request VALUES(1, 1, 0, 1)")
             environment = {"IMAGE_OBSERVATION_DATABASE": str(database), "IMAGE_OBSERVATION_FILE": str(output),
                            "IMAGE_OBSERVATION_BACKEND": "dbworker"}
             with patch.dict(os.environ, environment), Session(engine) as session:
@@ -277,8 +277,8 @@ class ObservationTest(unittest.TestCase):
             database, output = Path(directory, "application.db"), Path(directory, "operations.jsonl")
             engine = create_engine(f"sqlite:///{database}")
             with engine.begin() as connection:
-                connection.exec_driver_sql("CREATE TABLE comparison_request(id INTEGER, workspace_id INTEGER, candidates_scored_count INTEGER)")
-                connection.exec_driver_sql("INSERT INTO comparison_request VALUES(1, 1, 0)")
+                connection.exec_driver_sql("CREATE TABLE comparison_request(id INTEGER, workspace_id INTEGER, candidates_scored_count INTEGER, query_artifact_id INTEGER)")
+                connection.exec_driver_sql("INSERT INTO comparison_request VALUES(1, 1, 0, 1)")
             environment = {"IMAGE_OBSERVATION_DATABASE": str(database), "IMAGE_OBSERVATION_FILE": str(output),
                            "IMAGE_OBSERVATION_BACKEND": "dbworker"}
             with patch.dict(os.environ, environment), Session(engine) as session:

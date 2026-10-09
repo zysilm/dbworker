@@ -10,8 +10,10 @@ taskbroker and broader notification workflows are outside this historical suite.
 
 Both arms call the real `MessageBuilder.send_async`. Native template rendering,
 CSS inlining, subject normalization, generated message IDs, reply headers,
-recipient deduplication, silo routing, queued-email logging, and metrics remain
-enabled. The fixture supplies two distinct recipients plus a duplicate and an
+recipient deduplication, silo routing, queued-email logging, and metrics inside the original task body remain
+enabled. Native Celery worker signal metrics are distinct: DBWorker does not
+emit Sentry's separate signal-driven `jobs.started`/`jobs.finished` counters or
+create a Celery request context. The fixture supplies two distinct recipients plus a duplicate and an
 empty address. Native deduplication therefore publishes two independent delivery
 jobs per operation: 100 measured operations require 200 delivered messages.
 
@@ -114,9 +116,17 @@ retried, uncorrelated, or unexpected business nodes.
 
 The SMTP oracle checks exact recipient identities, envelopes, visible address and
 reply headers, normalized subject, independently expected text and HTML template
-content, inlined CSS, and unique native message IDs. Generated Message-Id, Date,
+content, inlined CSS, one valid native Message-ID and Date header per receipt.
+Original random Message-ID values can collide; collision diagnostics are separate
+from the exact unique operation/recipient delivery requirement. Generated Message-Id, Date,
 and MIME boundaries are excluded from cross-backend output normalization.
-`smtp-delivery.json` retains the normalized content. CPU and summed process RSS
+`smtp-evidence.json` retains safe decoded observed headers, their occurrences,
+SMTP envelopes and MIME text/HTML parts. Aggregate admission derives the trusted
+100-operation fixture independently, repeats the content oracle and recomputes
+the business digest. Raw synthetic MIME receipts remain matrix diagnostics.
+`measurement_window` binds the reported monotonic duration to Unix trace timestamps;
+every measured publication/start/success must fall inside its recorded bounds.
+The two warmup operation IDs are explicitly recorded and excluded. CPU and summed process RSS
 cover the producer, receiver, coordinator, Redis, persistent workers and children;
 shared pages can be counted twice in summed RSS.
 

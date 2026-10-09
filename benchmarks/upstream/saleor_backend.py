@@ -27,10 +27,12 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
 from benchmarks.common.reporting import write_json
-from examples.saleor_dbworker.runtime import Job, STAGES, coordinator, enqueue
-from benchmarks.common.native_observer import operation
+from examples.saleor_dbworker.runtime import Job, STAGES, coordinator, durable_children
+from benchmarks.common.native_observer import operation, argument_digest
 from benchmarks.common.workflow_graph import read_trace, validate_graph
 from benchmarks.common.native_admission import check_original_tasks
+from benchmarks.common.timing_evidence import begin_window, end_window, elapsed_seconds
+from examples.saleor_dbworker.producer import post_export, export_key
 
 
 def wait_for(predicate, timeout=180):
@@ -127,17 +129,27 @@ def main():
         os.environ["SALEOR_BENCHMARK_SETUP"] = "1"
         command([sys.executable, "-m", "django", "migrate", "--noinput"], "migrations.log")
         os.environ.pop("SALEOR_BENCHMARK_SETUP")
+        # Generate an isolated signing key in memory: original JWT authentication
+        # runs normally, and upstream debug-key creation must not modify checkout.
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+        signing_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        os.environ["RSA_PRIVATE_KEY"] = signing_key.private_bytes(
+            serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+            serialization.NoEncryption()).decode()
         from examples.saleor_dbworker.adapter import initialize
         initialize()
         from django.db import connections
         from saleor.core import JobStatus
         from saleor.core.db.connection import allow_writer
         from saleor.csv import ExportEvents
-        from saleor.csv.events import export_started_event
         from saleor.csv.models import ExportFile
         from saleor.product.models import Product, ProductType, ProductVariant
         from saleor.account.models import User
-        from saleor.csv.tasks import export_products_task
+        from saleor.permission.models import Permission
+        from saleor.permission.enums import ProductPermissions
+        from saleor.core.jwt import create_access_token
+        from django.test import Client
         from saleor.celeryconf import app as celery
         from saleor.plugins.admin_email import tasks as email_tasks  # noqa: F401
         native_configuration = {key: celery.conf[key] for key in (
@@ -157,17 +169,28 @@ def main():
                                                 for i, p in enumerate(products)])
             users = [User.objects.create(email=f"export-{i}@example.test", is_staff=True)
                      for i in range(profile["requests"] + 2)]
-            exports = [ExportFile.objects.create(user=user) for user in users]
-            for export in exports:
-                export_started_event(export_file=export)
+            permission = Permission.objects.get(codename="manage_products", content_type__app_label="product")
+            for user in users:
+                user.user_permissions.add(permission)
+            denied_user = User.objects.create(email="denied@example.test", is_staff=True)
+        if any(user.is_superuser or not user.has_perm(ProductPermissions.MANAGE_PRODUCTS.value)
+               for user in users):
+            raise AssertionError("Export fixtures must have real MANAGE_PRODUCTS permission without superuser bypass")
+        graphql_client = Client()
+        tokens = [create_access_token(user) for user in users]
+        product_ids = [base64.b64encode(f"Product:{product.pk}".encode()).decode() for product in products]
+        # Exercise real JWT/permission enforcement outside measurement. A denied
+        # request must neither create an export nor publish any business job.
+        before = ExportFile.objects.count()
+        denied = post_export(graphql_client, create_access_token(denied_user), product_ids)
+        errors = denied.get("errors") or []
+        if not any((error.get("extensions") or {}).get("exception", {}).get("code") == "PermissionDenied"
+                   for error in errors) or ExportFile.objects.count() != before:
+            raise AssertionError("Original GraphQL export permission enforcement failed")
         # Expected rows are built from the deterministic fixture independently of
         # Saleor's transformation and CSV writer.
         expected = [[base64.b64encode(f"Product:{p.pk}".encode()).decode(), f"Product {i:04d}",
                      "Benchmark type", f"SKU-{i:04d}"] for i, p in enumerate(products)]
-
-        def payload(key):
-            return {"export_file_id": key, "scope": {"ids": [p.pk for p in products]},
-                    "export_info": {"fields": ["name", "product type", "variant sku"]}, "file_type": "csv"}
 
         connections.close_all()
         url = os.environ["DBWORKER_DATABASE_URL"]
@@ -198,17 +221,42 @@ def main():
         else:
             runtime.start()
 
-        def batch(items, warmup=False):
-            operations = [(f"warmup:{item.pk}" if warmup else str(item.pk)) for item in items]
-            started = time.perf_counter()
-            for item, op in zip(items, operations, strict=True):
-                data = payload(item.pk)
-                arguments = (item.pk, data["scope"], data["export_info"], data["file_type"])
-                if args.backend == "celery":
-                    with operation(op):
-                        export_products_task.delay(*arguments)
-                else:
-                    enqueue("export-products", arguments, {}, op)
+        operation_bindings = []
+
+        def batch(indices, warmup=False):
+            operations = [f"warmup:{i}" if warmup else str(i - 2) for i in indices]
+            items = []
+            started = begin_window()
+            for index, op in zip(indices, operations, strict=True):
+                with operation(op):
+                    if args.backend == "celery":
+                        content = post_export(graphql_client, tokens[index], product_ids)
+                    else:
+                        # The unchanged mutation owns normalization, permissions,
+                        # ExportFile and pending event creation, and Task.delay.
+                        with durable_children(op, None):
+                            content = post_export(graphql_client, tokens[index], product_ids)
+                item = ExportFile.objects.get(pk=export_key(content))
+                if item.user_id != users[index].pk:
+                    raise AssertionError("GraphQL producer associated an incorrect authenticated user")
+                submissions = [event for event in read_trace(os.environ["BENCHMARK_TRACE_PATH"])
+                               if event["operation_id"] == op and event["stage"] == "export"
+                               and event["event"] == "submitted"]
+                if len(submissions) != 1:
+                    raise AssertionError("Original GraphQL producer did not publish exactly one export task")
+                # Independently bind the public request's expected normalized
+                # arguments to the actual original producer publication. These
+                # values are an oracle, never submitted by the benchmark.
+                expected_arguments = (item.pk, {"ids": [str(product.pk) for product in products]},
+                                      {"fields": ["name", "product type", "variant sku"]}, "csv")
+                expected_fingerprint = argument_digest(expected_arguments, {})
+                if submissions[0]["details"].get("argument_sha256") != expected_fingerprint:
+                    raise AssertionError("Original GraphQL publication does not match returned export and public input")
+                operation_bindings.append({"operation_id": op, "export_file_id": item.pk,
+                                           "user_email": users[index].email,
+                                           "root_node_id": submissions[0]["node_id"],
+                                           "root_argument_sha256": expected_fingerprint})
+                items.append(item)
 
             def complete():
                 if any(child.poll() is not None for child in children):
@@ -239,10 +287,12 @@ def main():
                 return len(successes) == len(items) * 2
 
             wait_for(complete)
-            return time.perf_counter() - started
+            return items, end_window(started)
 
-        batch(exports[:2], warmup=True)
-        seconds = batch(exports[2:])
+        warmup_exports, _ = batch(list(range(2)), warmup=True)
+        measured_exports, measurement_window = batch(list(range(2, len(users))))
+        exports = warmup_exports + measured_exports
+        seconds = elapsed_seconds(measurement_window)
         connections.close_all()
         if len(sink.messages) != len(exports):
             raise AssertionError("Unexpected SMTP deliveries outside the configured workload")
@@ -272,8 +322,9 @@ def main():
             normalized.append({"rows": rows, "status": export.status, "events": sorted(events),
                                "recipient": export.user.email, "subject": str(message["Subject"])})
         graph = validate_graph(read_trace(os.environ["BENCHMARK_TRACE_PATH"]),
-                               [str(item.pk) for item in exports[2:]],
-                               {"export": 1, "email": 1}, [("export", "email")])
+                               [str(index) for index in range(profile["requests"])],
+                               {"export": 1, "email": 1}, [("export", "email")],
+                               warmup_operations=["warmup:0", "warmup:1"])
         row = {"scenario": "product_csv_export", "comparison_mode": "native_application_workflow",
                "backend": args.backend, "repetition": args.repetition, "status": "passed",
                "metrics": {"wall_seconds": seconds, "exports_per_second": len(exports[2:]) / seconds},
@@ -306,11 +357,20 @@ def main():
                           "generation": "Product i, SKU-i, one variant per product",
                           "exports": len(exports[2:])}
         row["capabilities"] = {
-            "verified": ["native_export_task", "real_product_csv_export", "independent_csv_oracle",
+            "verified": ["authenticated_graphql_export_producer", "real_manage_products_permission", "native_export_task", "real_product_csv_export", "independent_csv_oracle",
                          "durable_job_success", "export_and_email_events", "separate_email_jobs",
                          "real_smtp_acceptance", "observed_business_job_graph"],
             "untested": ["crash_recovery", "replica_lag", "webhook_delivery", "failure_and_retry_lifecycle", "outbox_recovery"],
-            "scope": "Native Saleor export and separate admin-email workflow; upstream plugins restored, no webhook subscriptions",
+            "scope": "Original authenticated GraphQL ExportProducts mutation and separate admin-email workflow; upstream plugins restored, no webhook subscriptions",
+        }
+        row["measurement_window"] = measurement_window
+        row["warmup_operations"] = ["warmup:0", "warmup:1"]
+        row["operation_binding"] = {
+            "producer": "saleor.graphql.csv.mutations.export_products.ExportProducts",
+            "entrypoint": "authenticated POST /graphql/ exportProducts",
+            "public_input": {"product_ids": [str(product.pk) for product in products],
+                             "fields": ["name", "product type", "variant sku"], "file_type": "csv"},
+            "bindings": operation_bindings,
         }
         row["workflow_graph"] = graph
         trace_path = Path(os.environ["BENCHMARK_TRACE_PATH"])
@@ -321,7 +381,7 @@ def main():
         if args.backend == "celery":
             row["native_execution"] = native_execution
         row["configuration"]["native_celery"] = native_configuration
-        row["configuration"]["timing_boundary"] = "task publication through export, SMTP acceptance, email event and both completed jobs"
+        row["configuration"]["timing_boundary"] = "authenticated GraphQL request including producer normalization, permissions, export creation and publication through export, SMTP acceptance, email event and both completed jobs"
         write_json(directory / "sample.json", row)
     finally:
         if smtp is not None:

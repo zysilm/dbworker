@@ -18,8 +18,10 @@ SQL execution shortcut. Unexpected nested broker publication is rejected.
 The full profile uses 100 independently submitted aggregation queries per backend
 and repetition, plus two untimed warmups, over a deterministic 10,000-row table.
 Five repetitions are configured. Each measured operation has exactly one `sql_lab`
-job on both backends. Both execute the same query and return ten aggregate rows;
+job on both backends. Both execute the same operation-specific query and return ten aggregate rows;
 an independently calculated oracle checks retrieved results and status.
+Each query scans all 10,000 rows and adds its operation marker to each sum, so
+substituting a different operation's input or result cannot pass the oracle.
 
 Each arm owns SQLite metadata and analytical databases and an isolated Redis service.
 The original configuration's filesystem results cache is redirected to an owned
@@ -36,13 +38,18 @@ ledger commit. Application startup, migrations, fixture creation and warmup are
 outside measurement.
 
 Admission checks the original worker command and live task origin from the pinned
-checkout. Persisted JSONL traces record submitted, started and succeeded jobs by
-operation identity. Result JSON includes their paths and hashes. Independent replay
+checkout, including an origin proof inside each actual task worker. Persisted JSONL
+traces bind publication arguments to worker arguments without publishing their values.
+DBWorker records publication intent before job eligibility and success after its
+completion ledger transaction commits. Result JSON includes explicit warmup identities,
+clock-bracketed monotonic measurement boundaries, trace paths and hashes, and query,
+SQL, user, root-node, result-key and output-digest bindings. Independent replay
 requires one complete job per query and an equal graph on both arms; missing,
 duplicate, unexpected or failed jobs prevent admission.
 
-Full-profile validation of this native workflow is pending. Older paired-callable
-Superset results are historical and must not be presented as native SQL Lab timings.
+The previously published full native run validates the earlier evidence format;
+the stronger worker, argument and timing evidence requires a fresh CI run. Older
+paired-callable Superset results must not be presented as native SQL Lab timings.
 The selected experiment covers successful asynchronous SELECT queries on SQLite.
 It does not verify PostgreSQL, task timeout/cancellation equivalence, crash recovery,
 publication failure, or atomicity across Superset's ORM and the DBWorker ledger.
