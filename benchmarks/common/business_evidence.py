@@ -56,12 +56,15 @@ def _indexed(values, operations):
 
 
 def _roots(events, stage, operations):
+    indexed = {}
+    for event in events:
+        if event.get('stage') == stage and event.get('event') in ('submitted', 'started'):
+            indexed.setdefault((event.get('operation_id'), event['event']), []).append(event)
     roots = {}
     for op in operations:
         phases = {}
         for phase in ('submitted', 'started'):
-            rows = [event for event in events if event.get('operation_id') == op
-                    and event.get('stage') == stage and event.get('event') == phase]
+            rows = indexed.get((op, phase), [])
             _require(len(rows) == 1, 'missing or duplicate root publication/execution')
             event = rows[0]
             _require(event.get('parent_id') is None and isinstance(event.get('details'), dict), 'invalid root task')

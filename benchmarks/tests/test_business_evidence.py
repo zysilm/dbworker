@@ -91,6 +91,15 @@ class BusinessEvidenceTests(unittest.TestCase):
                                      'producer_api_effects_validated': True}
         return row, events
 
+    def test_large_posthog_fixture_rejects_duplicate_phase_at_last_operation(self):
+        row, events = self.fixture('posthog', count=5000)
+        validate_business_binding(row, 'posthog', events, 5000)
+        for phase in ('submitted', 'started'):
+            duplicate = next(event for event in events
+                if event['operation_id'] == 'notification-4999' and event['event'] == phase)
+            with self.subTest(phase=phase), self.assertRaisesRegex(WorkflowMismatch, 'duplicate root'):
+                validate_business_binding(row, 'posthog', [*events, copy.deepcopy(duplicate)], 5000)
+
     def test_saleor_self_consistent_reduced_products_rejected_by_trusted_profile(self):
         from pathlib import Path
         registry = json.loads((Path(__file__).resolve().parents[1] / 'registry.json').read_text())

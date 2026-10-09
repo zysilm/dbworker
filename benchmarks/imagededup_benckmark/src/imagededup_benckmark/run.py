@@ -18,7 +18,7 @@ import psutil
 
 from imagededup_benckmark.dataset import DEFAULT_DIRECTORY, download_dataset
 from imagededup_benckmark.measurement import Measurement, business_capacity, distribution
-from imagededup_benckmark.runtime import WORKERS, Stack
+from imagededup_benckmark.runtime import WORKERS, Stack, SQLITE_BUSY_TIMEOUT_SECONDS, PRODUCER_HTTP_TIMEOUT_SECONDS
 from imagededup_benckmark.evidence import quiesce, verify
 from imagededup_benckmark.observation import read_records
 
@@ -301,6 +301,8 @@ def main(argv: list[str] | None = None) -> None:
                           "build_workers": WORKERS, "comparison_workers": WORKERS, "page_size": args.page_size,
                           "top_k": args.top_k, "max_distance": args.max_distance, "poll_interval": args.poll_interval,
                           "timeout_seconds": args.timeout_seconds, "sqlite_journal_mode": "delete",
+                          "sqlite_busy_timeout_seconds": SQLITE_BUSY_TIMEOUT_SECONDS,
+                          "producer_http_timeout_seconds": PRODUCER_HTTP_TIMEOUT_SECONDS,
                           "producers": args.producers, "submission_window_seconds": (
                               int(args.submission_window_seconds) if args.submission_window_seconds.is_integer()
                               else args.submission_window_seconds),
@@ -323,6 +325,7 @@ def main(argv: list[str] | None = None) -> None:
             "Mixed overlap is observed, not forced: small workloads may finish builds before scoring starts.",
             "Comparison and mixed requests use independent producer HTTP clients and one fixed paced submission window; bulk builds retain the native import API.",
             "Business progress records persisted unfinished comparisons; observer SQL busy events do not measure application write lock waits.",
+            "Both application engines use a 30-second SQLite busy timeout, DELETE journal and unchanged durability; producer HTTP timeout is 60 seconds. No request retries or dropped work are permitted.",
         ],
         "dataset": {"directory": str(dataset_dir), "name": "MIRFLICKR-25K", "selection": manifest},
         "work_directory": str(work_dir), "stacks": [], "runs": [],

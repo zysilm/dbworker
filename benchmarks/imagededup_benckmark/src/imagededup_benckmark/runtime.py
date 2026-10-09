@@ -16,6 +16,13 @@ REPOSITORY = Path(__file__).resolve().parents[4]
 # The standalone image package also uses the repository-wide admission checks.
 sys.path.insert(0, str(REPOSITORY))
 WORKERS = 4
+SQLITE_BUSY_TIMEOUT_SECONDS = 30
+PRODUCER_HTTP_TIMEOUT_SECONDS = 60
+
+
+def sqlite_database_url(database: Path) -> str:
+    """Use identical bounded SQLite writer waiting in both application arms."""
+    return f"sqlite:///{database}?timeout={SQLITE_BUSY_TIMEOUT_SECONDS}"
 
 
 def free_port() -> int:
@@ -147,7 +154,7 @@ print(json.dumps(result))
                 [str(self.python), "-c", code], text=True,
             ))
             if self.backend == "dbwork":
-                env.update(DBWORKER_DATABASE_URL=f"sqlite:///{self.database}", DBWORKER_BUILD_WORKERS="4",
+                env.update(DBWORKER_DATABASE_URL=sqlite_database_url(self.database), DBWORKER_BUILD_WORKERS="4",
                            DBWORKER_COMPARISON_WORKERS="4", DBWORKER_COMPARISON_PAGE_SIZE=str(self.page_size),
                            DBWORKER_IMPORT_ROOT=str(self.import_root))
                 env["DBWORKER_OBSERVER_MODULE"] = "imagededup_benckmark.observation"
@@ -179,7 +186,7 @@ print(json.dumps(evidence))
                 self.start_process("redis", [redis_binary, "--bind", "127.0.0.1", "--port", str(redis_port),
                                    "--dir", str(redis_directory), "--save", "", "--appendonly", "yes",
                                    "--appendfsync", "everysec"], env)
-                env.update(IMAGE_DATABASE_URL=f"sqlite:///{self.database}",
+                env.update(IMAGE_DATABASE_URL=sqlite_database_url(self.database),
                            IMAGE_BROKER_URL=f"redis://127.0.0.1:{redis_port}/0",
                            IMAGE_COMPARISON_PAGE_SIZE=str(self.page_size), IMAGE_DEPENDENCY_WAIT_SECONDS="1",
                            IMAGE_IMPORT_ROOT=str(self.import_root))
@@ -219,7 +226,7 @@ print(json.dumps(evidence))
     def producer_client(self) -> Any:
         """Give each concurrent producer an independent HTTP connection pool."""
         import httpx
-        return httpx.Client(base_url=f"http://127.0.0.1:{self.api_port}", timeout=30)
+        return httpx.Client(base_url=f"http://127.0.0.1:{self.api_port}", timeout=PRODUCER_HTTP_TIMEOUT_SECONDS)
 
     def business_idle_snapshot(self) -> dict:
         if self.backend == "dbwork":

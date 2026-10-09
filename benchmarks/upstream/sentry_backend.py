@@ -422,6 +422,7 @@ def validate_messages(messages, operations):
     from email import policy
     from email.parser import BytesParser
     from lxml import html
+    operations = set(operations)
     normalized, observed = [], set()
     for sender, destinations, raw in messages:
         message = BytesParser(policy=policy.default).parsebytes(raw)

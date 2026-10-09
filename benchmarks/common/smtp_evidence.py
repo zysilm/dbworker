@@ -148,8 +148,10 @@ def business_digest(normalized):
     return hashlib.sha256(json.dumps(normalized, sort_keys=True).encode()).hexdigest()
 
 
-def validate_smtp_evidence(row, directory):
-    """Replay the full trusted 100-operation workload from the published artifact."""
+def validate_smtp_evidence(row, directory, *, expected_requests=100):
+    """Replay a caller-supplied trusted workload, independent of reported counts."""
+    if type(expected_requests) is not int or expected_requests <= 0:
+        raise ValueError("Invalid trusted SMTP request count")
     evidence = row.get("smtp_evidence")
     if (not isinstance(evidence, dict) or set(evidence) != {"path", "sha256", "schema_version"}
             or type(evidence["schema_version"]) is not int or evidence["schema_version"] != 1):
@@ -163,7 +165,7 @@ def validate_smtp_evidence(row, directory):
     raw = path.read_bytes()
     if hashlib.sha256(raw).hexdigest() != evidence["sha256"]:
         raise ValueError("SMTP evidence SHA-256 differs")
-    normalized, ids = replay_messages(json.loads(raw), [str(index) for index in range(100)])
+    normalized, ids = replay_messages(json.loads(raw), [str(index) for index in range(expected_requests)])
     validation = row.get("validation", {})
     if validation.get("output_digest") != business_digest(normalized):
         raise ValueError("SMTP business digest differs")
@@ -172,6 +174,6 @@ def validate_smtp_evidence(row, directory):
             or any(type(reported_ids.get(key)) is not int for key in ("distinct", "collisions"))
             or any(reported_ids.get(key) != value for key, value in ids.items())):
         raise ValueError("SMTP generated-header diagnostics differ")
-    if validation.get("messages") != 200:
+    if type(validation.get("messages")) is not int or validation["messages"] != expected_requests * 2:
         raise ValueError("SMTP message count differs")
-    return {"schema_version": 1, "messages": 200, "output_digest": business_digest(normalized), **ids}
+    return {"schema_version": 1, "messages": expected_requests * 2, "output_digest": business_digest(normalized), **ids}

@@ -13,21 +13,29 @@ from benchmarks.upstream.sentry_backend import SOURCE, message_id_evidence, reci
 
 
 class SentryMimeTest(unittest.TestCase):
-    def messages(self, *, inline=True):
+    def messages(self, *, inline=True, operation_id="0"):
         rows = []
-        for index, recipient in enumerate(recipients("0")):
+        for index, recipient in enumerate(recipients(operation_id)):
             message = EmailMessage()
             message["From"] = "sender@benchmark.invalid"
             message["To"] = recipient
-            message["Reply-To"] = recipients("0")[1 - index]
-            message["Subject"] = "Historical Sentry fixture 0"
+            message["Reply-To"] = recipients(operation_id)[1 - index]
+            message["Subject"] = f"Historical Sentry fixture {operation_id}"
             message["Message-Id"] = f"<20260102030405.1234.{index}@benchmark.invalid>"
-            message["X-Benchmark"] = "0"
-            message.set_content("Plain body 0 with unicode: café")
+            message["X-Benchmark"] = operation_id
+            message.set_content(f"Plain body {operation_id} with unicode: café")
             style = ' style="color: red"' if inline else ""
-            message.add_alternative(f'<html><body><p class="fixture"{style}>HTML body 0: café</p></body></html>', subtype="html")
+            message.add_alternative(f'<html><body><p class="fixture"{style}>HTML body {operation_id}: café</p></body></html>', subtype="html")
             rows.append(("sender@benchmark.invalid", [recipient], message.as_bytes()))
         return rows
+
+    def test_large_operation_identity_retains_exact_recipient_granularity(self):
+        rows = self.messages(operation_id="19999")
+        normalized = validate_messages(rows, ["19999"])
+        self.assertEqual(len(normalized), 2)
+        self.assertEqual([item["to"][0] for item in normalized], recipients("19999"))
+        with self.assertRaisesRegex(AssertionError, "unknown or duplicate"):
+            validate_messages(rows, ["19998"])
 
     def test_original_native_id_collision_does_not_duplicate_distinct_deliveries(self):
         # Execute the pristine upstream function without booting unrelated Sentry

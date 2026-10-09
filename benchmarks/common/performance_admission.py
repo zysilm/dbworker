@@ -145,7 +145,7 @@ def replay_graph(row, suite, directory, expected_requests, *, expected_profile=N
             raise WorkflowMismatch(f'Invalid persisted SQL Lab output evidence: {error}') from error
     if suite == 'sentry':
         try:
-            validate_smtp_evidence(row, directory)
+            validate_smtp_evidence(row, directory, expected_requests=expected_requests)
         except (ValueError, TypeError, KeyError, OSError) as error:
             raise WorkflowMismatch(f'Invalid persisted SMTP business evidence: {error}') from error
     if replayed != graph:

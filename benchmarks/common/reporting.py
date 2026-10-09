@@ -20,7 +20,11 @@ def timestamp() -> str:
 
 def write_json(path: Path, value: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    payload = json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + "\n"
+    compact = json.dumps(value, sort_keys=True, allow_nan=False, separators=(",", ":"))
+    # Keep small reports readable; avoid multiplying large replay receipts with
+    # indentation. Every field remains present for independent admission.
+    payload = (json.dumps(value, indent=2, sort_keys=True, allow_nan=False)
+               if len(compact) < 1_000_000 else compact) + "\n"
     temporary = path.with_name(path.name + ".part")
     temporary.write_text(payload, encoding="utf-8")
     temporary.replace(path)
