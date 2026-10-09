@@ -1,0 +1,54 @@
+{
+  "scope": "Empty SQLite candidate-query diagnostic; no jobs execute; no official performance score",
+  "core_sha256": "07337100d945b0eccc00654138d15b954c3a546d5907482c30d5c7a05b2ce079",
+  "configuration": {
+    "finished_source_rows": 100000,
+    "finished_ledger_rows": 100000,
+    "query_repetitions": 100,
+    "warmup_queries": 1,
+    "workers_started": 0
+  },
+  "sqlite_version": "3.50.4",
+  "journal_mode": "delete",
+  "query_seconds": {
+    "count": 100,
+    "min": 0.008958583232015371,
+    "median": 0.010000708047300577,
+    "p95": 0.013216250110417604,
+    "p99": 0.01611833367496729,
+    "max": 0.019087666179984808
+  },
+  "candidate_sql": "SELECT posthog_notification_job.id \nFROM posthog_notification_job \nWHERE posthog_notification_job.next_run <= 1791579508.501586 AND posthog_notification_job.id IN (SELECT posthog_notification_job.id \nFROM posthog_notification_job LEFT OUTER JOIN posthog_workflow_work ON posthog_workflow_work.source_id = posthog_notification_job.id \nWHERE posthog_workflow_work.source_id IS NULL OR posthog_workflow_work.execution_status = 'unfinished' OR posthog_workflow_work.execution_status = 'working' AND posthog_workflow_work.lease_expires_at < '2026-10-09 20:58:28.501221')\n LIMIT 1 OFFSET 0",
+  "query_plan": [
+    [
+      6,
+      0,
+      91,
+      "SEARCH posthog_notification_job USING INTEGER PRIMARY KEY (rowid=?)"
+    ],
+    [
+      10,
+      0,
+      0,
+      "LIST SUBQUERY 1"
+    ],
+    [
+      14,
+      10,
+      216,
+      "SCAN posthog_notification_job"
+    ],
+    [
+      16,
+      10,
+      45,
+      "SEARCH posthog_workflow_work USING INTEGER PRIMARY KEY (rowid=?) LEFT-JOIN"
+    ],
+    [
+      33,
+      10,
+      0,
+      "CREATE BLOOM FILTER"
+    ]
+  ]
+}

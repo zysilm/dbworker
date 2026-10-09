@@ -1,4 +1,4 @@
-"""Profile the actual coordinator with a PostHog-shaped two-stage PostgreSQL queue.
+"""Profile the actual coordinator with a PostHog-shaped two-stage SQL queue.
 
 This is a scheduler diagnostic, not an application benchmark: native 2FA, Django,
 rendering and SMTP are deliberately absent. No result enters the official table.
@@ -123,6 +123,7 @@ def main():
     parser.add_argument("--window-seconds", type=float, default=60)
     parser.add_argument("--handler-seconds", type=float, default=.02)
     parser.add_argument("--timeout-seconds", type=float, default=600)
+    parser.add_argument("--database", choices=("postgresql", "sqlite"), default="postgresql")
     parser.add_argument("--eligibility", choices=("baseline", "pending-index"), default="baseline",
                         help="Diagnostic-only prototype: exclude complete source rows and index pending work")
     args = parser.parse_args()
@@ -130,41 +131,46 @@ def main():
     directory.mkdir(parents=True, exist_ok=False)
     os.environ.update(HANDOFF_TRACE=str(directory / "executions.jsonl"),
                       HANDOFF_HANDLER_SECONDS=str(args.handler_seconds))
-    with socket.socket() as reservation:
-        reservation.bind(("127.0.0.1", 0))
-        port = reservation.getsockname()[1]
-    cluster = directory / "postgres"
-    with (directory / "initdb.log").open("wb") as stream:
-        subprocess.run(["initdb", "-D", str(cluster), "-A", "trust", "-U", "benchmark",
-                        "--encoding=UTF8"], stdout=stream, stderr=subprocess.STDOUT, check=True)
-    log = (directory / "postgres.log").open("wb")
-    postgres = subprocess.Popen(["postgres", "-D", str(cluster), "-h", "127.0.0.1", "-p", str(port),
-                                 "-k", ""], stdout=log, stderr=subprocess.STDOUT)
+    postgres = log = None
     runtime = None
     engine = monitor_engine = None
     observer = None
     stop = threading.Event()
     timeline, sql = [], []
     try:
-        import psycopg
-        deadline = time.monotonic() + 30
-        connection = None
-        while connection is None:
-            try:
-                connection = psycopg.connect(f"host=127.0.0.1 port={port} user=benchmark dbname=postgres", autocommit=True)
-            except psycopg.OperationalError:
-                if time.monotonic() >= deadline:
-                    raise TimeoutError("Owned PostgreSQL did not start")
-                time.sleep(.05)
-        with connection:
-            connection.execute("CREATE DATABASE requests")
-        url = f"postgresql+psycopg://benchmark@127.0.0.1:{port}/requests"
+        if args.database == "postgresql":
+            import psycopg
+            with socket.socket() as reservation:
+                reservation.bind(("127.0.0.1", 0))
+                port = reservation.getsockname()[1]
+            cluster = directory / "postgres"
+            with (directory / "initdb.log").open("wb") as stream:
+                subprocess.run(["initdb", "-D", str(cluster), "-A", "trust", "-U", "benchmark",
+                                "--encoding=UTF8"], stdout=stream, stderr=subprocess.STDOUT, check=True)
+            log = (directory / "postgres.log").open("wb")
+            postgres = subprocess.Popen(["postgres", "-D", str(cluster), "-h", "127.0.0.1", "-p", str(port),
+                                         "-k", ""], stdout=log, stderr=subprocess.STDOUT)
+            deadline = time.monotonic() + 30
+            connection = None
+            while connection is None:
+                try:
+                    connection = psycopg.connect(f"host=127.0.0.1 port={port} user=benchmark dbname=postgres", autocommit=True)
+                except psycopg.OperationalError:
+                    if time.monotonic() >= deadline:
+                        raise TimeoutError("Owned PostgreSQL did not start")
+                    time.sleep(.05)
+            with connection:
+                connection.execute("CREATE DATABASE requests")
+            url = f"postgresql+psycopg://benchmark@127.0.0.1:{port}/requests"
+        else:
+            url = f"sqlite:///{directory / 'requests.sqlite3'}"
         engine = create_engine(url)
         monitor_engine = create_engine(url)
         Base.metadata.create_all(engine)
         if args.eligibility == "pending-index":
             Index("diagnostic_pending_job", Job.next_run, Job.id,
-                  postgresql_where=Job.complete.is_(False)).create(engine)
+                  postgresql_where=Job.complete.is_(False),
+                  sqlite_where=Job.complete.is_(False)).create(engine)
         sessions = sessionmaker(engine, expire_on_commit=False)
         runtime = ProfiledCoordinator(sessions, database_url=url, poll_seconds=.05,
                                       max_poll_seconds=.25, lease_seconds=300)
@@ -183,7 +189,7 @@ def main():
         def after(connection, cursor, statement, parameters, context, executemany):
             if threading.current_thread().name == "posthog_workflow":
                 sql.append({"seconds": time.monotonic() - context.diagnostic_started,
-                            "kind": "candidate" if "FOR UPDATE" in statement else statement.split()[0]})
+                            "kind": "candidate" if "posthog_notification_job.id IN (SELECT" in statement else statement.split()[0]})
 
         started = time.monotonic()
         runtime.start()
@@ -232,10 +238,17 @@ def main():
             skip_locked=True, of=Job.__table__)
         query = str(candidate.compile(engine, compile_kwargs={"literal_binds": True}))
         with engine.connect() as connection:
-            plan = [row[0] for row in connection.exec_driver_sql("EXPLAIN (ANALYZE, BUFFERS) " + query)]
+            if args.database == "postgresql":
+                plan = [row[0] for row in connection.exec_driver_sql("EXPLAIN (ANALYZE, BUFFERS) " + query)]
+                database = {"backend": "postgresql"}
+            else:
+                plan = [list(row) for row in connection.exec_driver_sql("EXPLAIN QUERY PLAN " + query)]
+                database = {"backend": "sqlite", "version": connection.exec_driver_sql("SELECT sqlite_version()").scalar(),
+                            "journal_mode": connection.exec_driver_sql("PRAGMA journal_mode").scalar(),
+                            "busy_timeout_ms": connection.exec_driver_sql("PRAGMA busy_timeout").scalar()}
         report = {"scope": "PostHog-shaped scheduler diagnostic; no native 2FA/rendering/SMTP; not official benchmark",
                   "configuration": vars(args) | {"output": str(directory), "producer_count": 8},
-                  "environment": {"python": platform.python_version(), "platform": platform.platform()},
+                  "environment": {"python": platform.python_version(), "platform": platform.platform(), "database": database},
                   "wall_seconds": elapsed, "execution": execution,
                   "claim_seconds": distribution([row["finished"] - row["started"] for row in claims]),
                   "claim_total_seconds": sum(row["finished"] - row["started"] for row in claims),
@@ -259,13 +272,15 @@ def main():
             engine.dispose()
         if monitor_engine:
             monitor_engine.dispose()
-        postgres.terminate()
-        try:
-            postgres.wait(timeout=10)
-        except subprocess.TimeoutExpired:
-            postgres.kill()
-            postgres.wait()
-        log.close()
+        if postgres:
+            postgres.terminate()
+            try:
+                postgres.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                postgres.kill()
+                postgres.wait()
+        if log:
+            log.close()
 
 
 if __name__ == "__main__":

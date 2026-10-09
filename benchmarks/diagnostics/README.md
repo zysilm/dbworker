@@ -4,7 +4,7 @@ These local experiments diagnose scheduling behavior. They are separate from the
 native application benchmarks and never update the official README result table.
 
 `worker_handoff.py` uses the actual, unmodified `Coordinator`, spawned execution
-processes, PostgreSQL and a job schema that matches the PostHog variation exactly.
+processes, PostgreSQL or SQLite, and a job schema that matches the PostHog variation exactly.
 Each notification creates one separate delivery job. Handlers perform 20 ms of
 simulated service and commit through the original runtime. Native 2FA validation,
 Django, rendering and SMTP are absent, so these results cannot establish native
@@ -60,6 +60,34 @@ backlog therefore require different interpretations. The observed peak exceeded
 five in both runs; this reproduces low average utilization, not a strict five-worker
 ceiling.
 
+## SQLite check for the reported 64-slot configuration
+
+The same fixed 5,000-operation, 10,000-job workload also ran with unmodified
+SQLite defaults: DELETE journaling and a 5,000 ms busy timeout. It finished in
+60.125 seconds, with mean running concurrency 4.822, peak running concurrency 23,
+and a sampled unfinished-job peak of 125. Successful claims took 1.775 ms at the
+median and 8.212 ms at P95; claim-to-handler delay was 0.943 ms at the median.
+Handler-entry-to-commit P95 was 45.260 ms, compared with a 20 ms simulated service.
+
+All 10,000 tasks completed once. This SQLite fixture did not reproduce persistent
+backlog or a five-worker ceiling. It establishes that low average concurrency can
+be healthy at this offered load. Long claim or commit tails alone do not establish
+lock-wait time; lock waits were not directly instrumented. Larger retained source
+tables, different eligibility predicates, heavier writes and journal settings
+require the affected application's own reproduction. These local runs overlap
+untimed native application setup and are not controlled database speed comparisons.
+
+An additional fixed read-query diagnostic contains exactly 100,000 completed
+source rows and 100,000 FINISHED ledger rows. No workers start and no jobs execute.
+After one cache warmup, 100 original candidate queries return no work; median query
+time is 10.001 ms and P95 is 13.216 ms. The SQLite plan scans the source table in
+the availability subquery and probes the ledger primary key for each source row.
+This makes retained history a concrete investigation target. It does not reproduce
+a live backlog or prove the affected machine has that history. Read-query time is
+only one component of claiming, and these numbers are not maximum worker capacity.
+The separate [query receipt](results/sqlite-history-100k.json) retains the original
+SQL, plan, fixed fixture size and core hash.
+
 ## Reproduce
 
 Use Python 3.12+, SQLAlchemy, psycopg, and local `initdb`/`postgres` binaries. Run
@@ -74,6 +102,13 @@ PYTHONPATH=.:src python -m benchmarks.diagnostics.worker_handoff \
 PYTHONPATH=.:src python -m benchmarks.diagnostics.worker_handoff \
   --output /tmp/handoff-pending --workers 64 --operations 5000 \
   --window-seconds 60 --handler-seconds .02 --eligibility pending-index
+
+PYTHONPATH=.:src python -m benchmarks.diagnostics.worker_handoff \
+  --output /tmp/handoff-sqlite --database sqlite --workers 64 --operations 5000 \
+  --window-seconds 60 --handler-seconds .02
+
+PYTHONPATH=.:src python -m benchmarks.diagnostics.candidate_history \
+  --output /tmp/handoff-history
 ```
 
 ## Next investigation
