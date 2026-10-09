@@ -123,3 +123,12 @@ poetry run mypy --strict src
 ```
 
 Automated tests use tiny local images and mocked broker publication; they do not require downloading a dataset. A separate functional check was also run against real Redis, Celery prefork workers, Beat and HTTP. Dataset selection and performance measurements are deferred.
+## Benchmark observation
+
+The repository image benchmark launches this existing Celery app and its native
+tasks. An optional worker `--include` loads observation-only signals; it does not
+replace task bodies, routing, retry settings, or deadlines. Live source checks
+verify the registered functions before workload publication. Each result records
+actual image build executions, comparison page widths, scored pairs, and separate
+dependency-wait and dispatcher overhead. Business queue quiescence is checked
+outside the timed application-completion interval.

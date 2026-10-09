@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from benchmarks.ci_results import combine, package
+from benchmarks.ci_results import combine, package, publication_evidence, safe_evidence_path
 from benchmarks.common.reporting import digest, write_json
 from benchmarks.render_results import update_readme
 from benchmarks.tests.test_reporting import passed_report
@@ -89,19 +89,61 @@ class MatrixResultsTests(unittest.TestCase):
                     combine(incoming, root / "results", run_id="shared", commit="revision", registry=registry)
                 self.assertFalse((root / "results").exists())
 
+    def test_combination_and_publication_preserve_smtp_replay_only(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            incoming, registry = self.fixtures(root)
+            receipt = incoming / 'first/private/smtp-evidence.json'
+            receipt.parent.mkdir()
+            receipt.write_text('{"observations": []}')
+            image_receipt = receipt.parent / 'output-evidence.json'
+            image_receipt.write_text('{"artifacts": [], "comparisons": []}')
+            (receipt.parent / 'smtp.log').write_text('raw MIME')
+            (receipt.parent / 'request.db').write_bytes(b'private database')
+            output = root / 'results'
+            combine(incoming, output, run_id='shared', commit='revision', registry=registry)
+            copied = output / 'private/smtp-evidence.json'
+            self.assertEqual(copied.read_bytes(), receipt.read_bytes())
+            self.assertIn(copied.absolute(), publication_evidence(output))
+            copied_image = output / "private/output-evidence.json"
+            self.assertEqual(copied_image.read_bytes(), image_receipt.read_bytes())
+            self.assertIn(copied_image.absolute(), publication_evidence(output))
+            self.assertFalse((output / 'private/smtp.log').exists())
+            self.assertFalse((output / 'private/request.db').exists())
+
+    def test_evidence_rejects_traversal_and_symlink_ancestors(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / 'source'
+            source.mkdir()
+            outside = root / 'outside'
+            outside.mkdir()
+            receipt = outside / 'smtp-evidence.json'
+            receipt.write_text('{}')
+            (source / 'linked').symlink_to(outside, target_is_directory=True)
+            for unsafe in (source / '../outside/smtp-evidence.json', source / 'linked/smtp-evidence.json'):
+                with self.subTest(path=unsafe), self.assertRaises(ValueError):
+                    safe_evidence_path(source, unsafe)
+            (source / 'smtp-evidence.json').symlink_to(receipt)
+            with self.assertRaises(ValueError):
+                package(source, root / 'artifact', 'first')
+            (source / 'index.json').write_text(json.dumps({'reports': [{'path': '../outside/smtp-evidence.json'}]}))
+            with self.assertRaises(ValueError):
+                publication_evidence(source)
+
     def test_packaging_excludes_runtime_databases_configs_and_media(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             source = root / "source"
             for name in ["index.json", "first.json", "first.log", "first.config.json",
-                         "private/sample.json", "private/request.db", "private/document.pdf"]:
+                         "private/sample.json", "private/smtp-evidence.json", "private/output-evidence.json", "private/request.db", "private/document.pdf"]:
                 path = source / name
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text("{}")
             output = root / "artifact"
             package(source, output, "first")
             self.assertEqual({str(p.relative_to(output)) for p in output.rglob("*") if p.is_file()},
-                             {"index.json", "first.json", "first.log", "private/sample.json"})
+                             {"index.json", "first.json", "first.log", "private/sample.json", "private/smtp-evidence.json", "private/output-evidence.json"})
 
 
 if __name__ == "__main__":

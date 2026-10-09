@@ -18,6 +18,8 @@ import psutil
 from imagededup_benckmark.dataset import DEFAULT_DIRECTORY, download_dataset
 from imagededup_benckmark.measurement import Measurement, distribution
 from imagededup_benckmark.runtime import WORKERS, Stack
+from imagededup_benckmark.evidence import quiesce, verify
+from imagededup_benckmark.observation import read_records
 
 PROJECT = Path(__file__).resolve().parents[2]
 
@@ -56,7 +58,7 @@ def prepare_images(files: list[Path], directory: Path) -> list[dict[str, Any]]:
 
 
 def validate(stack: Stack, workspace: int, artifact_ids: list[int], request_ids: list[int],
-             *, top_k: int, max_distance: int) -> dict[str, Any]:
+             *, top_k: int, max_distance: int, output_manifest: dict[str, Any] | None = None) -> dict[str, Any]:
     # Untimed, complete verification. SQL uses only shared application tables;
     # final statuses are verified through each application's public HTTP API.
     count = len(artifact_ids)
@@ -66,6 +68,7 @@ def validate(stack: Stack, workspace: int, artifact_ids: list[int], request_ids:
         if any(row["execution_status"] != "finished" or row["error"] is not None for row in rows):
             raise AssertionError(f"Build failures in workspace {workspace}: {rows}")
     result_digests: list[str] = []
+    observed_comparisons: list[dict[str, Any]] = []
     with sqlite3.connect(stack.database) as connection:
         hashes = dict(connection.execute("SELECT id,hash_value FROM feature_artifact WHERE workspace_id=?", (workspace,)))
         if len(hashes) != count or any(value is None for value in hashes.values()):
@@ -80,6 +83,8 @@ def validate(stack: Stack, workspace: int, artifact_ids: list[int], request_ids:
                                for key, value in hashes.items() if key != query_id), key=lambda item: (item[1], item[0]))
             expected = [item for item in expected if item[1] <= max_distance][:top_k]
             actual = [(row["candidate_artifact_id"], row["distance"]) for row in results]
+            observed_comparisons.append({"request_id": request_id, "query_artifact_id": query_id,
+                "results": [{"candidate_artifact_id": candidate, "distance": distance} for candidate, distance in actual]})
             if actual != expected:
                 raise AssertionError(f"Incorrect top-K for request {request_id}")
             ledger_count = connection.execute("SELECT COUNT(*) FROM scored_candidate WHERE request_id=?", (request_id,)).fetchone()[0]
@@ -87,6 +92,10 @@ def validate(stack: Stack, workspace: int, artifact_ids: list[int], request_ids:
                 raise AssertionError(f"Wrong completion ledger count: {request_id}")
             normalized = [(ordinal[key], distance) for key, distance in actual]
             result_digests.append(hashlib.sha256(json.dumps(normalized).encode()).hexdigest())
+    if output_manifest is not None:
+        output_manifest.update(schema_version=1, workspace=workspace, top_k=top_k, max_distance=max_distance,
+            artifacts=[{"artifact_id": key, "hash_value": hashes[key]} for key in artifact_ids],
+            comparisons=observed_comparisons)
     hash_digest = hashlib.sha256(json.dumps([hashes[key] for key in artifact_ids]).encode()).hexdigest()
     return {"passed": True, "hashes_digest": hash_digest, "top_k_digests": result_digests,
             "artifacts": count, "requests": len(request_ids), "scored_pairs": len(request_ids) * (count - 1)}
@@ -94,7 +103,7 @@ def validate(stack: Stack, workspace: int, artifact_ids: list[int], request_ids:
 
 def scenario(stack: Stack, kind: str, directory: Path, count: int, *, page_size: int,
              top_k: int, max_distance: int, interval: float, timeout: float,
-             existing: tuple[int, list[int]] | None = None) -> tuple[dict[str, Any], tuple[int, list[int]]]:
+             existing: tuple[int, list[int]] | None = None, trace_root: Path | None = None) -> tuple[dict[str, Any], tuple[int, list[int]]]:
     if existing is None:
         workspace = int(stack.request("POST", "/workspaces", {"name": kind})["id"])
         artifact_ids: list[int] = []
@@ -102,7 +111,9 @@ def scenario(stack: Stack, kind: str, directory: Path, count: int, *, page_size:
         workspace, artifact_ids = existing
     request_ids: list[int] = []
     comparison_count = 0 if kind == "build" else count
-    meter = Measurement(stack, workspace, count, comparison_count, interval=interval, timeout=timeout)
+    quiesce(stack, timeout=timeout)
+    record_offset = len(read_records(stack.observation_file))
+    meter = Measurement(stack, workspace, count, comparison_count, interval=interval, timeout=timeout, new_builds=existing is None)
     stack.http_samples.clear()
     meter.start()
     import_finished: float | None = None
@@ -120,25 +131,61 @@ def scenario(stack: Stack, kind: str, directory: Path, count: int, *, page_size:
                 request_ids.append(int(created["id"]))
                 if first_request_submitted is None:
                     first_request_submitted = time.perf_counter() - meter.started
-        submission_finished = time.perf_counter() - meter.started
-        metrics = meter.finish()
+        submission_finished_absolute = time.perf_counter()
+        submission_finished = submission_finished_absolute - meter.started
+        metrics = meter.finish(submission_finished=submission_finished_absolute)
     finally:
         meter.cancel()
     metrics["submission_seconds"] = submission_finished
     metrics["import_response_seconds"] = import_finished
     metrics["first_comparison_submitted_seconds"] = first_request_submitted
-    metrics["post_submission_completion_seconds"] = max(0, metrics["wall_seconds"] - submission_finished)
+    metrics["post_submission_completion_seconds"] = metrics["wall_seconds"] - submission_finished
     metrics["submission_http_latency_ms"] = distribution([duration for _, duration in stack.http_samples], scale=1000)
     metrics["requests_submitted_before_builds_finished"] = (
         first_request_submitted is not None and metrics["builds_finished_seconds"] is not None
         and first_request_submitted < metrics["builds_finished_seconds"]
     )
     metrics["images_per_second"] = count / metrics["wall_seconds"] if existing is None else None
-    checked = validate(stack, workspace, artifact_ids, request_ids, top_k=top_k, max_distance=max_distance)
-    row = {"backend": stack.backend, "scenario": kind, "status": "passed", "images": count,
+    drain_started = time.perf_counter()
+    observations = quiesce(stack, timeout=timeout)
+    metrics["untimed_business_drain_seconds"] = time.perf_counter() - drain_started
+    evidence = verify(observations, workspace=workspace, artifact_ids=artifact_ids, request_ids=request_ids,
+                      new_builds=existing is None, page_size=page_size, record_offset=record_offset)
+    if evidence["quiescence_verified"] is not True:
+        raise AssertionError("Image scenario lacks replayable live idle evidence")
+    output_manifest: dict[str, Any] = {}
+    checked = validate(stack, workspace, artifact_ids, request_ids, top_k=top_k, max_distance=max_distance,
+                       output_manifest=output_manifest)
+    output_path = stack.directory / kind / "output-evidence.json"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_bytes = (json.dumps(output_manifest, sort_keys=True, allow_nan=False) + "\n").encode()
+    output_temporary = output_path.with_suffix(".part")
+    output_temporary.write_bytes(output_bytes)
+    output_temporary.replace(output_path)
+    output_metadata = {"path": str(output_path.relative_to(trace_root)) if trace_root else str(output_path),
+                       "sha256": hashlib.sha256(output_bytes).hexdigest(), "schema_version": 1}
+    snapshot_path = stack.directory / f"{kind}-observations.jsonl"
+    snapshot_bytes = "".join(json.dumps(record, sort_keys=True) + "\n" for record in observations[record_offset:]).encode()
+    temporary = snapshot_path.with_suffix(".part")
+    temporary.write_bytes(snapshot_bytes)
+    temporary.replace(snapshot_path)
+    trace_metadata = {"path": str(snapshot_path.relative_to(trace_root)) if trace_root else str(snapshot_path),
+                      "sha256": hashlib.sha256(snapshot_bytes).hexdigest(), "workspace": workspace,
+                      "artifact_ids": artifact_ids, "request_ids": request_ids,
+                      "new_builds": existing is None, "page_size": page_size, "record_offset": 0}
+    measurement_window = metrics.pop("measurement_window")
+    row = {"measurement_window": measurement_window, "backend": stack.backend, "scenario": kind, "status": "passed", "images": count,
            "comparison_requests": comparison_count, "expected_pairs": comparison_count * (count - 1),
            "page_size": page_size, "workers": {"build": WORKERS, "comparison": WORKERS},
-           "metrics": metrics, "validation": checked, "sql_database_bytes": stack.database.stat().st_size}
+           "metrics": metrics, "validation": checked, "operation_evidence": evidence, "operation_trace": trace_metadata,
+           "output_evidence": output_metadata,
+           "native_execution": {**stack.native_execution,
+                                "celery_app": "imagededup_system_redis_celery.celery_app:app",
+                                "native_tasks": ["images.build", "images.compare", "images.dispatch"],
+                                "replacement_celery_tasks": False,
+                                "scope": "successful_business_work",
+                                "unverified_lifecycle": ["retry_policy_parity", "task_deadline_parity", "crash_recovery", "outage_recovery"]},
+           "sql_database_bytes": stack.database.stat().st_size}
     return row, (workspace, artifact_ids)
 
 
@@ -212,6 +259,9 @@ def main(argv: list[str] | None = None) -> None:
             "Each repetition starts fresh stacks and SQL databases; scenarios use isolated workspaces.",
             "Warm-up, service startup, dataset preparation, final correctness checks and shutdown are untimed.",
             "Timed work includes API submissions, SQL and broker overhead, and completion observation latency.",
+            "Timing requires persisted terminal business outcomes; native business task/queue drain is checked separately outside timing.",
+            "Observation-only native Celery signals and DBWorker after-commit hooks record individual builds and bounded scoring pages.",
+            "Comparison covers successful work; Celery retries and deadlines are retained but DBWorker lifecycle parity is unverified.",
             "Progress uses read-only aggregate queries against common SQL data tables; API probes request one artifact.",
             "RSS is summed across all processes and can double-count shared pages; CPU is summed across process trees.",
             "DBWorker includes independent API and worker-service process trees, including handler children.",
@@ -234,7 +284,7 @@ def main(argv: list[str] | None = None) -> None:
                     report["stacks"].append({"repetition": repetition + 1, "backend": backend,
                                              "startup_seconds": stack.startup_seconds, "logs": str(stack.directory), "versions": stack.versions})
                     common = dict(page_size=args.page_size, top_k=args.top_k, max_distance=args.max_distance,
-                                  interval=args.poll_interval, timeout=args.timeout_seconds)
+                                  interval=args.poll_interval, timeout=args.timeout_seconds, trace_root=output.parent)
                     if args.warmup_images:
                         scenario(stack, "warmup", warmup, args.warmup_images, **common)
                     built: tuple[int, list[int]] | None = None

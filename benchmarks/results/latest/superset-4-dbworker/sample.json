@@ -1,34 +1,2543 @@
 {
   "backend": "dbworker",
-  "comparison_mode": "paired_durable_request",
+  "business_bindings": [
+    {
+      "argument_sha256": "03b114715c038bcbbfa1a8ee5d5cf3ca552a555a1b75f70719b935e4c6698b79",
+      "node_id": "sql_lab:3",
+      "operation_id": "query-0",
+      "output_sha256": "06860b5a3005e257eb374d174ce2f876cdac6b34161b4ec7e953f9421d9b769b",
+      "query_id": 3,
+      "results_key": "4a08e322-f470-491e-bc1d-88f71cc11af3",
+      "sql_sha256": "f64cd27fc2704dd9f6ee1a89c08d40d0d30f2e6625c06ec0fb248520be3f21fc",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "d5f79c795ec78bc693578841b7174e1b63abd25a8c9c7f59c39fa1fb50b5b82a",
+      "node_id": "sql_lab:4",
+      "operation_id": "query-1",
+      "output_sha256": "4a48ca2b468939cc3a93e67e6032e7e85662bb6a3abb56052198e497c2a2079c",
+      "query_id": 4,
+      "results_key": "0d84c3c6-371c-4223-a56c-59f750f2bc40",
+      "sql_sha256": "e02ff520ce6446985c5239f4a34c821b15b889a98d60ae2c94e329eec376c03a",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "475c3226b9d68883a4cb422e572f5ba10041355af5754ad5c857c446958cb51c",
+      "node_id": "sql_lab:5",
+      "operation_id": "query-2",
+      "output_sha256": "af8366d53d667c964966cd5032f9d064ebc5adbb2e751e028f1469f31b1bf4ca",
+      "query_id": 5,
+      "results_key": "bf88cfb7-8598-436e-862f-f5ab339be1c5",
+      "sql_sha256": "f718859eaf04dffa71c72db8cfa80c643e7b11d04e12123ae4b021177ec14cd6",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "e22f1b0b8501e0b5b1e99249cf2eed8f86b8a6cb4421284a61b1ed1eb0518a68",
+      "node_id": "sql_lab:6",
+      "operation_id": "query-3",
+      "output_sha256": "b0a20b01f30a6a458f6d402bc8f4511a1da16e9155a01dde59d4c9043119f3be",
+      "query_id": 6,
+      "results_key": "4b35310f-2bee-4d72-9471-f03b0eecde41",
+      "sql_sha256": "bfebcec1eb5da24a74a0ec40c2f134e13e94460b9c55e295c260072eb1b74867",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "bb13b41494588f7afc9edee5ed968a6d9bea9e61edb649b37be326e53a0727b9",
+      "node_id": "sql_lab:7",
+      "operation_id": "query-4",
+      "output_sha256": "dbb648c41de1292181115ca701dd2cdd39956d61c112c9a93f7651e897bf6c7d",
+      "query_id": 7,
+      "results_key": "a87d7ff2-8f18-49d7-b3ac-63afb9375e6b",
+      "sql_sha256": "3159b9fbd928a8da2a378a21c8b6f05e54a52938ebfe7ca546062f3829f7b347",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "dba478249d8186cbbd25b57bfa434da140ed5f8aac73f5322218cbbb030ff9d3",
+      "node_id": "sql_lab:8",
+      "operation_id": "query-5",
+      "output_sha256": "15b9c597a89bd527a352aefe052aa46ac5c8bd7c18ad798747ba394d0a414d78",
+      "query_id": 8,
+      "results_key": "ac595c4e-5148-49e4-93b4-b9d91a9f3c7c",
+      "sql_sha256": "c278e5d79790e75c42179bd53174a4c6273b450b7cbbe120d79e952478760473",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "be7f7a17213b83f27d1394bf393ed3ade1c0dda9cb1aa9c1ed81f5f3211797b9",
+      "node_id": "sql_lab:9",
+      "operation_id": "query-6",
+      "output_sha256": "7968bfac68aa8ba2279de1500e289391b99855cd4de3eb46b544f233509bd4db",
+      "query_id": 9,
+      "results_key": "df5688f9-b17b-4c88-b6f4-470849919c4e",
+      "sql_sha256": "e7244d63070527cc6a63fc123accd97b1faf1add4320538047bbe22213935489",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "3f0592397f90f0def42845d6663f3e6b2ee92fe299833b1a9dee8c03abe97cec",
+      "node_id": "sql_lab:10",
+      "operation_id": "query-7",
+      "output_sha256": "ef5dd9de8071c83325ca81e5ee0ea0ac2e6b0a339b7c13067cf321a9885ea4c7",
+      "query_id": 10,
+      "results_key": "828bd9b2-ccf8-49fb-bd50-8cf552f76f20",
+      "sql_sha256": "644c1d7dc00d0615c9c9bc4a4c506a8bf824bbca5b021358e2a2338fdf68f26f",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "508cd095408ad1fcb7d0eeb7aa09d6cddc449864d2a381d0f445182e6dc33e74",
+      "node_id": "sql_lab:11",
+      "operation_id": "query-8",
+      "output_sha256": "e8fae8edb8d15df882a29ddb312cf4f3171b702c9bcd9875068ac25918d7acfe",
+      "query_id": 11,
+      "results_key": "f438ded9-99fd-4d5f-a817-d13de53dcfbd",
+      "sql_sha256": "2b8ea840e48cd7f4850d12c0449bd23de3d687b0e6c59226da1721be6aeb4aeb",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "47ecdc8b2211da1da21911e86e9f4b1add23c7f1e3d82599aa0b3ea4859473eb",
+      "node_id": "sql_lab:12",
+      "operation_id": "query-9",
+      "output_sha256": "930a1e164dde4b761125b75d052ecebe59df72f88cee7c3afd8130076504d264",
+      "query_id": 12,
+      "results_key": "db03ac44-0055-453a-8163-019859082512",
+      "sql_sha256": "d911661b7f31ca2580fe63d8683ae8f4e066f1b469c5be874b31bfea47aff381",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "e62672948dc913a0782c51830e07e1004481213e938b41f9d0916de14a4bded8",
+      "node_id": "sql_lab:13",
+      "operation_id": "query-10",
+      "output_sha256": "9856a62b676e0b068d78c3a3d78e996e4f72905caeb493965a865839449a9b97",
+      "query_id": 13,
+      "results_key": "07cbc97d-78ef-4bbc-ad37-6b13a0f40c28",
+      "sql_sha256": "47154e59a5d24cf214d3db26ae66596d9b7a204387406935970d89cc50b38bea",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "0342292c082c52bc8430021e65b910ab6f4314c5feecf4ff220cdd394bd96bf6",
+      "node_id": "sql_lab:14",
+      "operation_id": "query-11",
+      "output_sha256": "cab9fa6b791dbb2d5fe9e5b7b2d51455108ec130d6db6ffd8935c07ffdd1ed18",
+      "query_id": 14,
+      "results_key": "2a0af2b9-0aff-4b11-aa79-a282a27fd518",
+      "sql_sha256": "c6860d5e075fc7cc5e4f362cb3c77c660a783449aacb0fc037d68ecdb71e139d",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "46ec1308d47d5f2f153e4fca55bde86bf85ab628632fb725a7c39444ae8e816a",
+      "node_id": "sql_lab:15",
+      "operation_id": "query-12",
+      "output_sha256": "e401b8384ba94997a1eefba1607672255044d1d792271fb5b17e1a768327382f",
+      "query_id": 15,
+      "results_key": "93243841-0cac-4fb8-979f-545eac5497da",
+      "sql_sha256": "55d3e364823bfad9c423fd4661449401151c7c0fa722184ceaaba5d0eb6e7088",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "739990faf7123d545e1386a044f4e09e3acd8969cd73f3093eeb7a99a250d58b",
+      "node_id": "sql_lab:16",
+      "operation_id": "query-13",
+      "output_sha256": "bb148bac9a283fc52964af7f346b9c8351b97982bfeb8cef1874c4f3f0a33a71",
+      "query_id": 16,
+      "results_key": "6ae04c47-7ee8-46eb-bfd2-97092738695c",
+      "sql_sha256": "5e3e31e0529f76a6c57f5ca5c71adb79164635bf97671738ae00ca6ca86b8cfc",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "ec092e3e8dd5510edf2db8263235950a488f800ab97c863f0dd4a49c91639334",
+      "node_id": "sql_lab:17",
+      "operation_id": "query-14",
+      "output_sha256": "30f4138ec47e80bbd35dd40062cd5949bebf8e8aa0d01a50ef0f58d1f42c1fa9",
+      "query_id": 17,
+      "results_key": "cdd1bfe3-0a1b-42e1-ae22-a0da569fab15",
+      "sql_sha256": "a32c7ab2a61e13f7800d8c3e3704c17bba398a56ad22ec27086ec3be3d48b19d",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "dd41524e558a906f60f4bdf2cd86f1f3631b26964487134cd6669436f61eebc4",
+      "node_id": "sql_lab:18",
+      "operation_id": "query-15",
+      "output_sha256": "28a6d56957f568474c1af27d5d4e1008a2a4fe792e02401a1a6de3efd192e6a3",
+      "query_id": 18,
+      "results_key": "b810ec09-275b-4761-86be-3ad401b8ebd5",
+      "sql_sha256": "5dbd581ed30f3ecc7651c7b07f5736c38d7ad06b523f4e51feac48ba96bf96c7",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "ba36d9f21032000ed1f8e143b0eea010318caeade663108a0080fb05d9582857",
+      "node_id": "sql_lab:19",
+      "operation_id": "query-16",
+      "output_sha256": "2d2add943fe56ee6783198ad0b32d295d7889762640564244adf62d4a89353eb",
+      "query_id": 19,
+      "results_key": "fb794222-8596-4900-9e08-18146480dd92",
+      "sql_sha256": "daf9bc49e423f783f150b92e679d9e54922b801527c1d2460ef37196086e38ca",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "82ac7534506f7036b6d8b5ff8f617a22b3b4b71a90f9bda93422324512b732e3",
+      "node_id": "sql_lab:20",
+      "operation_id": "query-17",
+      "output_sha256": "f96ae61ca114d15b7e5db7492c26b4374b9b0bfb278e5aa01be7501091f7c3ae",
+      "query_id": 20,
+      "results_key": "4cdd09fe-c75d-48d3-81c5-d7fa43fa38da",
+      "sql_sha256": "bc752b6897a68da5a760458476b80b8ed8c18d44d34a4edc1241d450d6998a73",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "386805dc65568b98ae73e6007099989489e8d81b288d58129ba90639bbd29169",
+      "node_id": "sql_lab:21",
+      "operation_id": "query-18",
+      "output_sha256": "061e524708cfac17855e6a61e4792bad17da3850af231239eb4f921953d021a4",
+      "query_id": 21,
+      "results_key": "484be628-171a-4b11-95b4-06fc20562c20",
+      "sql_sha256": "97a473f4a0ce0233a387ad78b30b79c205a2e196eb90030ac0e18b1d771322f9",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "03747e8e42f511bc1f2c0eefab02d76f4b8122559b5682cb2a4c9b8ae4b56bb8",
+      "node_id": "sql_lab:22",
+      "operation_id": "query-19",
+      "output_sha256": "d79011912e971a5a3e3747fa794f3692c1d6c6cb808d57a85c642b14dba12274",
+      "query_id": 22,
+      "results_key": "44a8512b-5cb1-435c-b441-3d8f6284b32f",
+      "sql_sha256": "908db3030ea0bdd2ab6c251eee0e540227010d3ff26f25149e29f77136b7813a",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "6989ac38693f1d347c1c7b3f3030139a6b6c8ae78a7bbe09720146ef38713686",
+      "node_id": "sql_lab:23",
+      "operation_id": "query-20",
+      "output_sha256": "eda67a9fed4fc28b438c4e64d4669ed6464fa762127a2944b0ae5322fb038026",
+      "query_id": 23,
+      "results_key": "c1598468-d5be-42b3-a58b-7358bac6c255",
+      "sql_sha256": "0e488d171406a4875315b24bcd30abe63afef3d126cb9885e694ae69c670ead7",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "3379e85b8a84dc8eea6bad936b02f064b3b4a268e89af132a40e224cd95f2b78",
+      "node_id": "sql_lab:24",
+      "operation_id": "query-21",
+      "output_sha256": "248600ea183dbbb460d2dc054497197c6e81e04d8c3510b8cf30d70d0928936c",
+      "query_id": 24,
+      "results_key": "e7f3ed5c-5ddb-481f-b3fa-d418ecbff330",
+      "sql_sha256": "a849f537b76abd617925e1ddfb273294af330b7352b2d2a80d189dfa43cdcf09",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "c4ac408f0e1e55614a0f01860b98fd2068ea2a9a6e41576929d31d2159ab41f3",
+      "node_id": "sql_lab:25",
+      "operation_id": "query-22",
+      "output_sha256": "d08a5862f93fc757545800a760ee84ab8baedc167dce0d9c7a6c9176845fb4a6",
+      "query_id": 25,
+      "results_key": "159af28e-754a-4242-8607-92e66e45feaa",
+      "sql_sha256": "f6124fd44f48ea778144ce5f716fc79430697ec89e5009103773c5d8b7191a01",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "0003b90f73939af08f531dfd6c17d31efbdb49d1a7c4721a118e8f2283b445b0",
+      "node_id": "sql_lab:26",
+      "operation_id": "query-23",
+      "output_sha256": "e9ddc1113e45bace3f5807e48ea7bbf444745db037b7deddc713392f2151a18c",
+      "query_id": 26,
+      "results_key": "436442d0-b6aa-4794-bad9-2191697b267e",
+      "sql_sha256": "6b72084c63916600a1b17ba4d8ae2a3488c2a988fe67a75c5e7115fdea29307c",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "a7dd9e015ef1136ac574206e5e27807f40b9c22044a0844613ecd2900f5abd2f",
+      "node_id": "sql_lab:27",
+      "operation_id": "query-24",
+      "output_sha256": "9bcaccee9874ef75549b1596ef8e87187e5dd416cd36c6a01b71ac47ca473c0f",
+      "query_id": 27,
+      "results_key": "a649a097-a3cd-46da-8e84-7f7857e9d2eb",
+      "sql_sha256": "0d093925c5f84cedb9060be7b8a3938c3915db1a183b6707438d237fee46e153",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "9c33c54b8f6980964eb184cf567e3fc77bc19a13287b061cef49a009a3f84208",
+      "node_id": "sql_lab:28",
+      "operation_id": "query-25",
+      "output_sha256": "40204eedd3cf4477ccd37f0538a6862c7ad94d6fb9962691355c3b2da77a3ad3",
+      "query_id": 28,
+      "results_key": "60169a79-c039-4fe4-b5db-4b550e87ad04",
+      "sql_sha256": "544e9562d68bbc597381783b5eae67cdd316784aeb836567d8b0243abb35805f",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "44b96b76c4898bfc53b059760867026ebf06889b33fee35ae5db29e34981046f",
+      "node_id": "sql_lab:29",
+      "operation_id": "query-26",
+      "output_sha256": "c93883bf82a5be0aa3dd8347983b9f332779b87cad4f41f1e109858d7b5e4b64",
+      "query_id": 29,
+      "results_key": "f17b96ee-28c7-4d67-9a42-9d6ad71a9ba3",
+      "sql_sha256": "60ee1f5e4c0350a269d03f7e6f1f99bfc68d78d17a80defe31496a7a7959728f",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "7c0d2f4830e984afe04aeb3780f4e724f731a106fda10d87385e48873bf10f47",
+      "node_id": "sql_lab:30",
+      "operation_id": "query-27",
+      "output_sha256": "c2e0e48e17e2b3a7f1214e30685bff2f353055dd951c6c63f7ef0a971cfe065c",
+      "query_id": 30,
+      "results_key": "a8527c78-7f6e-48c9-8059-48a740142924",
+      "sql_sha256": "c14a58f1e8089ab6690be77a1cca6fcc286798377e5dbf43258b71027b6c8e79",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "f75f781a985e828b678f8a5ff383c773eb433c7ce504e1faabb05451f28e147e",
+      "node_id": "sql_lab:31",
+      "operation_id": "query-28",
+      "output_sha256": "e45273a8391c87ff1a95797de074b414eef173d58718d87cbfcaf458b0616ea1",
+      "query_id": 31,
+      "results_key": "a4e2f724-89c8-4fb3-874f-904d93fbded1",
+      "sql_sha256": "a9f874f4c6578cec1155a3d44d057e5dd4eedc27ca228fe0843927ebff069ca6",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "3833ebdc3d23c680d27f09ea4e877ad1f727e4d8e0c43b8b34c6f2ae7024cdeb",
+      "node_id": "sql_lab:32",
+      "operation_id": "query-29",
+      "output_sha256": "c92b18658086aa7105f56247eac993f6e1daa42ba4dfd0b338ef74820550165b",
+      "query_id": 32,
+      "results_key": "0460539c-30fd-429c-aa6d-1058565015cf",
+      "sql_sha256": "eaa0c5f9d0cfac84129f9c57c8e0116d5c6d37288543842ee4f33e03cbc51326",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "80e9e922833c0e64355cbf3df7df2b8f5a00603bd6366b59203039f16e41499d",
+      "node_id": "sql_lab:33",
+      "operation_id": "query-30",
+      "output_sha256": "6242b2ece389caca7cbeea11865496b56c94d4dd4081be9048c7aeaa2a8be8c4",
+      "query_id": 33,
+      "results_key": "3def60b3-8cd1-4348-b8e3-0f703d5b80fc",
+      "sql_sha256": "1774a9d267d76c52d527f800f66c226279a3070e461966b75382ad30e9ca42dd",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "55d71e24f291d4b2add8683dfc810fe7bf5dec56dff2e7a8d701c763aaa79066",
+      "node_id": "sql_lab:34",
+      "operation_id": "query-31",
+      "output_sha256": "4e9891b5e353f904d8e3053e976453e2d706685203866597c02e6130b27f245a",
+      "query_id": 34,
+      "results_key": "19c8567a-30e2-4244-b531-988856868be3",
+      "sql_sha256": "63f91e193b0bf88e07df3b6c8fd308c65148e1745232a2bd5c8b04589e64f5b5",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "6f400e8e8221cc4fcdaadc19bdd97fbe38b79008b1ceffd8223a5c2a6f286521",
+      "node_id": "sql_lab:35",
+      "operation_id": "query-32",
+      "output_sha256": "cfd57cef2cfc2e0d135d9bf3913a55f253486a26ac79dad214ab7acb7ea93171",
+      "query_id": 35,
+      "results_key": "017047a0-d8e5-48fe-865c-c8db962ceebb",
+      "sql_sha256": "fcd2f372a7ad7f74382017cc4213436dae40d179804034c8cb04fe47e26fd2a6",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "c32cf6e7d1dd83dbd95de970738e178b0b0cdaf14eeb4559e96c12523343801e",
+      "node_id": "sql_lab:36",
+      "operation_id": "query-33",
+      "output_sha256": "9e8d1174cbbf47b6ed382e668e990cef7a43466e68cb88ed103a5428fa1f8c42",
+      "query_id": 36,
+      "results_key": "d860ec05-aaef-416c-87a4-04fd8c0447f4",
+      "sql_sha256": "90e0a93cecd8f82e88ebe64bc52ff2762123786ec5d13e25e69fff2d4adea849",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "df1a8c86ec91ab13c55ad9015be3bda5248d6efdccc716f18a84d94b68ef7b8a",
+      "node_id": "sql_lab:37",
+      "operation_id": "query-34",
+      "output_sha256": "23fa53f05d8c462c3af32d0f2f22fe852b51379e5a09a0d439e354565903d655",
+      "query_id": 37,
+      "results_key": "90d35aa5-ee67-47c8-8a3c-ba6eea97c270",
+      "sql_sha256": "fa2a3c992960286ceed92dda5e9db2130780cd0f219c7063e40a8151fc68bada",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "181f09c3c0c9e219ccb14a2c3aba70f664fdc9609aedcadc07031e8393fb69fe",
+      "node_id": "sql_lab:38",
+      "operation_id": "query-35",
+      "output_sha256": "5705a9a67e6d63fdfb307ecb6068f5baf40960d9f3282cc9f8a4a3c027615341",
+      "query_id": 38,
+      "results_key": "72f14050-473a-4f22-b893-d3887f0b0445",
+      "sql_sha256": "03d1f884a171b1d120861336c48a1c86a048761d706458bd4ebc04ae5e1ac786",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "7cae2b636f407dc222560d8139514799f030b9491a1c34075b783d9d9de2820f",
+      "node_id": "sql_lab:39",
+      "operation_id": "query-36",
+      "output_sha256": "3596755b1d112f27decdb8b345450aecd426a9c3166514c77db034fbf0681973",
+      "query_id": 39,
+      "results_key": "5e4ba211-5fae-4c35-8429-f265e2f40ba0",
+      "sql_sha256": "87b7403ddfb57d8ac14125864533d71321c1559616ece45e304ddffb6981a6b3",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "56ed151544852b597260fa7250fecb66a47651b0571224d87fb46bc95e4ad442",
+      "node_id": "sql_lab:40",
+      "operation_id": "query-37",
+      "output_sha256": "5e62c6a56f73227ee8da73d896b560df88273441bde2da62e8b6235bfc5678c0",
+      "query_id": 40,
+      "results_key": "2aac73a7-c5e6-4484-a0a6-e5bb62aec75e",
+      "sql_sha256": "873398eae468bf2e19546a73811e0a5e005a713bad2045c41bbbcc803c86e5a5",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "46fa505a84bdfca2a8341d629e2c3188e22578b11c1f1fedfff8301c8a72cb7d",
+      "node_id": "sql_lab:41",
+      "operation_id": "query-38",
+      "output_sha256": "fff0d77c4066edb666e3f0298eeae4541a303e05e25306896b7ee24cd02f8f4c",
+      "query_id": 41,
+      "results_key": "ddfa2057-a080-4842-b118-b58d4f14c9d5",
+      "sql_sha256": "69ba6c40ae7d7883751d52179ef4c795a14cab351263bda26038ce7038ca0181",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "cd61d2094d599510ca233a8d99f459a8cac56d3195581f0d2433d49b52b836cf",
+      "node_id": "sql_lab:42",
+      "operation_id": "query-39",
+      "output_sha256": "a846ff34b8300285e8055101f3eb5ecede4a5a8ff39c7f33cc8ed337273166c8",
+      "query_id": 42,
+      "results_key": "b438a730-6958-4cdb-b603-3bb56aa28a90",
+      "sql_sha256": "59f5afef563f96d39a64013de94bba09b24e818b6ee0e37e52349f42145812d4",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "7efea70cacdec6615395a9a09c2a557645a141cc4e55550ab4bc06139a22d661",
+      "node_id": "sql_lab:43",
+      "operation_id": "query-40",
+      "output_sha256": "1906348b3a43b87ce809e871ace0766c4faee3f115cd8eb92b58dfa361fcd538",
+      "query_id": 43,
+      "results_key": "4fcc640a-4bc7-40eb-84f7-edc6c19b97f3",
+      "sql_sha256": "1d992560298bcf004de843a2ffb9b02edfedc02bea9665599809e4c0f8a792ba",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "d9fe8a93d2b32376da76406c64242ba0fe636f470e152fbb1f68b10e2f66524e",
+      "node_id": "sql_lab:44",
+      "operation_id": "query-41",
+      "output_sha256": "47f472a572bc7ffeb64fbd6972e881bc59972e7f5208712d68f3b73176948635",
+      "query_id": 44,
+      "results_key": "f44d2d64-70b7-4ac6-aab0-3eca9dfd24d0",
+      "sql_sha256": "0afd3e2d9bc63331cd0f87651929daa822d787e8d6ab1a97548e4137e5ad9c5a",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "d10f82aa255d160972431d596c93671fdcf2ab7cb2a0d9c227db3dd00ed0a704",
+      "node_id": "sql_lab:45",
+      "operation_id": "query-42",
+      "output_sha256": "f5ea9662a4163c733e5ea2fd4e129bfcb152a46fa4a5eba32e34aaa6f9d71c33",
+      "query_id": 45,
+      "results_key": "44bb51c2-6ef8-4a4b-a51b-50ba7cc067be",
+      "sql_sha256": "cb4fef78899ff11e5ccbbdb03f9d2ac12d4fb1094ef61eb1bad314622b19e3d1",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "ca60048a8fbb249e2dbeb49d638915a024f30b29490376f8d603dbfaefb8fc79",
+      "node_id": "sql_lab:46",
+      "operation_id": "query-43",
+      "output_sha256": "431b31b5c58c677862ca1288aadf511acbd35020553fe66344be02873853a999",
+      "query_id": 46,
+      "results_key": "50d480ed-f3f0-4a7b-9fd5-69e962791bb4",
+      "sql_sha256": "c6782c824771b7ccd1d2c96c4c6c7b4e4501b5b00a79fc61c8b79b909524944f",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "c2f30b18d632a1cae6242e36c54f9d098ddaca04c091b284b808470528136a97",
+      "node_id": "sql_lab:47",
+      "operation_id": "query-44",
+      "output_sha256": "ec4206165e49a78d40cbc93b2d2831af37ab95a0380759fcdf6704d90ac2f9f3",
+      "query_id": 47,
+      "results_key": "85e765a2-3b38-40aa-ba1c-ee04aae82949",
+      "sql_sha256": "3f0c04d01888fe48038f1653b26867bb87ac22570d9068b4539cc94145baa280",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "efb511fd609b9e3105daf90558c49b5619370bc3a2b9d4da0c85ce48193f1886",
+      "node_id": "sql_lab:48",
+      "operation_id": "query-45",
+      "output_sha256": "b721126b58e1bef009a672f2eca9e1126a7bdc2d840367191aa58362e8b950f3",
+      "query_id": 48,
+      "results_key": "163a676c-8374-4329-be78-2b8407a025ff",
+      "sql_sha256": "6bc410b8b43f14878b23f930e370fad04a2e517a927d571a6cba57798dfae55c",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "d59f4b83b555f6645a5db701a5e97acefd473eaca9c86d832902334fb580276f",
+      "node_id": "sql_lab:49",
+      "operation_id": "query-46",
+      "output_sha256": "0d71faf2e92f750e1b36a7bcf0c32a5ef1077fc3eaf36b4aa620724136fc3bf9",
+      "query_id": 49,
+      "results_key": "4a19f24c-33aa-4085-9a74-0c4df7551d86",
+      "sql_sha256": "a779425eedfa9c6f8e2ad6efd4ae560f4ce2320d2bba4ba5ec2a76fc02a0dc3a",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "b131db4343db94a6d9c4b796cedb4e71a853e21b2ef6c0f131e3e95fdddcb5bc",
+      "node_id": "sql_lab:50",
+      "operation_id": "query-47",
+      "output_sha256": "061cf4154fda262a561d60b129687224608715ace43786b3e07c3d8610b8a4db",
+      "query_id": 50,
+      "results_key": "faecae96-92e8-4041-aa05-d4a438568f9d",
+      "sql_sha256": "ce97b106467f6a38cc9dd2857613364afc9ef0b4952abf936e4846568f048300",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "1997e89765ff683a48a2a66c44d25b28dfe7e74d1530c40d6f141dcd9d9a0601",
+      "node_id": "sql_lab:51",
+      "operation_id": "query-48",
+      "output_sha256": "df4857a02f734fe8bb82efac08068a870789beb73968a4e6c80d556ca76818bb",
+      "query_id": 51,
+      "results_key": "80a3395d-d182-462e-be18-a7c69ef8b3ac",
+      "sql_sha256": "1e8732d41f8c0ff0b216253f45b0d547916baf8d34505f7839767a9d4df570c1",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "26e8f9f9ea65abdb5530625499d0481265336e481c48d756e47c9b00dede969d",
+      "node_id": "sql_lab:52",
+      "operation_id": "query-49",
+      "output_sha256": "1bd795225a49d7f83285c3d83241aa0f2e53739845e747334a5393217079d60d",
+      "query_id": 52,
+      "results_key": "cd45645c-86a6-4953-a793-b9339cdbfb4d",
+      "sql_sha256": "4782e8e3b15c9e8f36b7c4b6b3435eb481bd60f579778c9d90a771d57497a430",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "704d2018c74722ccbf4d5d85b40b3fed6118aea2a9f4317f8ec3b99925abfe15",
+      "node_id": "sql_lab:53",
+      "operation_id": "query-50",
+      "output_sha256": "8f791d4fbf2a553e5746e983da7babde073a0f5650f209813f93b898cbbc3ef5",
+      "query_id": 53,
+      "results_key": "594ee978-c698-4afb-a8bb-87790928b2aa",
+      "sql_sha256": "b1c17ddce9ee9619b7d3913a3862fce21c22708b25aa9e010f9c596c99dbb6d5",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "9f53493d6e201ef3f8bf985d1227e130c8dbc9cc978420a365142046e2e77fd6",
+      "node_id": "sql_lab:54",
+      "operation_id": "query-51",
+      "output_sha256": "f818b431a1e041ea2704d1a51f14ce25518048a1a09095d1b19ab0e42b5379e5",
+      "query_id": 54,
+      "results_key": "2fe9932e-97ab-414a-a4eb-b0fb84ed1cf9",
+      "sql_sha256": "a32a4f57fca1438803b6f018312e02ec2bdf5282fa50833a895d1d7fcf2e0450",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "8acdad5c051a489f2315404c27fe900119066e70b9bf350dd0adab3f3773b791",
+      "node_id": "sql_lab:55",
+      "operation_id": "query-52",
+      "output_sha256": "d987c2f410af31550f54449fba80067aed4b510585f7cc4ef4a58390a1fec17d",
+      "query_id": 55,
+      "results_key": "0362cdb7-e066-42f0-a034-6d2a4145d86d",
+      "sql_sha256": "050f375883a45edac9a0940e3df833d4d22e6d8a70e82c6c82dbb1b37e605265",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "d4fc22f81eb8eead3d6208d4d013b94214733176e1ad62ffd603dba096378fae",
+      "node_id": "sql_lab:56",
+      "operation_id": "query-53",
+      "output_sha256": "9e521c71cd5c941cfcea658a2d8eab6135b7a9308d22bec6ee08ccb6d6ac4827",
+      "query_id": 56,
+      "results_key": "599776af-f42d-4869-9e83-0a989896f848",
+      "sql_sha256": "142cea03ab37c15bdf81b948d878e047814d0fa825e8e5686bb7786aa63fd2cd",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "cdf4c21beb86eeed6dff211bbc00a7baaa6d08a3497bfd077dc6784538fbf492",
+      "node_id": "sql_lab:57",
+      "operation_id": "query-54",
+      "output_sha256": "e4dfaa8fb085cc55ae82a9de90d44e6fceae427565a813fa68ff4de7ec1edbdb",
+      "query_id": 57,
+      "results_key": "be0c1b9e-5e6a-4a07-846c-fc239b75f628",
+      "sql_sha256": "7b5119c5d5d2b4d22a25c853fe17c9b728dab82b087888f76c13dcc29fb231e1",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "48f814f6310a88dccb2cca2fb9a9026c6a3bc21d0e0e5e09f95fd0930c822cda",
+      "node_id": "sql_lab:58",
+      "operation_id": "query-55",
+      "output_sha256": "9033ba0112a404c3ef6e7eb23b41ec95eaa3097a5c4b627458b2a56e048c70d8",
+      "query_id": 58,
+      "results_key": "20e0b620-49f7-48fd-9536-4dbe168345fc",
+      "sql_sha256": "dabbafb0375061acde5260e786baeacd0ad6bdf460d9d14c6d136578d6e19b59",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "876c6a7494e7fc3bd5228256baef3c7d0893a5206387007bf0f026d92a347993",
+      "node_id": "sql_lab:59",
+      "operation_id": "query-56",
+      "output_sha256": "80faaa03b38f8b34ab11a139533d9abf4163e273c63f95f9b5ef338f79d768f6",
+      "query_id": 59,
+      "results_key": "755c14fa-4294-4dc4-a2d3-6ea1ac41037b",
+      "sql_sha256": "2a2cbb60cea2aeb6b1b360a131f5e7738916f123cddfea12aebbf705614b5a43",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "117704fc4a849cfb14a7e5423423b1388acb5e67da7269afe9430d94c735f59b",
+      "node_id": "sql_lab:60",
+      "operation_id": "query-57",
+      "output_sha256": "3098e09b3425d3b38d44627bde9bc5eef0fb421adc5ff7a5da84fae1ba67428b",
+      "query_id": 60,
+      "results_key": "7692addf-f33d-4a4d-9390-6d9dc50b5dbb",
+      "sql_sha256": "7563f0b229ae8541ac5420478c2b2df3e83fb5c9edfe05757fe9cbff60cc72ae",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "de1dd525a7ecb079f6f6ad1debcb24338481a98930d4c5e07311528a0a021fff",
+      "node_id": "sql_lab:61",
+      "operation_id": "query-58",
+      "output_sha256": "f868ff7b40d6d2408a28f75e4710cb68124bf30bd79369f54b2bfb8fa266e18f",
+      "query_id": 61,
+      "results_key": "4262522c-76a9-4f81-aecd-3bd606f949ef",
+      "sql_sha256": "de1599ba4c176a6676a59f9661785b1c1bdc8b49ab7bf57e658603a0068dbafa",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "40f26325501dd77652199f16bc05697869d58f2041c639a0d2a2f5d15cbf111f",
+      "node_id": "sql_lab:62",
+      "operation_id": "query-59",
+      "output_sha256": "e197c0dbf86f1aa9905af0f4dd8e1e74f60573849c8f76bf36be449d6c72a6fd",
+      "query_id": 62,
+      "results_key": "4d5d6b44-9d07-41b4-a9bb-94cb324d39e7",
+      "sql_sha256": "7aa483a65e81f6c232029eb6f7e1fbeb113d0595c7c6cc91add1135ca8b92969",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "bdf063d10c1ad883edab5dd0e2e437b85999ccc57bc2b5adc81472274d938861",
+      "node_id": "sql_lab:63",
+      "operation_id": "query-60",
+      "output_sha256": "10c730eaea1ff7d74b723890b7715ae76014fe96aefe8c8a6e28ff4ae0777a87",
+      "query_id": 63,
+      "results_key": "069fa8ed-ce46-4492-8087-21ed1699dbfe",
+      "sql_sha256": "42f2d429ff883fba4535fd9f6d5a22ea32329c321b3ff601216c8b3c4f6d0551",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "73e944a331a01d2499dadfaccbc3c5e61c1981137c94f9d5091b91c59019c725",
+      "node_id": "sql_lab:64",
+      "operation_id": "query-61",
+      "output_sha256": "d525c0d270cd8847e5915ff9528a538b2824bd4943ad6f1e5984ff108cf48344",
+      "query_id": 64,
+      "results_key": "a4b93005-37b2-48cf-a5d1-4fcb97bd5f12",
+      "sql_sha256": "0c091ced9fe3533721348bb059c73f6f4b4ce73d259fc9761c899029b1b1f34d",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "eeb3a8233ad236f4c05dc5d6b1a86c83342e065bde57b92fc577f81116278249",
+      "node_id": "sql_lab:65",
+      "operation_id": "query-62",
+      "output_sha256": "27beb4512fc7ce4a287d17458e333196a1397ec9057b94aa16fb741467e26ec6",
+      "query_id": 65,
+      "results_key": "80f0dce6-5eaa-4ded-9b1c-cba6ad5fe7f7",
+      "sql_sha256": "aa52a187dd65e5b540807a7fd13ba139471caaa1a2505f0d4746a973baf8e1bd",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "6f8dd8febfd8c68410c6e23984d972ff83cda0ab14d86ccd2075e471b2c2cd62",
+      "node_id": "sql_lab:66",
+      "operation_id": "query-63",
+      "output_sha256": "838efdb110244415ca462f043c6339c6104942ae26e5c3bd207f229bfc743d47",
+      "query_id": 66,
+      "results_key": "97e17759-af6f-4a86-9d40-8b198bf1c8cf",
+      "sql_sha256": "cf545e6b56f9ec3601ba8c16030fc1a165d6cc8c8c7d15cefc6d575be24e4e14",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "19a1fff7b59140c1a7605326cbb327861b40ebdfc8401e856add4bb7e32bfcf6",
+      "node_id": "sql_lab:67",
+      "operation_id": "query-64",
+      "output_sha256": "bc61c4f1b8b63ab9dafc5ac14648c9aa2e3b14b29707a1b9df825d9985a159a0",
+      "query_id": 67,
+      "results_key": "a3e6bbd5-cf78-43a4-a85a-41e40bbb02ef",
+      "sql_sha256": "c0a44b4cb1b94b8757442e8fa7981430113d1c603545a80115652db9781363ff",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "73893e9a55c029c764403513f41e2158d53c256595f93f8d850bf596afd8ea58",
+      "node_id": "sql_lab:68",
+      "operation_id": "query-65",
+      "output_sha256": "1319f81f5c05cfcf3f9fbe1bb1c0dceb46c7fa760676fba7e3aca0edfc49c5eb",
+      "query_id": 68,
+      "results_key": "271d2d4a-62cf-4024-a242-bafcc17e98a3",
+      "sql_sha256": "498dc6fc49a0c1dcbfb4b11b87a2e474cb0b3510d0973f38911d5612176a70b2",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "c72561cc7c0fa0281946c1c63a0b8eaa313678b0f73016032f46c0e27ef4a43a",
+      "node_id": "sql_lab:69",
+      "operation_id": "query-66",
+      "output_sha256": "2370a0bb62ca6a117c11292999e2ca714ba0ab57261cdfdb4500e82cfc95ad1a",
+      "query_id": 69,
+      "results_key": "aeba11c9-6102-4ce2-812a-79b1d8600d4d",
+      "sql_sha256": "e1ba1d0a47507fa13978e0d066d45eba9576f851693c07523f15b9d2bd3625eb",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "ba40f2e01c42daa6da582f5ba0ff6db7a2f361b76df99c5cb3a72247996c1eb9",
+      "node_id": "sql_lab:70",
+      "operation_id": "query-67",
+      "output_sha256": "422c6c2159fe66147237959bd84bcc9a8b8ddacf34d8ddeb0aca96e60faa5188",
+      "query_id": 70,
+      "results_key": "b834a712-5a42-4655-b061-92fbc7ff9f2d",
+      "sql_sha256": "76dfe3502acab7b72a45c28296f9fed7c4facd4005d9be3c40a183359645c407",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "1dc26057194b34e49b09dfd3408a904193f44837231661a26fb4652774c6fc2c",
+      "node_id": "sql_lab:71",
+      "operation_id": "query-68",
+      "output_sha256": "e75b968d9aa422e008104577cee050ca4225ce163ca1e9746ab346237c1bf8aa",
+      "query_id": 71,
+      "results_key": "4fd56dea-6ec8-414c-bec2-768c7b554f74",
+      "sql_sha256": "9bfcf3ab565aa4af16624023135fe9dcd20df7e50f79ab5112cdbac736c9849b",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "157beee6e75f146e090079ec9ca192441791b092b7b2d6223ed7ff05119f0d90",
+      "node_id": "sql_lab:72",
+      "operation_id": "query-69",
+      "output_sha256": "fd2662ed3dc1df99cc6655bf00650c99361444dffbdbc04edbeb4a1a90ce321b",
+      "query_id": 72,
+      "results_key": "7302831b-3a7a-4c45-be15-4e9ec9a62746",
+      "sql_sha256": "fd00d353ed04e00cbd7ab5a840433c04358ffcd87da515849ec8e8fcf945fb47",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "4d946a98dec7b4d1aa3c74c5210e9e0edfae88b3f886e4403987b932880380c4",
+      "node_id": "sql_lab:73",
+      "operation_id": "query-70",
+      "output_sha256": "cda7c8ed605b582049ad80060f45ec55b47a3ab9251229db5e9abff20030dc64",
+      "query_id": 73,
+      "results_key": "e295fea7-6541-4a63-ab99-cff42a295059",
+      "sql_sha256": "01c6ed47b55d6bfee7db5d6055b1aa39fd8bc14709c91afd9b6e2d0a5c759085",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "cf5b5b28401cb11eebb7241392d6d98f4dc2887d181b9cc5dc2a731797a1ce85",
+      "node_id": "sql_lab:74",
+      "operation_id": "query-71",
+      "output_sha256": "82cca2d8e228e5f7e2f451cbff5a9899b88e0e639329c246f760cd698905e38d",
+      "query_id": 74,
+      "results_key": "2b0d6d22-c654-4f6c-a841-a91207309fe1",
+      "sql_sha256": "c705dca5758ce39dc160a739b97feac77bd34fae6793dcbf856a8396e175f269",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "f5bcc2cb088eec344e6ebdb76ea2d94e8b2bad19f13cd8e091be9dd449ba2be1",
+      "node_id": "sql_lab:75",
+      "operation_id": "query-72",
+      "output_sha256": "6c52a1a69b3de7c6249c7a17cad735d87edf71e12948052729f8644707f87edf",
+      "query_id": 75,
+      "results_key": "6dfb89a2-8294-468e-bc78-5cb4d7ae9fea",
+      "sql_sha256": "79bb5bad4064a34017f72ac9c345c79a0ef3a7b83484242929411586e3d9ef0d",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "05164253ff54a7cfd2f03aab109410231a14f95b6311662f210db86675188e56",
+      "node_id": "sql_lab:76",
+      "operation_id": "query-73",
+      "output_sha256": "1c92e22ac2b8d1ab682333921170c7536c5cd50042a1699a5507acecc0d6b33f",
+      "query_id": 76,
+      "results_key": "9070c40b-c250-47f2-bd77-370c816d9d4b",
+      "sql_sha256": "d2309d18ef7fd938e77f33b43a916b416d229a461483b885fc0a333aa822044c",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "da67e5c7049f831bf21e40091d3be10f0e7601216d6fcf2f43f848b7cf6d4277",
+      "node_id": "sql_lab:77",
+      "operation_id": "query-74",
+      "output_sha256": "ddcd39c9a9630b049d1fbd1b65e7093f1983f672e82e5c32a556757f7a8b2dee",
+      "query_id": 77,
+      "results_key": "dc638660-92da-4d67-a0ca-328927243835",
+      "sql_sha256": "b6c688d192eac583f93e59bb2fc115925a585f210d6b1e4580b6cb93f5c9bab9",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "78fb203e833f91a4190c8e023de697f3aed275ba33e7d8d0916945db6a3131be",
+      "node_id": "sql_lab:78",
+      "operation_id": "query-75",
+      "output_sha256": "4ccc97e4b9b6552fe916e7760b4d5ae06b60c3556021c2597dcef4f8c5875355",
+      "query_id": 78,
+      "results_key": "6a73be64-3a4b-40cd-8cf5-b0e432308beb",
+      "sql_sha256": "1e4e71010e551e731bd38b6f1182b54af95321e74559bb625fa19b8d64e27251",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "35c2a2d5dd7563adac3750816e03b6f1956a477782a94d49de4b96a9e8e4bfb0",
+      "node_id": "sql_lab:79",
+      "operation_id": "query-76",
+      "output_sha256": "80a41810ed9aa9eed8f9434f4e6ecd3f200a49b230316551edba4831673489f9",
+      "query_id": 79,
+      "results_key": "330960b4-6747-456b-b624-7d422c1b85a9",
+      "sql_sha256": "29feaf92eccf3c1f4107b29e91be71f605e28770ec80b9530a980e6e135972e5",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "b5880577a190ba9be10f87bf63f5b2499238c2b75659a467ba21f3fc6f39b363",
+      "node_id": "sql_lab:80",
+      "operation_id": "query-77",
+      "output_sha256": "1ac9fe24066a9ffa96b021b08b7066e7e4abd6f05822b833ddf0c0e540741bd7",
+      "query_id": 80,
+      "results_key": "6a2a0419-8a2a-4cfa-a0f8-451797372678",
+      "sql_sha256": "25b9ace52261643e288e1da7833f53c873935a4b22a1aef0ef131f1f31dc1946",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "c115dce0ae474020f2cd077b41479691380e9a5cfca725832884a7e554889d42",
+      "node_id": "sql_lab:81",
+      "operation_id": "query-78",
+      "output_sha256": "014dc67ad8fd6b726cfa5d0bb8d0cf87ee7dbd70e4e544dbad543c300ffd8e88",
+      "query_id": 81,
+      "results_key": "5c528d5e-61f1-4de5-8986-14608a622ead",
+      "sql_sha256": "e62fa6dbda17087d8c57d0e4e24a70fa47dd99163d6ff871fa31077220c6bf1a",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "3d868ec405ae7ebab3dc419148f760919da35fe39b25c55084bad0b6122f28f8",
+      "node_id": "sql_lab:82",
+      "operation_id": "query-79",
+      "output_sha256": "54af0c00d4cadc520088583a56a21622e31613cba35121714b033c151dffc945",
+      "query_id": 82,
+      "results_key": "bc37ffac-221e-412d-a3e9-a5c6381829f5",
+      "sql_sha256": "5d81babffda5ef3c404cd92eedfd70f1948434e61aaabcf3a252f3a9b5daf044",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "b21ef8308893a1c260a63fed001d12160377615dc1157cdefa9dd53c0b14d059",
+      "node_id": "sql_lab:83",
+      "operation_id": "query-80",
+      "output_sha256": "0904365cd6ffe82d6a636e758157b955ea3499dd09971db005637d3043e940ed",
+      "query_id": 83,
+      "results_key": "3b34e21b-82f4-45f1-978c-7e13510b44d3",
+      "sql_sha256": "224b0b2b28401650dd6b467006b41bdf37a8cf321217c36603815de1216b0f43",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "7a04ccff9509ff0e9487a16c7c56aee4de44c7f76700118741cf7f19bbbf1d94",
+      "node_id": "sql_lab:84",
+      "operation_id": "query-81",
+      "output_sha256": "6acce303c23a059f7f494a804667ccf4a6a09c9960d0ab98c65bf3af4ae9e407",
+      "query_id": 84,
+      "results_key": "7e8c167a-ab18-4665-87f6-8397ae5e691a",
+      "sql_sha256": "359804f1c1475adf18c6d06753470e9d7e4cfddf5c6a3c6460269ba226aa254e",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "f16bcde65b0bd306f7b1523e113d909102c6130696306fc572c3ac88cc225f47",
+      "node_id": "sql_lab:85",
+      "operation_id": "query-82",
+      "output_sha256": "54e0881c3553b40be48366b999bafaf21681bd7bba1f0935dc94a694de290c6b",
+      "query_id": 85,
+      "results_key": "1cbb5920-1446-4f24-801a-17bc5562e7e8",
+      "sql_sha256": "4ad5f529ead3a92171484a6d4ba9ef92985ed25c1a83ffcfd16e55011f00a5ab",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "7bdc9be42925e3d03838a441cfce8e0e7f9f490beec02fdb2296db7950a9f758",
+      "node_id": "sql_lab:86",
+      "operation_id": "query-83",
+      "output_sha256": "1d58fe86e158cb197c124cca1c47c1b97012e0b4110f2c91f177e4dbb7eaf46b",
+      "query_id": 86,
+      "results_key": "0e3f1857-73e3-483b-b3a4-e1e9ea80a82b",
+      "sql_sha256": "cde2ee325658be1b1e0fd86b9855f45d22ee20836f96dd9eb94bbd333d002313",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "8a5931613ea5523f9cd1dc042f4f7a068f7725f7aa7ae8526988af0ca5ba9099",
+      "node_id": "sql_lab:87",
+      "operation_id": "query-84",
+      "output_sha256": "34cae2747694572ada3c206385c29f6b6a33ebc4e8a660f6a2c123d228aa7801",
+      "query_id": 87,
+      "results_key": "40365672-afb7-4c42-b746-01db4e145caa",
+      "sql_sha256": "d270a581cec39e98da42b63723ba3f456252c9274168a40dfe781447eb8541bf",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "f6ebb8199a92da64ca71355e409bdf65cfbc7b62f9f60d9474243d82e56dc7a5",
+      "node_id": "sql_lab:88",
+      "operation_id": "query-85",
+      "output_sha256": "2839c59ca5d81113f2da00e1e2d3538353ceaa8c234f27608b868c68b015acd8",
+      "query_id": 88,
+      "results_key": "9aa93221-53fd-43e6-ac6e-dba18830fd25",
+      "sql_sha256": "6ff5803c34b0bf171b2d5b8c8003eb5488e11fb85b60a0cd527235af1fda78b8",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "ee5fa6feec68c28e8750f5c6d20d42583a2da9d4940fb72f77926057cd3c3951",
+      "node_id": "sql_lab:89",
+      "operation_id": "query-86",
+      "output_sha256": "2427638cf7c73e621df548764495fd8412275ea718035ca619bd7027a67f8284",
+      "query_id": 89,
+      "results_key": "d057c2f9-0dde-48f1-806f-8a46f141126b",
+      "sql_sha256": "32bf30c65f5f7029427c38972477f1859b7520b54ff485ef1b6a651529a3907e",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "3f7dbc7f3953dba975c90a48989f3557a3701d87f4b6435061d429135e1247e3",
+      "node_id": "sql_lab:90",
+      "operation_id": "query-87",
+      "output_sha256": "fef717bc821bc17b01f06d66d696437b496c4843fec75ca03f13d8c7b3507d47",
+      "query_id": 90,
+      "results_key": "9a09a965-5746-437f-9a9a-9862d87f1326",
+      "sql_sha256": "60d3e9f4813f1704ac6194e31df812b194f629116f7831a291120b450dd72d32",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "c7035b9841d2dce4cbdba91f6c5ee2dfbcf05b4664acfeb4cbceafe810134acc",
+      "node_id": "sql_lab:91",
+      "operation_id": "query-88",
+      "output_sha256": "bbbee77a522d02f869496242fb96c0b0300421e7a3e6116490852be96307fb5b",
+      "query_id": 91,
+      "results_key": "baed8471-06b1-4724-bae1-8fca9d2144f8",
+      "sql_sha256": "8105dc15f20858ed49b541cb618f38811937eb61313e9bd50c440df400dff6ab",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "c45ea4a0fffd1bf5c9e059807af4e24623b5fe4482b3d39f9c0a04ac0c3a0ea0",
+      "node_id": "sql_lab:92",
+      "operation_id": "query-89",
+      "output_sha256": "bd1da504cab0e7aaa92883262db3a3e2a0b0f13d8054b8054ea5c00d379cf420",
+      "query_id": 92,
+      "results_key": "7e762984-ba4d-4adc-8dd2-117d5dbcf51f",
+      "sql_sha256": "432e737c0c14a1d48047dd5d5f19da2ee074209a4d75a562cbcdefb6f2417805",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "1b3c988827634b02f5896aeb3344bb52e4fcb9094f4019426cecf7bad11e801c",
+      "node_id": "sql_lab:93",
+      "operation_id": "query-90",
+      "output_sha256": "4c718472fe77cf116642e4f741f10294799e25a83ab098fdea605bdc890396c9",
+      "query_id": 93,
+      "results_key": "f77b2439-ee8f-46aa-963d-eea3e978f049",
+      "sql_sha256": "4c643599d78ee566152a83032c303758d9c95dbf7029d4ba4da0b69ecc12395f",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "e95c1df593d985d3840ecbad8b8ef147de4c329860f8bb84c967ab56e93f0f50",
+      "node_id": "sql_lab:94",
+      "operation_id": "query-91",
+      "output_sha256": "5617b534de60367d95810bd7702b8430a5b764813d8975024a327f0d00297c68",
+      "query_id": 94,
+      "results_key": "2a7c282f-95f4-4cc8-94a3-6044785e2390",
+      "sql_sha256": "bc293cd8c807710a92de03f6ba01792a2035e38f3a28f9254574dc12aa725ba5",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "c8a718eefdc3471f00552b766ba93ff41537d7a4df36fc1f08cec215df209c03",
+      "node_id": "sql_lab:95",
+      "operation_id": "query-92",
+      "output_sha256": "1e7894be1eaa481115ae08845c7b8d16d8d51ab37c5c1206099f9472f1e2b304",
+      "query_id": 95,
+      "results_key": "0d84aab7-5bdd-42c6-9148-b6f282824995",
+      "sql_sha256": "b7b992b408b8c4bf1ab6262f1c4e3a01aecfff6e539f671bd17dd3799cf92262",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "4b5546001014a035691b6fbed255d925883e0f5eb13de5911859b7dd1b9277d4",
+      "node_id": "sql_lab:96",
+      "operation_id": "query-93",
+      "output_sha256": "cc339953589ac2904f83e269159385fcd52603100ce3cae5db86030f080d0ad8",
+      "query_id": 96,
+      "results_key": "8ae6375d-48e8-437c-9305-c2e197afe27b",
+      "sql_sha256": "02d7fda7e9ad4a963e4efd1bb0eb3ebe466600e3c10e5b05535cbd2811b9629f",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "68a90646edf2cf4f54590a3671df07c85462f878b12e32a632304ee3e3753abd",
+      "node_id": "sql_lab:97",
+      "operation_id": "query-94",
+      "output_sha256": "584f3a18a50ec1c8116174ffec0478fbf2e02960e7d9f2fc111a3dc3b8ef2faa",
+      "query_id": 97,
+      "results_key": "77582c4a-a900-4ea0-8b05-d9f59ae960a7",
+      "sql_sha256": "116cceb1a8f11b9a9d799b8f87693973acaf845c2c7a782ab9b1745cd270188b",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "2fdff2b505729d35625a5fcd767fe8cc68cfb6942eafd7402337528372e13fbc",
+      "node_id": "sql_lab:98",
+      "operation_id": "query-95",
+      "output_sha256": "476fc338557afc141a955ef4a17011d44bdeb16e13b545bd8bbd8754e2b3e38f",
+      "query_id": 98,
+      "results_key": "4c11a747-6e9f-48fd-a49f-e2933df5f396",
+      "sql_sha256": "8e1f685e0ae0a24fd33c67677231b22d488f5653015009aab2360cd56be67d44",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "90fa76ee02f3a3429ff63ebd5b0092d58b2bd55ceb75c2a78c25bd9aba429287",
+      "node_id": "sql_lab:99",
+      "operation_id": "query-96",
+      "output_sha256": "c36ea24a3a18a76c445481a89e66b0468d003ece77398d28fbaefdc0a0731222",
+      "query_id": 99,
+      "results_key": "6f8686b1-6199-4c58-b8a4-577d8f383fd8",
+      "sql_sha256": "6e5b80f5dde828b8da8bf80f64c50b39c1bc4410f6a0241eb8938c00ca20f018",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "e07d5a1a4df9abcae289814e751efdc70284338b1af3a8c473a5918603b00776",
+      "node_id": "sql_lab:100",
+      "operation_id": "query-97",
+      "output_sha256": "ad1418eab6a2b88445eb9c26fd19303b2276c58250a2c88e58ea2705e112a3a6",
+      "query_id": 100,
+      "results_key": "cdc72680-23e2-4e78-b869-959beaebeadd",
+      "sql_sha256": "a9fc73008831d30c4f909434ff557514df005bd718364bdbb4daf5c90446f5bd",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "8c5653f136f78655164b65cbef5e4ad942c999639f0139593b0272585a1134e1",
+      "node_id": "sql_lab:101",
+      "operation_id": "query-98",
+      "output_sha256": "397280d920cfa167f6bef2085f36edbff7f37bf5ecbeaae84fdc1d0a866ef218",
+      "query_id": 101,
+      "results_key": "8075d4b1-e3ad-4b53-9123-ea7792ff7d05",
+      "sql_sha256": "8a015764bb5d2b9e6ab6c240e365773aaae4b85c78d8b448312233fe62a32566",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    },
+    {
+      "argument_sha256": "3340293abee8529fe183561c99d5777f06a90f19ab6a27119dd68f2606faf775",
+      "node_id": "sql_lab:102",
+      "operation_id": "query-99",
+      "output_sha256": "d2750f5b2c98e84aff385d77459f28a43b1d12c27de6bcaf4dc76b71b159582e",
+      "query_id": 102,
+      "results_key": "927dc5a0-6468-4145-988f-d82b5351573e",
+      "sql_sha256": "b01b5c59e01e471e6afcb0e3ce9854dabef06ae9d01103729c4a0724dd6934b5",
+      "stage": "sql_lab",
+      "username": "benchmark"
+    }
+  ],
+  "capabilities": {
+    "scope": "Native successful asynchronous SQL Lab SELECT workflow on a declared SQLite fixture",
+    "untested": [
+      "worker_crash",
+      "publication_failure",
+      "timeouts",
+      "cancellation",
+      "cross_orm_atomicity",
+      "postgresql"
+    ],
+    "verified": [
+      "native_sql_lab_submission",
+      "native_task_dispatch",
+      "async_results_storage",
+      "native_results_retrieval",
+      "one_job_per_query",
+      "business_success"
+    ]
+  },
+  "comparison_mode": "native_application_workflow",
+  "configuration": {
+    "celery_acknowledgements": "upstream early acknowledgements",
+    "completion": "native success + stored results + authenticated retrieval + scheduler terminal event",
+    "concurrency": 2,
+    "dbworker_timeouts": "No equivalent native soft/hard task limits; normal completion only",
+    "environment_overrides": [
+      "isolated Redis host/port",
+      "isolated filesystem cache directory",
+      "isolated SQLite metadata URI",
+      "fixture secret/encryption setting",
+      "local test-client CSRF/TLS disabled"
+    ],
+    "metadata_database": "sqlite",
+    "native_application": "superset.tasks.celery_app:app",
+    "native_configuration": "docker/pythonpath_dev/superset_config.py",
+    "redis_aof": "everysec",
+    "results_backend": "upstream FileSystemCache",
+    "submission": "authenticated original SQL Lab REST API",
+    "timing": "first API submission through all result retrieval and scheduler completion",
+    "warehouse_database": "sqlite"
+  },
   "environment": {
     "interpreter": "/workspace/benchmarks/environments/superset/dbworker/.venv/bin/python",
     "packages": {
       "apache-superset": "0.0.0.dev0",
       "celery": "5.6.3",
-      "dbworker": "0.0.6",
+      "dbworker": "0.0.7",
       "rich": "15.0.0",
       "sqlalchemy": "2.0.54"
     },
     "python": "3.12.3"
   },
+  "measurement_window": {
+    "clock_domain": "unix_time_ns",
+    "end": {
+      "monotonic_ns": 855795713499,
+      "timestamp_ns": 1791535450423015108,
+      "uncertainty_ns": 337
+    },
+    "schema_version": 1,
+    "start": {
+      "monotonic_ns": 850996779176,
+      "timestamp_ns": 1791535445624080927,
+      "uncertainty_ns": 155
+    }
+  },
   "metrics": {
     "cpu_seconds": null,
     "peak_rss_bytes": null,
-    "queries_per_second": 46.054713142904376,
-    "wall_seconds": 2.1713304280000045
+    "queries_per_second": 20.83795969466115,
+    "wall_seconds": 4.798934323
+  },
+  "native_execution": {
+    "check": "live_task_origin_and_ast",
+    "configuration": {
+      "overrides": "isolated Redis/cache/metadata/security fixture environment",
+      "source_sha256": "523a1e68dc214e8f7f5e09304dfe9593b7996009dd13224d67d09abfe4fe29f7",
+      "upstream_config": "docker/pythonpath_dev/superset_config.py"
+    },
+    "observer_only": true,
+    "passed": true,
+    "task_names": [
+      "sql_lab.get_sql_results"
+    ],
+    "tasks": {
+      "sql_lab.get_sql_results": {
+        "framework_wrappers": [],
+        "function": "get_sql_results",
+        "source": "superset/sql_lab.py",
+        "source_sha256": "57afb23c405755cc9c9143e65f1bc06b87cd90ba2a3bf5a7934d7096b4f373b3",
+        "task_class": "superset.sql_lab.get_sql_results"
+      }
+    },
+    "worker_app": "superset.tasks.celery_app:app"
   },
   "repetition": 4,
   "scenario": "sql_lab_group_by",
+  "sql_result_evidence": {
+    "path": "superset-4-dbworker/sql-results-evidence.json",
+    "schema_version": 1,
+    "sha256": "210a6448b28ab09a8ed5cdaa58bb1af093076957ffd642a735e8e39ecd65a312"
+  },
   "status": "passed",
   "unavailable_metrics": {
-    "cpu_seconds": "Total-stack sampling is not implemented for this initial suite",
-    "peak_rss_bytes": "Total-stack sampling is not implemented for this initial suite"
+    "cpu_seconds": "Total-stack CPU sampling is unavailable",
+    "peak_rss_bytes": "Total-stack RSS sampling is unavailable"
   },
   "validation": {
-    "output_digest": "e131da9e0850da955bf8b7533b13bf95a1faacf15906372470b590534ce9d528",
+    "output_digest": "68dd2ed67a95e8b36521494dcafbd20b8d27c54cd0f31de1f7fc81b0cbdf942e",
     "passed": true,
     "queries": 100,
+    "retrieved_results": 100,
     "rows_per_query": 10
+  },
+  "warmup_operations": [
+    "warmup:0",
+    "warmup:1"
+  ],
+  "workflow_graph": {
+    "contract": "successful_business_workflow",
+    "edge_counts": [],
+    "nodes": 100,
+    "observed_jobs": [
+      {
+        "node_id": "sql_lab:10",
+        "operation_id": "query-7",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:100",
+        "operation_id": "query-97",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:101",
+        "operation_id": "query-98",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:102",
+        "operation_id": "query-99",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:11",
+        "operation_id": "query-8",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:12",
+        "operation_id": "query-9",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:13",
+        "operation_id": "query-10",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:14",
+        "operation_id": "query-11",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:15",
+        "operation_id": "query-12",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:16",
+        "operation_id": "query-13",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:17",
+        "operation_id": "query-14",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:18",
+        "operation_id": "query-15",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:19",
+        "operation_id": "query-16",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:20",
+        "operation_id": "query-17",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:21",
+        "operation_id": "query-18",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:22",
+        "operation_id": "query-19",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:23",
+        "operation_id": "query-20",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:24",
+        "operation_id": "query-21",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:25",
+        "operation_id": "query-22",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:26",
+        "operation_id": "query-23",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:27",
+        "operation_id": "query-24",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:28",
+        "operation_id": "query-25",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:29",
+        "operation_id": "query-26",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:3",
+        "operation_id": "query-0",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:30",
+        "operation_id": "query-27",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:31",
+        "operation_id": "query-28",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:32",
+        "operation_id": "query-29",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:33",
+        "operation_id": "query-30",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:34",
+        "operation_id": "query-31",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:35",
+        "operation_id": "query-32",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:36",
+        "operation_id": "query-33",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:37",
+        "operation_id": "query-34",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:38",
+        "operation_id": "query-35",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:39",
+        "operation_id": "query-36",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:4",
+        "operation_id": "query-1",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:40",
+        "operation_id": "query-37",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:41",
+        "operation_id": "query-38",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:42",
+        "operation_id": "query-39",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:43",
+        "operation_id": "query-40",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:44",
+        "operation_id": "query-41",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:45",
+        "operation_id": "query-42",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:46",
+        "operation_id": "query-43",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:47",
+        "operation_id": "query-44",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:48",
+        "operation_id": "query-45",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:49",
+        "operation_id": "query-46",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:5",
+        "operation_id": "query-2",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:50",
+        "operation_id": "query-47",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:51",
+        "operation_id": "query-48",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:52",
+        "operation_id": "query-49",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:53",
+        "operation_id": "query-50",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:54",
+        "operation_id": "query-51",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:55",
+        "operation_id": "query-52",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:56",
+        "operation_id": "query-53",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:57",
+        "operation_id": "query-54",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:58",
+        "operation_id": "query-55",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:59",
+        "operation_id": "query-56",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:6",
+        "operation_id": "query-3",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:60",
+        "operation_id": "query-57",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:61",
+        "operation_id": "query-58",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:62",
+        "operation_id": "query-59",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:63",
+        "operation_id": "query-60",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:64",
+        "operation_id": "query-61",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:65",
+        "operation_id": "query-62",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:66",
+        "operation_id": "query-63",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:67",
+        "operation_id": "query-64",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:68",
+        "operation_id": "query-65",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:69",
+        "operation_id": "query-66",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:7",
+        "operation_id": "query-4",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:70",
+        "operation_id": "query-67",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:71",
+        "operation_id": "query-68",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:72",
+        "operation_id": "query-69",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:73",
+        "operation_id": "query-70",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:74",
+        "operation_id": "query-71",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:75",
+        "operation_id": "query-72",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:76",
+        "operation_id": "query-73",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:77",
+        "operation_id": "query-74",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:78",
+        "operation_id": "query-75",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:79",
+        "operation_id": "query-76",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:8",
+        "operation_id": "query-5",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:80",
+        "operation_id": "query-77",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:81",
+        "operation_id": "query-78",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:82",
+        "operation_id": "query-79",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:83",
+        "operation_id": "query-80",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:84",
+        "operation_id": "query-81",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:85",
+        "operation_id": "query-82",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:86",
+        "operation_id": "query-83",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:87",
+        "operation_id": "query-84",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:88",
+        "operation_id": "query-85",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:89",
+        "operation_id": "query-86",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:9",
+        "operation_id": "query-6",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:90",
+        "operation_id": "query-87",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:91",
+        "operation_id": "query-88",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:92",
+        "operation_id": "query-89",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:93",
+        "operation_id": "query-90",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:94",
+        "operation_id": "query-91",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:95",
+        "operation_id": "query-92",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:96",
+        "operation_id": "query-93",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:97",
+        "operation_id": "query-94",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:98",
+        "operation_id": "query-95",
+        "parent_id": null,
+        "stage": "sql_lab"
+      },
+      {
+        "node_id": "sql_lab:99",
+        "operation_id": "query-96",
+        "parent_id": null,
+        "stage": "sql_lab"
+      }
+    ],
+    "operations": [
+      "query-0",
+      "query-1",
+      "query-2",
+      "query-3",
+      "query-4",
+      "query-5",
+      "query-6",
+      "query-7",
+      "query-8",
+      "query-9",
+      "query-10",
+      "query-11",
+      "query-12",
+      "query-13",
+      "query-14",
+      "query-15",
+      "query-16",
+      "query-17",
+      "query-18",
+      "query-19",
+      "query-20",
+      "query-21",
+      "query-22",
+      "query-23",
+      "query-24",
+      "query-25",
+      "query-26",
+      "query-27",
+      "query-28",
+      "query-29",
+      "query-30",
+      "query-31",
+      "query-32",
+      "query-33",
+      "query-34",
+      "query-35",
+      "query-36",
+      "query-37",
+      "query-38",
+      "query-39",
+      "query-40",
+      "query-41",
+      "query-42",
+      "query-43",
+      "query-44",
+      "query-45",
+      "query-46",
+      "query-47",
+      "query-48",
+      "query-49",
+      "query-50",
+      "query-51",
+      "query-52",
+      "query-53",
+      "query-54",
+      "query-55",
+      "query-56",
+      "query-57",
+      "query-58",
+      "query-59",
+      "query-60",
+      "query-61",
+      "query-62",
+      "query-63",
+      "query-64",
+      "query-65",
+      "query-66",
+      "query-67",
+      "query-68",
+      "query-69",
+      "query-70",
+      "query-71",
+      "query-72",
+      "query-73",
+      "query-74",
+      "query-75",
+      "query-76",
+      "query-77",
+      "query-78",
+      "query-79",
+      "query-80",
+      "query-81",
+      "query-82",
+      "query-83",
+      "query-84",
+      "query-85",
+      "query-86",
+      "query-87",
+      "query-88",
+      "query-89",
+      "query-90",
+      "query-91",
+      "query-92",
+      "query-93",
+      "query-94",
+      "query-95",
+      "query-96",
+      "query-97",
+      "query-98",
+      "query-99"
+    ],
+    "passed": true,
+    "per_operation": {
+      "query-0": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-1": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-10": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-11": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-12": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-13": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-14": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-15": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-16": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-17": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-18": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-19": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-2": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-20": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-21": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-22": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-23": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-24": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-25": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-26": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-27": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-28": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-29": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-3": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-30": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-31": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-32": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-33": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-34": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-35": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-36": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-37": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-38": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-39": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-4": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-40": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-41": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-42": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-43": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-44": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-45": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-46": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-47": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-48": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-49": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-5": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-50": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-51": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-52": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-53": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-54": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-55": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-56": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-57": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-58": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-59": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-6": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-60": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-61": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-62": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-63": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-64": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-65": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-66": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-67": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-68": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-69": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-7": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-70": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-71": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-72": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-73": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-74": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-75": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-76": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-77": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-78": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-79": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-8": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-80": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-81": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-82": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-83": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-84": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-85": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-86": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-87": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-88": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-89": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-9": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-90": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-91": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-92": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-93": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-94": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-95": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-96": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-97": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-98": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      },
+      "query-99": {
+        "edges": [],
+        "stages": {
+          "sql_lab": 1
+        }
+      }
+    },
+    "schema_version": 1,
+    "stage_counts": {
+      "sql_lab": 100
+    }
+  },
+  "workflow_trace": {
+    "path": "superset-4-dbworker/task_trace.jsonl",
+    "sha256": "f4ed46090db7acf5b3eb592c0a318ea72c2c9833585b0bf955733c4459bf8099"
   }
 }

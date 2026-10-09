@@ -11,6 +11,7 @@ import httpx
 import psutil
 
 from imagededup_benckmark.runtime import Stack
+from benchmarks.common.timing_evidence import begin_window, end_window, elapsed_seconds
 
 
 def distribution(values: list[float], *, scale: float = 1) -> dict[str, float | int | None]:
@@ -22,15 +23,18 @@ def distribution(values: list[float], *, scale: float = 1) -> dict[str, float | 
 
 class Measurement:
     def __init__(self, stack: Stack, workspace_id: int, images: int, comparisons: int,
-                 *, interval: float, timeout: float) -> None:
+                 *, interval: float, timeout: float, new_builds: bool = True) -> None:
         self.stack, self.workspace_id = stack, workspace_id
         self.images, self.comparisons = images, comparisons
         self.interval, self.timeout = interval, timeout
+        self.new_builds = new_builds
+        self.commit_record_offset = 0
         self.stop_event = threading.Event()
         self.done_event = threading.Event()
         self.thread = threading.Thread(target=self._monitor, daemon=True)
         self.started = time.perf_counter()
         self.finished: float | None = None
+        self.submission_finished: float | None = None
         self.error: BaseException | None = None
         self.samples: list[dict[str, Any]] = []
         self.cpu_initial: dict[tuple[int, float], float] = {}
@@ -70,8 +74,19 @@ class Measurement:
 
     def start(self) -> None:
         self.resources(baseline=True)
-        self.started = time.perf_counter()
+        from imagededup_benckmark.observation import read_records
+        self.commit_record_offset = len(read_records(self.stack.business_commit_file))
+        self.window_start = begin_window()
+        self.started = self.window_start["monotonic_ns"] / 1_000_000_000
         self.thread.start()
+
+    def positive_commits_observed(self) -> bool:
+        from imagededup_benckmark.observation import read_records
+        records = [row for row in read_records(self.stack.business_commit_file)[self.commit_record_offset:]
+                   if row["workspace_id"] == self.workspace_id]
+        builds = sum(row["page_items"] for row in records if row["stage"] == "build")
+        pairs = sum(row["page_items"] for row in records if row["stage"] == "comparison")
+        return builds == (self.images if self.new_builds else 0) and pairs == self.comparisons * (self.images - 1)
 
     def _monitor(self) -> None:
         try:
@@ -100,6 +115,21 @@ class Measurement:
                         self.stop_event.wait(self.interval)
                         continue
                     ready, requests, scored, completed = map(int, row)
+                    if getattr(self.stack, "backend", None) == "dbwork":
+                        build_status = "SELECT COUNT(*) FROM artifact_build_work w JOIN feature_artifact a ON a.id=w.source_id WHERE a.workspace_id=? AND w.execution_status='finished'"
+                        comparison_status = "SELECT COUNT(*) FROM comparison_work w JOIN comparison_request r ON r.id=w.source_id WHERE r.workspace_id=? AND w.execution_status='finished'"
+                    elif getattr(self.stack, "backend", None) == "redis_celery":
+                        build_status = "SELECT COUNT(*) FROM feature_artifact WHERE workspace_id=? AND execution_status='finished'"
+                        comparison_status = "SELECT COUNT(*) FROM comparison_request WHERE workspace_id=? AND execution_status='finished'"
+                    else:
+                        raise ValueError("Unknown image application backend")
+                    try:
+                        terminal_builds = connection.execute(build_status, (self.workspace_id,)).fetchone()[0]
+                        terminal_comparisons = connection.execute(comparison_status, (self.workspace_id,)).fetchone()[0]
+                    except sqlite3.OperationalError:
+                        self.sql_busy_probes += 1
+                        self.stop_event.wait(self.interval)
+                        continue
                     elapsed = time.perf_counter() - self.started
                     sample = {"seconds": elapsed, "built": ready, "requests": requests,
                               "scored_pairs": scored, "completed_requests": completed}
@@ -114,7 +144,9 @@ class Measurement:
                         self.first_scored = elapsed
                     if scored and ready < self.images:
                         self.overlap_observed = True
-                    if ready == self.images and requests == self.comparisons and completed == self.comparisons:
+                    if (ready == self.images and requests == self.comparisons and completed == self.comparisons
+                            and terminal_builds == self.images and terminal_comparisons == self.comparisons
+                            and self.positive_commits_observed()):
                         self.finished = elapsed
                         self.done_event.set()
                         return
@@ -132,14 +164,24 @@ class Measurement:
             self.error = exc
             self.done_event.set()
 
-    def finish(self) -> dict[str, Any]:
+    def finish(self, *, submission_finished: float) -> dict[str, Any]:
+        """Include the final submitting HTTP response even if business finished first."""
+        if submission_finished < self.started:
+            raise ValueError("Submission completion precedes measurement start")
+        self.submission_finished = submission_finished - self.started
         self.done_event.wait(self.timeout + 2)
+        measurement_window = end_window(self.window_start)
         self.stop_event.set()
         self.thread.join(timeout=3)
         if self.error:
             raise self.error
         if self.finished is None:
             raise TimeoutError("No completion observation")
+        business_finished = self.finished
+        self.finished = elapsed_seconds(measurement_window)
+        if self.finished < max(business_finished, self.submission_finished):
+            raise ValueError("Measurement boundary excludes completion barrier")
+        self.resources()
         cpu: dict[str, float] = {}
         for key, value in self.cpu_latest.items():
             role = self.roles[key]
@@ -147,6 +189,8 @@ class Measurement:
         total_cpu = sum(cpu.values())
         return {
             "wall_seconds": self.finished,
+            "measurement_window": measurement_window,
+            "business_finished_seconds": business_finished,
             "cpu_seconds": total_cpu, "cpu_seconds_by_role": cpu,
             "average_cpu_cores_used": total_cpu / self.finished,
             "peak_summed_rss_bytes": self.peak_rss,

@@ -34,6 +34,8 @@ if __name__ == "__main__":
 
 from benchmarks.common.processes import run_command
 from benchmarks.common.reporting import digest, new_report, summarize, timestamp, validate_report, write_json
+from benchmarks.common.performance_admission import validate_native_report
+from benchmarks.common.native_admission import check_worker_source
 
 
 def resolve(value: str, root: Path = ROOT) -> Path:
@@ -52,17 +54,22 @@ def run_suite(suite: dict[str, Any], *, output: Path, run_id: str, profile: str,
     report_path = output / f"{suite_id}.json"
     report = new_report(suite_id, run_id, profile)
     report["source"] = {"local_commit": git("rev-parse", "HEAD"), "repository": suite["repository"],
-                        "expected_commit": suite.get("commit"), "historical": suite.get("historical", False)}
+                        "expected_commit": suite.get("commit"), "historical": suite.get("historical", False),
+                        "comparison_contract": suite.get("comparison_contract")}
     report["environment"] = {"orchestrator_python": sys.version, "platform": platform.platform()}
     report["environment"]["runner_class"] = os.environ.get("BENCHMARK_RUNNER_CLASS", "local-unspecified")
     files = [ROOT / suite["entrypoint"], ROOT / "src/dbworker.py"]
-    files += [ROOT / "benchmarks/run_all.py", ROOT / "benchmarks/registry.json"]
+    files += [ROOT / "benchmarks/run_all.py", ROOT / "benchmarks/registry.json",
+              ROOT / "benchmarks/provision.py", ROOT / "benchmarks/Dockerfile",
+              ROOT / "benchmarks/requirements.txt"]
     files += sorted((ROOT / "benchmarks/locks").glob(f"{suite_id}*.txt"))
     files += sorted((ROOT / "benchmarks/common").glob("*.py"))
     files += sorted((ROOT / "examples/dbworker_integration").glob("*.py"))
     files += sorted((ROOT / f"examples/{suite_id}_dbworker").glob("*.py"))
     if suite_id == "imagededup":
         files += sorted((ROOT / "benchmarks/imagededup_benckmark/src").rglob("*.py"))
+        for example in ("imagededup_system_redis_celery", "imagededup_system_dbwork"):
+            files += sorted((ROOT / "examples" / example / "src").rglob("*.py"))
     else:
         files += sorted((ROOT / "benchmarks/upstream").glob("*.py"))
     report["source"]["implementation_sha256"] = {
@@ -81,6 +88,10 @@ def run_suite(suite: dict[str, Any], *, output: Path, run_id: str, profile: str,
                 raise ValueError("Upstream checkout must be clean and match the registered commit")
         else:
             report["source"]["commit"] = report["source"]["local_commit"]
+        if suite.get("comparison_contract") == "native-business-workflow-v1":
+            worker_source = (ROOT / "benchmarks/imagededup_benckmark/src/imagededup_benckmark/runtime.py"
+                             if suite_id == "imagededup" else ROOT / f"benchmarks/upstream/{suite_id}_backend.py")
+            report["source"]["native_worker_admission"] = check_worker_source(worker_source.read_text(), suite_id)
         if provision_environments:
             provision_log = output / f"{suite_id}.provision.log"
             report["artifacts"]["provision_log"] = provision_log.name
@@ -111,11 +122,20 @@ def run_suite(suite: dict[str, Any], *, output: Path, run_id: str, profile: str,
         report = json.loads(report_path.read_text())
         if (report.get("suite_id"), report.get("run_id"), report.get("profile")) != (suite_id, run_id, profile):
             raise ValueError("Suite returned a different report identity")
+        if report.get("source") != baseline["source"]:
+            report["source"] = baseline["source"]
+            raise ValueError("Suite changed the parent-recorded source evidence")
+        for name, expected in baseline["source"]["implementation_sha256"].items():
+            path = resolve(name)
+            if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+                raise ValueError(f"Benchmark source changed during the experiment: {name}")
         report["artifacts"]["suite_log"] = log.name
         if code:
             report["status"] = "failed" if report["status"] != "blocked" else "blocked"
             report["errors"].append({"phase": "execution", "type": "ExitCode", "message": str(code)})
         validate_report(report)
+        if suite.get("comparison_contract") == "native-business-workflow-v1":
+            validate_native_report(report, output, expected_profile=suite["profiles"][profile])
         report["summary"] = summarize(report["runs"])
     except Exception as exc:
         # Preserve malformed child output as evidence, but keep the public

@@ -1,10 +1,9 @@
-"""Isolated Saleor settings with no payment, webhook, or email plugins."""
+"""Isolated infrastructure overrides for the unmodified Saleor application."""
 
 import os
 
 from saleor.settings import *  # noqa: F403
 
-PLUGINS = []
 SECRET_KEY = "isolated-benchmark-only-secret"
 MEDIA_ROOT = os.environ["SALEOR_BENCHMARK_MEDIA"]
 MEDIA_URL = "/media/"
@@ -15,4 +14,3 @@ STORAGES = {
 CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 CELERY_TASK_ALWAYS_EAGER = os.environ.get("SALEOR_BENCHMARK_SETUP") == "1"
 CELERY_TASK_EAGER_PROPAGATES = True
-CELERY_RESTRICT_WRITER_METHOD = None

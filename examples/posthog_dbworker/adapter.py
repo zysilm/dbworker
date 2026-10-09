@@ -1,21 +1,42 @@
-"""Send rendered notifications through the upstream SMTP implementation."""
+"""Preserve native notification construction and split its delivery publication."""
+from contextlib import contextmanager
 
 
 def initialize():
     from examples.posthog_dbworker.bootstrap import initialize as bootstrap
-    bootstrap()
+    return bootstrap()
 
 
-def execute(payload: dict) -> dict:
-    from posthog.email import _send_email_now
-    from posthog.models.messaging import MessagingRecord, get_email_hashes
+@contextmanager
+def route_delivery(submit):
+    """Replace only the selected publication seam inside one DBWorker process."""
+    from posthog.email import _send_email
+    original = _send_email.apply_async
+    def capture(args=None, kwargs=None, **options):
+        if args:
+            raise ValueError("The reviewed notification publishes keyword arguments")
+        if options:
+            raise ValueError("Unreviewed delivery publication options")
+        return submit(dict(kwargs or {}))
+    _send_email.apply_async = capture
+    try:
+        yield
+    finally:
+        _send_email.apply_async = original
 
-    if payload.get("use_http"):
-        raise ValueError("This suite requires the configured local SMTP sink")
-    _send_email_now(**payload)
-    records = MessagingRecord.objects.filter(campaign_key=payload["campaign_key"],
-                                             email_hash__in=[value for item in payload["to"]
-                                                             for value in get_email_hashes(item["raw_email"])])
-    if records.count() != len(payload["to"]) or records.filter(sent_at__isnull=True).exists():
-        raise RuntimeError("PostHog did not record every intended delivery")
-    return {"accepted_recipients": sorted(item["raw_email"] for item in payload["to"])}
+
+def original_body(task):
+    # Celery stores the original decorated callable before adding autoretry.
+    # Retry/backoff is supplied by the DBWorker durable job lifecycle instead.
+    return getattr(task, "_orig_run", task.run)
+
+
+def notify(user_id, submit):
+    from posthog.tasks.email import send_two_factor_auth_enabled_email
+    with route_delivery(submit):
+        return original_body(send_two_factor_auth_enabled_email)(user_id)
+
+
+def deliver(payload):
+    from posthog.email import _send_email
+    return original_body(_send_email)(**payload)

@@ -13,6 +13,24 @@ sys.path.insert(0, str(ROOT))
 
 from benchmarks.common.processes import run_command
 from benchmarks.common.reporting import summarize, timestamp, validate_report, write_json
+from benchmarks.common.performance_admission import validate_native_report
+
+
+def run_native_correctness(config: dict, report: dict, output: Path, suite: str) -> None:
+    """Check pinned setup semantics once before any timed PostHog sample."""
+    if suite != "posthog":
+        return
+    interpreter = config["interpreters"]["dbworker_python"]
+    log = output / "posthog.totp-correctness.log"
+    report["artifacts"].setdefault("correctness", []).append(log.name)
+    environment = os.environ.copy()
+    environment.update(POSTHOG_TOTP_TEST_PYTHON=interpreter,
+                       PYTHONPATH=os.pathsep.join((str(ROOT), str(ROOT / "src"))))
+    code = run_command([interpreter, "-m", "unittest",
+                        "benchmarks.tests.test_posthog_totp", "-v"],
+                       cwd=ROOT, env=environment, log=log, timeout=180)
+    if code:
+        raise RuntimeError(f"PostHog native TOTP correctness exited with {code}; see {log.name}")
 
 
 def main() -> int:
@@ -27,16 +45,7 @@ def main() -> int:
     try:
         profile = config["suite"]["profiles"][config["profile"]]
         report["configuration"] = {"profile": profile, "sequential": True, "backend_order": "alternating across repetitions"}
-        if suite == "superset":
-            report["configuration"].update({"concurrency": 2, "metadata_database": "sqlite", "request_database": "sqlite",
-                                    "comparison_mode": "paired_durable_request", "redis_aof": "everysec",
-                                    "celery_retry": "no automatic retry", "dbworker_retry": "no automatic retry",
-                                    "publication": "single pass after durable request commit; outbox recovery untested",
-                                    "profile": profile})
-            report["dataset"] = {"table": "facts", "rows": 10000, "generation": "category=i%10,value=i"}
-            report["capabilities"] = {"verified": ["real_sql_lab", "aggregate_rows", "business_success", "dbworker_ledger"],
-                                  "untested": ["crash_recovery", "postgresql", "native_celery_lifecycle", "outbox_recovery"],
-                                  "scope": "Initial paired SQLite experiment; not the planned PostgreSQL performance profile"}
+        run_native_correctness(config, report, output, suite)
         for repetition in range(1, profile["repetitions"] + 1):
             order = ("celery", "dbworker") if repetition % 2 else ("dbworker", "celery")
             for backend in order:
@@ -62,6 +71,8 @@ def main() -> int:
                 write_json(path, report)
         report["status"] = "passed"
         validate_report(report)
+        if config["suite"].get("comparison_contract") == "native-business-workflow-v1":
+            validate_native_report(report, output, expected_profile=profile)
         report["summary"] = summarize(report["runs"])
     except Exception as exc:
         report["status"] = "blocked" if isinstance(exc, FileNotFoundError) else "failed"

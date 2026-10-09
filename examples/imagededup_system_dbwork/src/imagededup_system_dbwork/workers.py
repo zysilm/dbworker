@@ -8,6 +8,7 @@ from imagededup_system_dbwork.config import settings
 from imagededup_system_dbwork.domain import artifact_build, comparison
 from imagededup_system_dbwork.db.models import ComparisonRequest, FeatureArtifact
 from imagededup_system_dbwork.db.engine import create_engine_and_session_factory
+from imagededup_system_dbwork.observation import observe_handler
 
 
 engine, session_factory = create_engine_and_session_factory(settings.database_url)
@@ -23,7 +24,8 @@ coordinator = Coordinator(
     concurrency=settings.build_workers,
 )
 def build_artifact(artifact: FeatureArtifact, session: Session) -> Finished:
-    return artifact_build.build_artifact(artifact, session)
+    with observe_handler("build", artifact.id, session):
+        return artifact_build.build_artifact(artifact, session)
 
 
 @coordinator.transactional_worker(
@@ -32,7 +34,8 @@ def build_artifact(artifact: FeatureArtifact, session: Session) -> Finished:
     concurrency=settings.comparison_workers,
 )
 def compare_artifacts(request: ComparisonRequest, session: Session) -> Outcome:
-    return comparison.compare_artifacts(
-        request, session, page_size=settings.comparison_page_size,
-        coordinator=coordinator,
-    )
+    with observe_handler("comparison", request.id, session):
+        return comparison.compare_artifacts(
+            request, session, page_size=settings.comparison_page_size,
+            coordinator=coordinator,
+        )

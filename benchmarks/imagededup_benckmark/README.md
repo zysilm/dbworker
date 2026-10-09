@@ -89,8 +89,6 @@ Reports use `schema_version: 1`. Top-level fields include `status`, `configurati
 
 Results are written atomically after every completed scenario. A failure preserves completed runs and an `error` object, shuts down owned processes, and exits nonzero. Logs and private databases remain in the recorded `work_directory` for diagnosis. JSON results can be kept in Git; images and runtime databases are not included.
 
-The `historical/` report documents an earlier exploratory smoke test and is not a result of this runner or the aligned four-worker configuration.
-
 ```sh
 poetry run python -m unittest discover -s tests -v
 poetry run mypy --strict src
@@ -101,3 +99,57 @@ Run the separated DBWorker services without starting Celery or Redis:
 ```sh
 poetry run imagededup-benchmark --backend dbwork --images 1000 --repetitions 1 --output results/separated_dbworker_1000.json
 ```
+## Native workload admission
+
+The experiment retains this repository's original image Celery application and
+tasks. Observer signals record real deliveries; the DBWorker variation records
+individual handlers after their business transaction commits. Each result
+contains `operation_evidence`, with submitted/completed image identities,
+per-comparison page widths, exact scored-pair counts, and separate empty-wait and
+dispatcher counts. A scoring page cannot exceed the shared configured page size.
+
+Timing begins before API publication and ends after terminal business outcomes
+are committed. An additional untimed barrier checks business task completion,
+Celery active/reserved/scheduled work, and its business queues between scenarios.
+Live task-source admission verifies the original registered Celery functions.
+
+The measured contract covers successful business work. Native Celery automatic
+SQL retries and task deadlines remain enabled. Equivalent DBWorker retry,
+deadline, outage, and crash behavior is not implemented or claimed by this suite;
+Terminal failures reject the experiment. A native SQL OperationalError retry is
+admitted only with recorded exception diagnostics, no committed business work,
+and a later successful attempt of the same original task. All delivery attempts remain in the evidence; recovered retries are reported
+separately. Timing includes recovery required before terminal business outcomes;
+the final queue-drain barrier remains untimed.
+Builds are attributed to committed hash writes and comparisons to committed
+candidate inserts, rather than differences of shared counters. Mixed scenarios
+retain partial ready-candidate pages while enforcing the 250-item page bound
+and exact candidate coverage.
+
+
+## Evidence scope and timing barriers
+
+Each measured window starts before the first submitting HTTP call and ends only
+when the final HTTP response, persisted terminal business outcomes, and positive
+transaction-commit observations have all been observed. Compact commit
+receipts exclude later zero-work deliveries and retry/drain observations. A completion probe that wins the race with the final response
+cannot freeze the clock early. Final correctness checking and queue drain remain
+outside that window; the latter is a separate, recorded barrier.
+
+New operation traces contain replayable live idle receipts: native Celery
+active/reserved/scheduled business-task counts from both workers, LLEN counts for
+every configured Kombu Redis priority lane, and unpublished business outbox
+counts; DBWorker receipts contain unfinished counts from both durable work
+tables. Closed attempt records alone do not certify broker emptiness. Historical
+traces without these receipts do not gain retroactive quiescence evidence.
+
+The hard dependency contract is per submitted comparison: its original query
+artifact identity, every distinct non-self candidate exactly once, and independent
+pages bounded by the configured page size. Native source revisions and original
+Celery parent/root identifiers are recorded without changing the producer or task
+bodies. Positive native pages cannot share a source revision. These checks do not
+claim an identical publication or execution-attempt graph across backends. Mixed
+readiness can legitimately split pages differently, and native stale deliveries
+or proven recovered SQL retries remain visible instead of being fabricated for
+DBWorker. Retry policy, deadlines, crash recovery, and outage recovery parity are
+outside this throughput experiment.
