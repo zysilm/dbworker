@@ -2,56 +2,17 @@
   "deliveries": [
     {
       "destinations": [
-        "recipient-0-a@benchmark.invalid"
-      ],
-      "headers": {
-        "Date": [
-          "Fri, 09 Oct 2026 08:45:49 -0000"
-        ],
-        "From": [
-          "sender@benchmark.invalid"
-        ],
-        "Message-Id": [
-          "<20261009084549.1006.37972@benchmark.invalid>"
-        ],
-        "Reply-To": [
-          "recipient-0-b@benchmark.invalid"
-        ],
-        "Subject": [
-          "Historical Sentry fixture 0"
-        ],
-        "To": [
-          "recipient-0-a@benchmark.invalid"
-        ],
-        "X-Benchmark": [
-          "0"
-        ]
-      },
-      "parts": [
-        {
-          "content": "Plain body 0 with unicode: caf\u00e9",
-          "content_type": "text/plain"
-        },
-        {
-          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 0: caf&#233;</p></body></html>",
-          "content_type": "text/html"
-        }
-      ],
-      "sender": "sender@benchmark.invalid"
-    },
-    {
-      "destinations": [
         "recipient-0-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:49 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.66358@benchmark.invalid>"
+          "<20261009102132.1011.66318@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-0-a@benchmark.invalid"
@@ -80,26 +41,65 @@
     },
     {
       "destinations": [
-        "recipient-1-b@benchmark.invalid"
+        "recipient-0-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:49 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.85214@benchmark.invalid>"
+          "<20261009102132.1011.23083@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-1-a@benchmark.invalid"
+          "recipient-0-b@benchmark.invalid"
+        ],
+        "Subject": [
+          "Historical Sentry fixture 0"
+        ],
+        "To": [
+          "recipient-0-a@benchmark.invalid"
+        ],
+        "X-Benchmark": [
+          "0"
+        ]
+      },
+      "parts": [
+        {
+          "content": "Plain body 0 with unicode: caf\u00e9",
+          "content_type": "text/plain"
+        },
+        {
+          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 0: caf&#233;</p></body></html>",
+          "content_type": "text/html"
+        }
+      ],
+      "sender": "sender@benchmark.invalid"
+    },
+    {
+      "destinations": [
+        "recipient-1-a@benchmark.invalid"
+      ],
+      "headers": {
+        "Date": [
+          "Fri, 09 Oct 2026 10:21:32 -0000"
+        ],
+        "From": [
+          "sender@benchmark.invalid"
+        ],
+        "Message-Id": [
+          "<20261009102132.1011.28861@benchmark.invalid>"
+        ],
+        "Reply-To": [
+          "recipient-1-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 1"
         ],
         "To": [
-          "recipient-1-b@benchmark.invalid"
+          "recipient-1-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "1"
@@ -119,26 +119,26 @@
     },
     {
       "destinations": [
-        "recipient-1-a@benchmark.invalid"
+        "recipient-1-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:49 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.10070@benchmark.invalid>"
+          "<20261009102132.1011.89463@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-1-b@benchmark.invalid"
+          "recipient-1-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 1"
         ],
         "To": [
-          "recipient-1-a@benchmark.invalid"
+          "recipient-1-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "1"
@@ -162,13 +162,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:49 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.91816@benchmark.invalid>"
+          "<20261009102132.1011.27257@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-2-b@benchmark.invalid"
@@ -201,13 +201,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:49 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.63433@benchmark.invalid>"
+          "<20261009102132.1011.41899@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-2-a@benchmark.invalid"
@@ -236,56 +236,17 @@
     },
     {
       "destinations": [
-        "recipient-3-a@benchmark.invalid"
-      ],
-      "headers": {
-        "Date": [
-          "Fri, 09 Oct 2026 08:45:49 -0000"
-        ],
-        "From": [
-          "sender@benchmark.invalid"
-        ],
-        "Message-Id": [
-          "<20261009084549.1006.30716@benchmark.invalid>"
-        ],
-        "Reply-To": [
-          "recipient-3-b@benchmark.invalid"
-        ],
-        "Subject": [
-          "Historical Sentry fixture 3"
-        ],
-        "To": [
-          "recipient-3-a@benchmark.invalid"
-        ],
-        "X-Benchmark": [
-          "3"
-        ]
-      },
-      "parts": [
-        {
-          "content": "Plain body 3 with unicode: caf\u00e9",
-          "content_type": "text/plain"
-        },
-        {
-          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 3: caf&#233;</p></body></html>",
-          "content_type": "text/html"
-        }
-      ],
-      "sender": "sender@benchmark.invalid"
-    },
-    {
-      "destinations": [
         "recipient-3-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:49 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.900@benchmark.invalid>"
+          "<20261009102132.1011.25717@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-3-a@benchmark.invalid"
@@ -314,26 +275,65 @@
     },
     {
       "destinations": [
-        "recipient-4-b@benchmark.invalid"
+        "recipient-3-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:49 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.78905@benchmark.invalid>"
+          "<20261009102132.1011.30@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-4-a@benchmark.invalid"
+          "recipient-3-b@benchmark.invalid"
+        ],
+        "Subject": [
+          "Historical Sentry fixture 3"
+        ],
+        "To": [
+          "recipient-3-a@benchmark.invalid"
+        ],
+        "X-Benchmark": [
+          "3"
+        ]
+      },
+      "parts": [
+        {
+          "content": "Plain body 3 with unicode: caf\u00e9",
+          "content_type": "text/plain"
+        },
+        {
+          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 3: caf&#233;</p></body></html>",
+          "content_type": "text/html"
+        }
+      ],
+      "sender": "sender@benchmark.invalid"
+    },
+    {
+      "destinations": [
+        "recipient-4-a@benchmark.invalid"
+      ],
+      "headers": {
+        "Date": [
+          "Fri, 09 Oct 2026 10:21:32 -0000"
+        ],
+        "From": [
+          "sender@benchmark.invalid"
+        ],
+        "Message-Id": [
+          "<20261009102132.1011.59615@benchmark.invalid>"
+        ],
+        "Reply-To": [
+          "recipient-4-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 4"
         ],
         "To": [
-          "recipient-4-b@benchmark.invalid"
+          "recipient-4-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "4"
@@ -353,26 +353,26 @@
     },
     {
       "destinations": [
-        "recipient-4-a@benchmark.invalid"
+        "recipient-4-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:49 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.32435@benchmark.invalid>"
+          "<20261009102132.1011.31885@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-4-b@benchmark.invalid"
+          "recipient-4-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 4"
         ],
         "To": [
-          "recipient-4-a@benchmark.invalid"
+          "recipient-4-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "4"
@@ -396,13 +396,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:49 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.21588@benchmark.invalid>"
+          "<20261009102132.1011.93947@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-5-a@benchmark.invalid"
@@ -435,13 +435,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:49 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.98393@benchmark.invalid>"
+          "<20261009102132.1011.49533@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-5-b@benchmark.invalid"
@@ -474,13 +474,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:49 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.68591@benchmark.invalid>"
+          "<20261009102132.1011.75724@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-6-b@benchmark.invalid"
@@ -513,13 +513,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:49 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.49799@benchmark.invalid>"
+          "<20261009102132.1011.12567@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-6-a@benchmark.invalid"
@@ -548,26 +548,26 @@
     },
     {
       "destinations": [
-        "recipient-7-a@benchmark.invalid"
+        "recipient-7-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:49 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.66480@benchmark.invalid>"
+          "<20261009102132.1011.89720@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-7-b@benchmark.invalid"
+          "recipient-7-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 7"
         ],
         "To": [
-          "recipient-7-a@benchmark.invalid"
+          "recipient-7-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "7"
@@ -587,26 +587,26 @@
     },
     {
       "destinations": [
-        "recipient-7-b@benchmark.invalid"
+        "recipient-7-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:49 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.46768@benchmark.invalid>"
+          "<20261009102132.1011.43139@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-7-a@benchmark.invalid"
+          "recipient-7-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 7"
         ],
         "To": [
-          "recipient-7-b@benchmark.invalid"
+          "recipient-7-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "7"
@@ -630,13 +630,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:49 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.92623@benchmark.invalid>"
+          "<20261009102132.1011.44027@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-8-a@benchmark.invalid"
@@ -669,13 +669,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:49 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.33034@benchmark.invalid>"
+          "<20261009102132.1011.25758@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-8-b@benchmark.invalid"
@@ -704,56 +704,17 @@
     },
     {
       "destinations": [
-        "recipient-9-b@benchmark.invalid"
-      ],
-      "headers": {
-        "Date": [
-          "Fri, 09 Oct 2026 08:45:49 -0000"
-        ],
-        "From": [
-          "sender@benchmark.invalid"
-        ],
-        "Message-Id": [
-          "<20261009084549.1006.11192@benchmark.invalid>"
-        ],
-        "Reply-To": [
-          "recipient-9-a@benchmark.invalid"
-        ],
-        "Subject": [
-          "Historical Sentry fixture 9"
-        ],
-        "To": [
-          "recipient-9-b@benchmark.invalid"
-        ],
-        "X-Benchmark": [
-          "9"
-        ]
-      },
-      "parts": [
-        {
-          "content": "Plain body 9 with unicode: caf\u00e9",
-          "content_type": "text/plain"
-        },
-        {
-          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 9: caf&#233;</p></body></html>",
-          "content_type": "text/html"
-        }
-      ],
-      "sender": "sender@benchmark.invalid"
-    },
-    {
-      "destinations": [
         "recipient-9-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:49 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.39885@benchmark.invalid>"
+          "<20261009102132.1011.78838@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-9-b@benchmark.invalid"
@@ -782,38 +743,38 @@
     },
     {
       "destinations": [
-        "recipient-10-b@benchmark.invalid"
+        "recipient-9-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.40967@benchmark.invalid>"
+          "<20261009102132.1011.48128@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-10-a@benchmark.invalid"
+          "recipient-9-a@benchmark.invalid"
         ],
         "Subject": [
-          "Historical Sentry fixture 10"
+          "Historical Sentry fixture 9"
         ],
         "To": [
-          "recipient-10-b@benchmark.invalid"
+          "recipient-9-b@benchmark.invalid"
         ],
         "X-Benchmark": [
-          "10"
+          "9"
         ]
       },
       "parts": [
         {
-          "content": "Plain body 10 with unicode: caf\u00e9",
+          "content": "Plain body 9 with unicode: caf\u00e9",
           "content_type": "text/plain"
         },
         {
-          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 10: caf&#233;</p></body></html>",
+          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 9: caf&#233;</p></body></html>",
           "content_type": "text/html"
         }
       ],
@@ -825,13 +786,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.78906@benchmark.invalid>"
+          "<20261009102132.1011.42707@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-10-b@benchmark.invalid"
@@ -860,38 +821,38 @@
     },
     {
       "destinations": [
-        "recipient-11-b@benchmark.invalid"
+        "recipient-10-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.94581@benchmark.invalid>"
+          "<20261009102132.1011.18495@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-11-a@benchmark.invalid"
+          "recipient-10-a@benchmark.invalid"
         ],
         "Subject": [
-          "Historical Sentry fixture 11"
+          "Historical Sentry fixture 10"
         ],
         "To": [
-          "recipient-11-b@benchmark.invalid"
+          "recipient-10-b@benchmark.invalid"
         ],
         "X-Benchmark": [
-          "11"
+          "10"
         ]
       },
       "parts": [
         {
-          "content": "Plain body 11 with unicode: caf\u00e9",
+          "content": "Plain body 10 with unicode: caf\u00e9",
           "content_type": "text/plain"
         },
         {
-          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 11: caf&#233;</p></body></html>",
+          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 10: caf&#233;</p></body></html>",
           "content_type": "text/html"
         }
       ],
@@ -903,13 +864,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.47844@benchmark.invalid>"
+          "<20261009102132.1011.76209@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-11-b@benchmark.invalid"
@@ -938,26 +899,65 @@
     },
     {
       "destinations": [
-        "recipient-12-a@benchmark.invalid"
+        "recipient-11-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.6209@benchmark.invalid>"
+          "<20261009102132.1011.34438@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-12-b@benchmark.invalid"
+          "recipient-11-a@benchmark.invalid"
+        ],
+        "Subject": [
+          "Historical Sentry fixture 11"
+        ],
+        "To": [
+          "recipient-11-b@benchmark.invalid"
+        ],
+        "X-Benchmark": [
+          "11"
+        ]
+      },
+      "parts": [
+        {
+          "content": "Plain body 11 with unicode: caf\u00e9",
+          "content_type": "text/plain"
+        },
+        {
+          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 11: caf&#233;</p></body></html>",
+          "content_type": "text/html"
+        }
+      ],
+      "sender": "sender@benchmark.invalid"
+    },
+    {
+      "destinations": [
+        "recipient-12-b@benchmark.invalid"
+      ],
+      "headers": {
+        "Date": [
+          "Fri, 09 Oct 2026 10:21:32 -0000"
+        ],
+        "From": [
+          "sender@benchmark.invalid"
+        ],
+        "Message-Id": [
+          "<20261009102132.1011.39625@benchmark.invalid>"
+        ],
+        "Reply-To": [
+          "recipient-12-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 12"
         ],
         "To": [
-          "recipient-12-a@benchmark.invalid"
+          "recipient-12-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "12"
@@ -977,26 +977,26 @@
     },
     {
       "destinations": [
-        "recipient-12-b@benchmark.invalid"
+        "recipient-12-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.61576@benchmark.invalid>"
+          "<20261009102132.1011.33297@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-12-a@benchmark.invalid"
+          "recipient-12-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 12"
         ],
         "To": [
-          "recipient-12-b@benchmark.invalid"
+          "recipient-12-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "12"
@@ -1020,13 +1020,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.69830@benchmark.invalid>"
+          "<20261009102132.1011.75253@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-13-a@benchmark.invalid"
@@ -1059,13 +1059,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.50944@benchmark.invalid>"
+          "<20261009102132.1011.43020@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-13-b@benchmark.invalid"
@@ -1098,13 +1098,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.84427@benchmark.invalid>"
+          "<20261009102132.1011.3092@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-14-b@benchmark.invalid"
@@ -1137,13 +1137,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.1455@benchmark.invalid>"
+          "<20261009102132.1011.20086@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-14-a@benchmark.invalid"
@@ -1172,56 +1172,17 @@
     },
     {
       "destinations": [
-        "recipient-15-a@benchmark.invalid"
-      ],
-      "headers": {
-        "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
-        ],
-        "From": [
-          "sender@benchmark.invalid"
-        ],
-        "Message-Id": [
-          "<20261009084549.1006.51238@benchmark.invalid>"
-        ],
-        "Reply-To": [
-          "recipient-15-b@benchmark.invalid"
-        ],
-        "Subject": [
-          "Historical Sentry fixture 15"
-        ],
-        "To": [
-          "recipient-15-a@benchmark.invalid"
-        ],
-        "X-Benchmark": [
-          "15"
-        ]
-      },
-      "parts": [
-        {
-          "content": "Plain body 15 with unicode: caf\u00e9",
-          "content_type": "text/plain"
-        },
-        {
-          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 15: caf&#233;</p></body></html>",
-          "content_type": "text/html"
-        }
-      ],
-      "sender": "sender@benchmark.invalid"
-    },
-    {
-      "destinations": [
         "recipient-15-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.6861@benchmark.invalid>"
+          "<20261009102132.1011.2151@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-15-a@benchmark.invalid"
@@ -1250,38 +1211,38 @@
     },
     {
       "destinations": [
-        "recipient-16-a@benchmark.invalid"
+        "recipient-15-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.95039@benchmark.invalid>"
+          "<20261009102132.1011.28272@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-16-b@benchmark.invalid"
+          "recipient-15-b@benchmark.invalid"
         ],
         "Subject": [
-          "Historical Sentry fixture 16"
+          "Historical Sentry fixture 15"
         ],
         "To": [
-          "recipient-16-a@benchmark.invalid"
+          "recipient-15-a@benchmark.invalid"
         ],
         "X-Benchmark": [
-          "16"
+          "15"
         ]
       },
       "parts": [
         {
-          "content": "Plain body 16 with unicode: caf\u00e9",
+          "content": "Plain body 15 with unicode: caf\u00e9",
           "content_type": "text/plain"
         },
         {
-          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 16: caf&#233;</p></body></html>",
+          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 15: caf&#233;</p></body></html>",
           "content_type": "text/html"
         }
       ],
@@ -1293,13 +1254,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.30688@benchmark.invalid>"
+          "<20261009102132.1011.43542@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-16-a@benchmark.invalid"
@@ -1328,26 +1289,65 @@
     },
     {
       "destinations": [
-        "recipient-17-a@benchmark.invalid"
+        "recipient-16-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.36412@benchmark.invalid>"
+          "<20261009102132.1011.26971@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-17-b@benchmark.invalid"
+          "recipient-16-b@benchmark.invalid"
+        ],
+        "Subject": [
+          "Historical Sentry fixture 16"
+        ],
+        "To": [
+          "recipient-16-a@benchmark.invalid"
+        ],
+        "X-Benchmark": [
+          "16"
+        ]
+      },
+      "parts": [
+        {
+          "content": "Plain body 16 with unicode: caf\u00e9",
+          "content_type": "text/plain"
+        },
+        {
+          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 16: caf&#233;</p></body></html>",
+          "content_type": "text/html"
+        }
+      ],
+      "sender": "sender@benchmark.invalid"
+    },
+    {
+      "destinations": [
+        "recipient-17-b@benchmark.invalid"
+      ],
+      "headers": {
+        "Date": [
+          "Fri, 09 Oct 2026 10:21:32 -0000"
+        ],
+        "From": [
+          "sender@benchmark.invalid"
+        ],
+        "Message-Id": [
+          "<20261009102132.1011.4893@benchmark.invalid>"
+        ],
+        "Reply-To": [
+          "recipient-17-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 17"
         ],
         "To": [
-          "recipient-17-a@benchmark.invalid"
+          "recipient-17-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "17"
@@ -1367,26 +1367,26 @@
     },
     {
       "destinations": [
-        "recipient-17-b@benchmark.invalid"
+        "recipient-17-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.77967@benchmark.invalid>"
+          "<20261009102132.1011.84940@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-17-a@benchmark.invalid"
+          "recipient-17-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 17"
         ],
         "To": [
-          "recipient-17-b@benchmark.invalid"
+          "recipient-17-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "17"
@@ -1410,13 +1410,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.95642@benchmark.invalid>"
+          "<20261009102132.1011.42667@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-18-b@benchmark.invalid"
@@ -1449,13 +1449,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.46918@benchmark.invalid>"
+          "<20261009102132.1011.61483@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-18-a@benchmark.invalid"
@@ -1484,26 +1484,26 @@
     },
     {
       "destinations": [
-        "recipient-19-b@benchmark.invalid"
+        "recipient-19-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.80703@benchmark.invalid>"
+          "<20261009102132.1011.64991@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-19-a@benchmark.invalid"
+          "recipient-19-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 19"
         ],
         "To": [
-          "recipient-19-b@benchmark.invalid"
+          "recipient-19-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "19"
@@ -1523,26 +1523,26 @@
     },
     {
       "destinations": [
-        "recipient-19-a@benchmark.invalid"
+        "recipient-19-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.92440@benchmark.invalid>"
+          "<20261009102132.1011.52934@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-19-b@benchmark.invalid"
+          "recipient-19-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 19"
         ],
         "To": [
-          "recipient-19-a@benchmark.invalid"
+          "recipient-19-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "19"
@@ -1566,13 +1566,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.4709@benchmark.invalid>"
+          "<20261009102132.1011.47375@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-20-b@benchmark.invalid"
@@ -1605,13 +1605,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.97773@benchmark.invalid>"
+          "<20261009102132.1011.21686@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-20-a@benchmark.invalid"
@@ -1644,13 +1644,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.73523@benchmark.invalid>"
+          "<20261009102132.1011.64361@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-21-b@benchmark.invalid"
@@ -1683,13 +1683,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.22734@benchmark.invalid>"
+          "<20261009102132.1011.71171@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-21-a@benchmark.invalid"
@@ -1722,13 +1722,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.57556@benchmark.invalid>"
+          "<20261009102132.1011.59057@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-22-b@benchmark.invalid"
@@ -1757,56 +1757,17 @@
     },
     {
       "destinations": [
-        "recipient-23-b@benchmark.invalid"
-      ],
-      "headers": {
-        "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
-        ],
-        "From": [
-          "sender@benchmark.invalid"
-        ],
-        "Message-Id": [
-          "<20261009084550.1006.62311@benchmark.invalid>"
-        ],
-        "Reply-To": [
-          "recipient-23-a@benchmark.invalid"
-        ],
-        "Subject": [
-          "Historical Sentry fixture 23"
-        ],
-        "To": [
-          "recipient-23-b@benchmark.invalid"
-        ],
-        "X-Benchmark": [
-          "23"
-        ]
-      },
-      "parts": [
-        {
-          "content": "Plain body 23 with unicode: caf\u00e9",
-          "content_type": "text/plain"
-        },
-        {
-          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 23: caf&#233;</p></body></html>",
-          "content_type": "text/html"
-        }
-      ],
-      "sender": "sender@benchmark.invalid"
-    },
-    {
-      "destinations": [
         "recipient-22-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084549.1006.83259@benchmark.invalid>"
+          "<20261009102132.1011.64853@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-22-a@benchmark.invalid"
@@ -1839,13 +1800,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.18127@benchmark.invalid>"
+          "<20261009102132.1011.35284@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-23-b@benchmark.invalid"
@@ -1874,38 +1835,38 @@
     },
     {
       "destinations": [
-        "recipient-24-a@benchmark.invalid"
+        "recipient-23-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.85716@benchmark.invalid>"
+          "<20261009102132.1011.57024@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-24-b@benchmark.invalid"
+          "recipient-23-a@benchmark.invalid"
         ],
         "Subject": [
-          "Historical Sentry fixture 24"
+          "Historical Sentry fixture 23"
         ],
         "To": [
-          "recipient-24-a@benchmark.invalid"
+          "recipient-23-b@benchmark.invalid"
         ],
         "X-Benchmark": [
-          "24"
+          "23"
         ]
       },
       "parts": [
         {
-          "content": "Plain body 24 with unicode: caf\u00e9",
+          "content": "Plain body 23 with unicode: caf\u00e9",
           "content_type": "text/plain"
         },
         {
-          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 24: caf&#233;</p></body></html>",
+          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 23: caf&#233;</p></body></html>",
           "content_type": "text/html"
         }
       ],
@@ -1917,13 +1878,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.13393@benchmark.invalid>"
+          "<20261009102132.1011.71742@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-24-a@benchmark.invalid"
@@ -1952,26 +1913,65 @@
     },
     {
       "destinations": [
-        "recipient-25-a@benchmark.invalid"
+        "recipient-24-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.44750@benchmark.invalid>"
+          "<20261009102132.1011.25772@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-25-b@benchmark.invalid"
+          "recipient-24-b@benchmark.invalid"
+        ],
+        "Subject": [
+          "Historical Sentry fixture 24"
+        ],
+        "To": [
+          "recipient-24-a@benchmark.invalid"
+        ],
+        "X-Benchmark": [
+          "24"
+        ]
+      },
+      "parts": [
+        {
+          "content": "Plain body 24 with unicode: caf\u00e9",
+          "content_type": "text/plain"
+        },
+        {
+          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 24: caf&#233;</p></body></html>",
+          "content_type": "text/html"
+        }
+      ],
+      "sender": "sender@benchmark.invalid"
+    },
+    {
+      "destinations": [
+        "recipient-25-b@benchmark.invalid"
+      ],
+      "headers": {
+        "Date": [
+          "Fri, 09 Oct 2026 10:21:32 -0000"
+        ],
+        "From": [
+          "sender@benchmark.invalid"
+        ],
+        "Message-Id": [
+          "<20261009102132.1011.68409@benchmark.invalid>"
+        ],
+        "Reply-To": [
+          "recipient-25-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 25"
         ],
         "To": [
-          "recipient-25-a@benchmark.invalid"
+          "recipient-25-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "25"
@@ -1991,26 +1991,26 @@
     },
     {
       "destinations": [
-        "recipient-25-b@benchmark.invalid"
+        "recipient-25-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.82740@benchmark.invalid>"
+          "<20261009102132.1011.62049@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-25-a@benchmark.invalid"
+          "recipient-25-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 25"
         ],
         "To": [
-          "recipient-25-b@benchmark.invalid"
+          "recipient-25-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "25"
@@ -2034,13 +2034,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.65497@benchmark.invalid>"
+          "<20261009102132.1011.48239@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-26-b@benchmark.invalid"
@@ -2073,13 +2073,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.42806@benchmark.invalid>"
+          "<20261009102132.1011.95359@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-26-a@benchmark.invalid"
@@ -2112,13 +2112,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.59763@benchmark.invalid>"
+          "<20261009102132.1011.54186@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-27-b@benchmark.invalid"
@@ -2151,13 +2151,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.54683@benchmark.invalid>"
+          "<20261009102132.1011.82280@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-27-a@benchmark.invalid"
@@ -2190,13 +2190,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.86592@benchmark.invalid>"
+          "<20261009102132.1011.39021@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-28-b@benchmark.invalid"
@@ -2229,13 +2229,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.88406@benchmark.invalid>"
+          "<20261009102132.1011.40981@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-28-a@benchmark.invalid"
@@ -2268,13 +2268,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.27977@benchmark.invalid>"
+          "<20261009102132.1011.88139@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-29-b@benchmark.invalid"
@@ -2307,13 +2307,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.32230@benchmark.invalid>"
+          "<20261009102132.1011.7630@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-29-a@benchmark.invalid"
@@ -2346,13 +2346,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.10215@benchmark.invalid>"
+          "<20261009102132.1011.30236@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-30-b@benchmark.invalid"
@@ -2385,13 +2385,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.82020@benchmark.invalid>"
+          "<20261009102132.1011.88415@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-30-a@benchmark.invalid"
@@ -2420,26 +2420,26 @@
     },
     {
       "destinations": [
-        "recipient-31-b@benchmark.invalid"
+        "recipient-31-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.28796@benchmark.invalid>"
+          "<20261009102132.1011.93090@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-31-a@benchmark.invalid"
+          "recipient-31-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 31"
         ],
         "To": [
-          "recipient-31-b@benchmark.invalid"
+          "recipient-31-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "31"
@@ -2459,26 +2459,26 @@
     },
     {
       "destinations": [
-        "recipient-31-a@benchmark.invalid"
+        "recipient-31-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.99182@benchmark.invalid>"
+          "<20261009102132.1011.20919@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-31-b@benchmark.invalid"
+          "recipient-31-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 31"
         ],
         "To": [
-          "recipient-31-a@benchmark.invalid"
+          "recipient-31-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "31"
@@ -2502,13 +2502,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.74599@benchmark.invalid>"
+          "<20261009102132.1011.34934@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-32-a@benchmark.invalid"
@@ -2541,13 +2541,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.69403@benchmark.invalid>"
+          "<20261009102132.1011.4742@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-32-b@benchmark.invalid"
@@ -2576,56 +2576,17 @@
     },
     {
       "destinations": [
-        "recipient-33-b@benchmark.invalid"
-      ],
-      "headers": {
-        "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
-        ],
-        "From": [
-          "sender@benchmark.invalid"
-        ],
-        "Message-Id": [
-          "<20261009084550.1006.38425@benchmark.invalid>"
-        ],
-        "Reply-To": [
-          "recipient-33-a@benchmark.invalid"
-        ],
-        "Subject": [
-          "Historical Sentry fixture 33"
-        ],
-        "To": [
-          "recipient-33-b@benchmark.invalid"
-        ],
-        "X-Benchmark": [
-          "33"
-        ]
-      },
-      "parts": [
-        {
-          "content": "Plain body 33 with unicode: caf\u00e9",
-          "content_type": "text/plain"
-        },
-        {
-          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 33: caf&#233;</p></body></html>",
-          "content_type": "text/html"
-        }
-      ],
-      "sender": "sender@benchmark.invalid"
-    },
-    {
-      "destinations": [
         "recipient-33-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.50901@benchmark.invalid>"
+          "<20261009102132.1011.75440@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-33-b@benchmark.invalid"
@@ -2654,26 +2615,65 @@
     },
     {
       "destinations": [
-        "recipient-34-b@benchmark.invalid"
+        "recipient-33-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.28417@benchmark.invalid>"
+          "<20261009102132.1011.14659@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-34-a@benchmark.invalid"
+          "recipient-33-a@benchmark.invalid"
+        ],
+        "Subject": [
+          "Historical Sentry fixture 33"
+        ],
+        "To": [
+          "recipient-33-b@benchmark.invalid"
+        ],
+        "X-Benchmark": [
+          "33"
+        ]
+      },
+      "parts": [
+        {
+          "content": "Plain body 33 with unicode: caf\u00e9",
+          "content_type": "text/plain"
+        },
+        {
+          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 33: caf&#233;</p></body></html>",
+          "content_type": "text/html"
+        }
+      ],
+      "sender": "sender@benchmark.invalid"
+    },
+    {
+      "destinations": [
+        "recipient-34-a@benchmark.invalid"
+      ],
+      "headers": {
+        "Date": [
+          "Fri, 09 Oct 2026 10:21:32 -0000"
+        ],
+        "From": [
+          "sender@benchmark.invalid"
+        ],
+        "Message-Id": [
+          "<20261009102132.1011.75735@benchmark.invalid>"
+        ],
+        "Reply-To": [
+          "recipient-34-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 34"
         ],
         "To": [
-          "recipient-34-b@benchmark.invalid"
+          "recipient-34-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "34"
@@ -2693,26 +2693,26 @@
     },
     {
       "destinations": [
-        "recipient-34-a@benchmark.invalid"
+        "recipient-34-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.2956@benchmark.invalid>"
+          "<20261009102132.1011.67188@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-34-b@benchmark.invalid"
+          "recipient-34-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 34"
         ],
         "To": [
-          "recipient-34-a@benchmark.invalid"
+          "recipient-34-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "34"
@@ -2736,13 +2736,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.10559@benchmark.invalid>"
+          "<20261009102132.1011.69868@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-35-a@benchmark.invalid"
@@ -2775,13 +2775,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.98863@benchmark.invalid>"
+          "<20261009102132.1011.4825@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-35-b@benchmark.invalid"
@@ -2814,13 +2814,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.16992@benchmark.invalid>"
+          "<20261009102132.1011.54775@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-36-b@benchmark.invalid"
@@ -2853,13 +2853,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.90771@benchmark.invalid>"
+          "<20261009102132.1011.7116@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-36-a@benchmark.invalid"
@@ -2892,13 +2892,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.48192@benchmark.invalid>"
+          "<20261009102132.1011.51813@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-37-a@benchmark.invalid"
@@ -2931,13 +2931,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.60281@benchmark.invalid>"
+          "<20261009102132.1011.85102@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-37-b@benchmark.invalid"
@@ -2966,56 +2966,17 @@
     },
     {
       "destinations": [
-        "recipient-38-b@benchmark.invalid"
-      ],
-      "headers": {
-        "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
-        ],
-        "From": [
-          "sender@benchmark.invalid"
-        ],
-        "Message-Id": [
-          "<20261009084550.1006.63932@benchmark.invalid>"
-        ],
-        "Reply-To": [
-          "recipient-38-a@benchmark.invalid"
-        ],
-        "Subject": [
-          "Historical Sentry fixture 38"
-        ],
-        "To": [
-          "recipient-38-b@benchmark.invalid"
-        ],
-        "X-Benchmark": [
-          "38"
-        ]
-      },
-      "parts": [
-        {
-          "content": "Plain body 38 with unicode: caf\u00e9",
-          "content_type": "text/plain"
-        },
-        {
-          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 38: caf&#233;</p></body></html>",
-          "content_type": "text/html"
-        }
-      ],
-      "sender": "sender@benchmark.invalid"
-    },
-    {
-      "destinations": [
         "recipient-38-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.76832@benchmark.invalid>"
+          "<20261009102132.1011.80240@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-38-b@benchmark.invalid"
@@ -3044,26 +3005,65 @@
     },
     {
       "destinations": [
-        "recipient-39-b@benchmark.invalid"
+        "recipient-38-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.56899@benchmark.invalid>"
+          "<20261009102132.1011.31705@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-39-a@benchmark.invalid"
+          "recipient-38-a@benchmark.invalid"
+        ],
+        "Subject": [
+          "Historical Sentry fixture 38"
+        ],
+        "To": [
+          "recipient-38-b@benchmark.invalid"
+        ],
+        "X-Benchmark": [
+          "38"
+        ]
+      },
+      "parts": [
+        {
+          "content": "Plain body 38 with unicode: caf\u00e9",
+          "content_type": "text/plain"
+        },
+        {
+          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 38: caf&#233;</p></body></html>",
+          "content_type": "text/html"
+        }
+      ],
+      "sender": "sender@benchmark.invalid"
+    },
+    {
+      "destinations": [
+        "recipient-39-a@benchmark.invalid"
+      ],
+      "headers": {
+        "Date": [
+          "Fri, 09 Oct 2026 10:21:32 -0000"
+        ],
+        "From": [
+          "sender@benchmark.invalid"
+        ],
+        "Message-Id": [
+          "<20261009102132.1011.90346@benchmark.invalid>"
+        ],
+        "Reply-To": [
+          "recipient-39-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 39"
         ],
         "To": [
-          "recipient-39-b@benchmark.invalid"
+          "recipient-39-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "39"
@@ -3083,26 +3083,26 @@
     },
     {
       "destinations": [
-        "recipient-39-a@benchmark.invalid"
+        "recipient-39-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.56808@benchmark.invalid>"
+          "<20261009102132.1011.64775@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-39-b@benchmark.invalid"
+          "recipient-39-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 39"
         ],
         "To": [
-          "recipient-39-a@benchmark.invalid"
+          "recipient-39-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "39"
@@ -3126,13 +3126,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.81048@benchmark.invalid>"
+          "<20261009102132.1011.53218@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-40-b@benchmark.invalid"
@@ -3161,56 +3161,17 @@
     },
     {
       "destinations": [
-        "recipient-41-a@benchmark.invalid"
-      ],
-      "headers": {
-        "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
-        ],
-        "From": [
-          "sender@benchmark.invalid"
-        ],
-        "Message-Id": [
-          "<20261009084550.1006.67211@benchmark.invalid>"
-        ],
-        "Reply-To": [
-          "recipient-41-b@benchmark.invalid"
-        ],
-        "Subject": [
-          "Historical Sentry fixture 41"
-        ],
-        "To": [
-          "recipient-41-a@benchmark.invalid"
-        ],
-        "X-Benchmark": [
-          "41"
-        ]
-      },
-      "parts": [
-        {
-          "content": "Plain body 41 with unicode: caf\u00e9",
-          "content_type": "text/plain"
-        },
-        {
-          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 41: caf&#233;</p></body></html>",
-          "content_type": "text/html"
-        }
-      ],
-      "sender": "sender@benchmark.invalid"
-    },
-    {
-      "destinations": [
         "recipient-40-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.97416@benchmark.invalid>"
+          "<20261009102132.1011.46745@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-40-a@benchmark.invalid"
@@ -3243,13 +3204,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.13749@benchmark.invalid>"
+          "<20261009102132.1011.67377@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-41-a@benchmark.invalid"
@@ -3278,17 +3239,56 @@
     },
     {
       "destinations": [
-        "recipient-42-a@benchmark.invalid"
+        "recipient-41-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.163@benchmark.invalid>"
+          "<20261009102132.1011.41541@benchmark.invalid>"
+        ],
+        "Reply-To": [
+          "recipient-41-b@benchmark.invalid"
+        ],
+        "Subject": [
+          "Historical Sentry fixture 41"
+        ],
+        "To": [
+          "recipient-41-a@benchmark.invalid"
+        ],
+        "X-Benchmark": [
+          "41"
+        ]
+      },
+      "parts": [
+        {
+          "content": "Plain body 41 with unicode: caf\u00e9",
+          "content_type": "text/plain"
+        },
+        {
+          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 41: caf&#233;</p></body></html>",
+          "content_type": "text/html"
+        }
+      ],
+      "sender": "sender@benchmark.invalid"
+    },
+    {
+      "destinations": [
+        "recipient-42-a@benchmark.invalid"
+      ],
+      "headers": {
+        "Date": [
+          "Fri, 09 Oct 2026 10:21:32 -0000"
+        ],
+        "From": [
+          "sender@benchmark.invalid"
+        ],
+        "Message-Id": [
+          "<20261009102132.1011.30627@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-42-b@benchmark.invalid"
@@ -3317,56 +3317,17 @@
     },
     {
       "destinations": [
-        "recipient-43-a@benchmark.invalid"
-      ],
-      "headers": {
-        "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
-        ],
-        "From": [
-          "sender@benchmark.invalid"
-        ],
-        "Message-Id": [
-          "<20261009084550.1006.64396@benchmark.invalid>"
-        ],
-        "Reply-To": [
-          "recipient-43-b@benchmark.invalid"
-        ],
-        "Subject": [
-          "Historical Sentry fixture 43"
-        ],
-        "To": [
-          "recipient-43-a@benchmark.invalid"
-        ],
-        "X-Benchmark": [
-          "43"
-        ]
-      },
-      "parts": [
-        {
-          "content": "Plain body 43 with unicode: caf\u00e9",
-          "content_type": "text/plain"
-        },
-        {
-          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 43: caf&#233;</p></body></html>",
-          "content_type": "text/html"
-        }
-      ],
-      "sender": "sender@benchmark.invalid"
-    },
-    {
-      "destinations": [
         "recipient-42-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.28898@benchmark.invalid>"
+          "<20261009102132.1011.64198@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-42-a@benchmark.invalid"
@@ -3399,13 +3360,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.33693@benchmark.invalid>"
+          "<20261009102132.1011.4948@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-43-a@benchmark.invalid"
@@ -3434,17 +3395,56 @@
     },
     {
       "destinations": [
-        "recipient-44-a@benchmark.invalid"
+        "recipient-43-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.39916@benchmark.invalid>"
+          "<20261009102132.1011.89531@benchmark.invalid>"
+        ],
+        "Reply-To": [
+          "recipient-43-b@benchmark.invalid"
+        ],
+        "Subject": [
+          "Historical Sentry fixture 43"
+        ],
+        "To": [
+          "recipient-43-a@benchmark.invalid"
+        ],
+        "X-Benchmark": [
+          "43"
+        ]
+      },
+      "parts": [
+        {
+          "content": "Plain body 43 with unicode: caf\u00e9",
+          "content_type": "text/plain"
+        },
+        {
+          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 43: caf&#233;</p></body></html>",
+          "content_type": "text/html"
+        }
+      ],
+      "sender": "sender@benchmark.invalid"
+    },
+    {
+      "destinations": [
+        "recipient-44-a@benchmark.invalid"
+      ],
+      "headers": {
+        "Date": [
+          "Fri, 09 Oct 2026 10:21:32 -0000"
+        ],
+        "From": [
+          "sender@benchmark.invalid"
+        ],
+        "Message-Id": [
+          "<20261009102132.1011.86639@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-44-b@benchmark.invalid"
@@ -3477,13 +3477,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.24498@benchmark.invalid>"
+          "<20261009102132.1011.85842@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-44-a@benchmark.invalid"
@@ -3512,56 +3512,17 @@
     },
     {
       "destinations": [
-        "recipient-45-a@benchmark.invalid"
-      ],
-      "headers": {
-        "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
-        ],
-        "From": [
-          "sender@benchmark.invalid"
-        ],
-        "Message-Id": [
-          "<20261009084550.1006.23416@benchmark.invalid>"
-        ],
-        "Reply-To": [
-          "recipient-45-b@benchmark.invalid"
-        ],
-        "Subject": [
-          "Historical Sentry fixture 45"
-        ],
-        "To": [
-          "recipient-45-a@benchmark.invalid"
-        ],
-        "X-Benchmark": [
-          "45"
-        ]
-      },
-      "parts": [
-        {
-          "content": "Plain body 45 with unicode: caf\u00e9",
-          "content_type": "text/plain"
-        },
-        {
-          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 45: caf&#233;</p></body></html>",
-          "content_type": "text/html"
-        }
-      ],
-      "sender": "sender@benchmark.invalid"
-    },
-    {
-      "destinations": [
         "recipient-45-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.27281@benchmark.invalid>"
+          "<20261009102132.1011.85289@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-45-a@benchmark.invalid"
@@ -3590,26 +3551,65 @@
     },
     {
       "destinations": [
-        "recipient-46-a@benchmark.invalid"
+        "recipient-45-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.31738@benchmark.invalid>"
+          "<20261009102132.1011.85146@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-46-b@benchmark.invalid"
+          "recipient-45-b@benchmark.invalid"
+        ],
+        "Subject": [
+          "Historical Sentry fixture 45"
+        ],
+        "To": [
+          "recipient-45-a@benchmark.invalid"
+        ],
+        "X-Benchmark": [
+          "45"
+        ]
+      },
+      "parts": [
+        {
+          "content": "Plain body 45 with unicode: caf\u00e9",
+          "content_type": "text/plain"
+        },
+        {
+          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 45: caf&#233;</p></body></html>",
+          "content_type": "text/html"
+        }
+      ],
+      "sender": "sender@benchmark.invalid"
+    },
+    {
+      "destinations": [
+        "recipient-46-b@benchmark.invalid"
+      ],
+      "headers": {
+        "Date": [
+          "Fri, 09 Oct 2026 10:21:32 -0000"
+        ],
+        "From": [
+          "sender@benchmark.invalid"
+        ],
+        "Message-Id": [
+          "<20261009102132.1011.69412@benchmark.invalid>"
+        ],
+        "Reply-To": [
+          "recipient-46-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 46"
         ],
         "To": [
-          "recipient-46-a@benchmark.invalid"
+          "recipient-46-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "46"
@@ -3629,26 +3629,26 @@
     },
     {
       "destinations": [
-        "recipient-46-b@benchmark.invalid"
+        "recipient-46-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.38004@benchmark.invalid>"
+          "<20261009102132.1011.37629@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-46-a@benchmark.invalid"
+          "recipient-46-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 46"
         ],
         "To": [
-          "recipient-46-b@benchmark.invalid"
+          "recipient-46-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "46"
@@ -3672,13 +3672,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.90182@benchmark.invalid>"
+          "<20261009102132.1011.89722@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-47-a@benchmark.invalid"
@@ -3711,13 +3711,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.7330@benchmark.invalid>"
+          "<20261009102132.1011.79707@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-47-b@benchmark.invalid"
@@ -3750,13 +3750,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.37369@benchmark.invalid>"
+          "<20261009102132.1011.93653@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-48-a@benchmark.invalid"
@@ -3789,13 +3789,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.20162@benchmark.invalid>"
+          "<20261009102132.1011.20241@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-48-b@benchmark.invalid"
@@ -3828,13 +3828,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.55214@benchmark.invalid>"
+          "<20261009102132.1011.11179@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-49-b@benchmark.invalid"
@@ -3867,13 +3867,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.21015@benchmark.invalid>"
+          "<20261009102132.1011.70748@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-49-a@benchmark.invalid"
@@ -3902,26 +3902,26 @@
     },
     {
       "destinations": [
-        "recipient-50-a@benchmark.invalid"
+        "recipient-50-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.74670@benchmark.invalid>"
+          "<20261009102132.1011.59736@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-50-b@benchmark.invalid"
+          "recipient-50-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 50"
         ],
         "To": [
-          "recipient-50-a@benchmark.invalid"
+          "recipient-50-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "50"
@@ -3941,26 +3941,26 @@
     },
     {
       "destinations": [
-        "recipient-50-b@benchmark.invalid"
+        "recipient-50-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.30678@benchmark.invalid>"
+          "<20261009102132.1011.86558@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-50-a@benchmark.invalid"
+          "recipient-50-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 50"
         ],
         "To": [
-          "recipient-50-b@benchmark.invalid"
+          "recipient-50-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "50"
@@ -3984,13 +3984,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.19789@benchmark.invalid>"
+          "<20261009102132.1011.34987@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-51-a@benchmark.invalid"
@@ -4023,13 +4023,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.51084@benchmark.invalid>"
+          "<20261009102132.1011.16906@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-51-b@benchmark.invalid"
@@ -4062,13 +4062,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.31739@benchmark.invalid>"
+          "<20261009102132.1011.42271@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-52-b@benchmark.invalid"
@@ -4101,13 +4101,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.70835@benchmark.invalid>"
+          "<20261009102132.1011.88769@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-52-a@benchmark.invalid"
@@ -4140,13 +4140,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.74149@benchmark.invalid>"
+          "<20261009102132.1011.66706@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-53-b@benchmark.invalid"
@@ -4179,13 +4179,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.66800@benchmark.invalid>"
+          "<20261009102132.1011.74222@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-53-a@benchmark.invalid"
@@ -4218,13 +4218,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.34447@benchmark.invalid>"
+          "<20261009102132.1011.19536@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-54-a@benchmark.invalid"
@@ -4257,13 +4257,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.39165@benchmark.invalid>"
+          "<20261009102132.1011.77301@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-54-b@benchmark.invalid"
@@ -4296,13 +4296,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.39196@benchmark.invalid>"
+          "<20261009102132.1011.34637@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-55-b@benchmark.invalid"
@@ -4335,13 +4335,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.17540@benchmark.invalid>"
+          "<20261009102132.1011.48806@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-55-a@benchmark.invalid"
@@ -4370,26 +4370,26 @@
     },
     {
       "destinations": [
-        "recipient-56-a@benchmark.invalid"
+        "recipient-56-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.57200@benchmark.invalid>"
+          "<20261009102132.1011.94713@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-56-b@benchmark.invalid"
+          "recipient-56-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 56"
         ],
         "To": [
-          "recipient-56-a@benchmark.invalid"
+          "recipient-56-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "56"
@@ -4409,26 +4409,26 @@
     },
     {
       "destinations": [
-        "recipient-56-b@benchmark.invalid"
+        "recipient-56-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.6783@benchmark.invalid>"
+          "<20261009102132.1011.4750@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-56-a@benchmark.invalid"
+          "recipient-56-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 56"
         ],
         "To": [
-          "recipient-56-b@benchmark.invalid"
+          "recipient-56-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "56"
@@ -4452,13 +4452,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.56452@benchmark.invalid>"
+          "<20261009102132.1011.78560@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-57-a@benchmark.invalid"
@@ -4491,13 +4491,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.98890@benchmark.invalid>"
+          "<20261009102132.1011.79764@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-57-b@benchmark.invalid"
@@ -4530,13 +4530,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.89894@benchmark.invalid>"
+          "<20261009102132.1011.22818@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-58-a@benchmark.invalid"
@@ -4569,13 +4569,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.29754@benchmark.invalid>"
+          "<20261009102132.1011.19903@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-58-b@benchmark.invalid"
@@ -4604,26 +4604,26 @@
     },
     {
       "destinations": [
-        "recipient-59-b@benchmark.invalid"
+        "recipient-59-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.62725@benchmark.invalid>"
+          "<20261009102132.1011.41187@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-59-a@benchmark.invalid"
+          "recipient-59-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 59"
         ],
         "To": [
-          "recipient-59-b@benchmark.invalid"
+          "recipient-59-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "59"
@@ -4643,65 +4643,26 @@
     },
     {
       "destinations": [
-        "recipient-60-a@benchmark.invalid"
+        "recipient-59-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.96025@benchmark.invalid>"
+          "<20261009102132.1011.38887@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-60-b@benchmark.invalid"
-        ],
-        "Subject": [
-          "Historical Sentry fixture 60"
-        ],
-        "To": [
-          "recipient-60-a@benchmark.invalid"
-        ],
-        "X-Benchmark": [
-          "60"
-        ]
-      },
-      "parts": [
-        {
-          "content": "Plain body 60 with unicode: caf\u00e9",
-          "content_type": "text/plain"
-        },
-        {
-          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 60: caf&#233;</p></body></html>",
-          "content_type": "text/html"
-        }
-      ],
-      "sender": "sender@benchmark.invalid"
-    },
-    {
-      "destinations": [
-        "recipient-59-a@benchmark.invalid"
-      ],
-      "headers": {
-        "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
-        ],
-        "From": [
-          "sender@benchmark.invalid"
-        ],
-        "Message-Id": [
-          "<20261009084550.1006.88045@benchmark.invalid>"
-        ],
-        "Reply-To": [
-          "recipient-59-b@benchmark.invalid"
+          "recipient-59-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 59"
         ],
         "To": [
-          "recipient-59-a@benchmark.invalid"
+          "recipient-59-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "59"
@@ -4725,13 +4686,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.55956@benchmark.invalid>"
+          "<20261009102132.1011.26150@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-60-a@benchmark.invalid"
@@ -4760,26 +4721,65 @@
     },
     {
       "destinations": [
-        "recipient-61-b@benchmark.invalid"
+        "recipient-60-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.98857@benchmark.invalid>"
+          "<20261009102132.1011.33873@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-61-a@benchmark.invalid"
+          "recipient-60-b@benchmark.invalid"
+        ],
+        "Subject": [
+          "Historical Sentry fixture 60"
+        ],
+        "To": [
+          "recipient-60-a@benchmark.invalid"
+        ],
+        "X-Benchmark": [
+          "60"
+        ]
+      },
+      "parts": [
+        {
+          "content": "Plain body 60 with unicode: caf\u00e9",
+          "content_type": "text/plain"
+        },
+        {
+          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 60: caf&#233;</p></body></html>",
+          "content_type": "text/html"
+        }
+      ],
+      "sender": "sender@benchmark.invalid"
+    },
+    {
+      "destinations": [
+        "recipient-61-a@benchmark.invalid"
+      ],
+      "headers": {
+        "Date": [
+          "Fri, 09 Oct 2026 10:21:32 -0000"
+        ],
+        "From": [
+          "sender@benchmark.invalid"
+        ],
+        "Message-Id": [
+          "<20261009102132.1011.71167@benchmark.invalid>"
+        ],
+        "Reply-To": [
+          "recipient-61-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 61"
         ],
         "To": [
-          "recipient-61-b@benchmark.invalid"
+          "recipient-61-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "61"
@@ -4799,65 +4799,26 @@
     },
     {
       "destinations": [
-        "recipient-62-b@benchmark.invalid"
+        "recipient-61-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.44066@benchmark.invalid>"
+          "<20261009102132.1011.45377@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-62-a@benchmark.invalid"
-        ],
-        "Subject": [
-          "Historical Sentry fixture 62"
-        ],
-        "To": [
-          "recipient-62-b@benchmark.invalid"
-        ],
-        "X-Benchmark": [
-          "62"
-        ]
-      },
-      "parts": [
-        {
-          "content": "Plain body 62 with unicode: caf\u00e9",
-          "content_type": "text/plain"
-        },
-        {
-          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 62: caf&#233;</p></body></html>",
-          "content_type": "text/html"
-        }
-      ],
-      "sender": "sender@benchmark.invalid"
-    },
-    {
-      "destinations": [
-        "recipient-61-a@benchmark.invalid"
-      ],
-      "headers": {
-        "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
-        ],
-        "From": [
-          "sender@benchmark.invalid"
-        ],
-        "Message-Id": [
-          "<20261009084550.1006.38079@benchmark.invalid>"
-        ],
-        "Reply-To": [
-          "recipient-61-b@benchmark.invalid"
+          "recipient-61-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 61"
         ],
         "To": [
-          "recipient-61-a@benchmark.invalid"
+          "recipient-61-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "61"
@@ -4881,13 +4842,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.6809@benchmark.invalid>"
+          "<20261009102132.1011.71956@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-62-b@benchmark.invalid"
@@ -4916,17 +4877,56 @@
     },
     {
       "destinations": [
-        "recipient-63-b@benchmark.invalid"
+        "recipient-62-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.12125@benchmark.invalid>"
+          "<20261009102132.1011.27947@benchmark.invalid>"
+        ],
+        "Reply-To": [
+          "recipient-62-a@benchmark.invalid"
+        ],
+        "Subject": [
+          "Historical Sentry fixture 62"
+        ],
+        "To": [
+          "recipient-62-b@benchmark.invalid"
+        ],
+        "X-Benchmark": [
+          "62"
+        ]
+      },
+      "parts": [
+        {
+          "content": "Plain body 62 with unicode: caf\u00e9",
+          "content_type": "text/plain"
+        },
+        {
+          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 62: caf&#233;</p></body></html>",
+          "content_type": "text/html"
+        }
+      ],
+      "sender": "sender@benchmark.invalid"
+    },
+    {
+      "destinations": [
+        "recipient-63-b@benchmark.invalid"
+      ],
+      "headers": {
+        "Date": [
+          "Fri, 09 Oct 2026 10:21:32 -0000"
+        ],
+        "From": [
+          "sender@benchmark.invalid"
+        ],
+        "Message-Id": [
+          "<20261009102132.1011.19469@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-63-a@benchmark.invalid"
@@ -4959,13 +4959,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.95267@benchmark.invalid>"
+          "<20261009102132.1011.99978@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-63-b@benchmark.invalid"
@@ -4998,13 +4998,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.20784@benchmark.invalid>"
+          "<20261009102132.1011.3068@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-64-b@benchmark.invalid"
@@ -5037,13 +5037,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.45112@benchmark.invalid>"
+          "<20261009102132.1011.62394@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-64-a@benchmark.invalid"
@@ -5076,13 +5076,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.30447@benchmark.invalid>"
+          "<20261009102132.1011.68920@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-65-a@benchmark.invalid"
@@ -5115,13 +5115,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.73519@benchmark.invalid>"
+          "<20261009102132.1011.68234@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-65-b@benchmark.invalid"
@@ -5150,26 +5150,26 @@
     },
     {
       "destinations": [
-        "recipient-66-a@benchmark.invalid"
+        "recipient-66-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.33800@benchmark.invalid>"
+          "<20261009102132.1011.9630@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-66-b@benchmark.invalid"
+          "recipient-66-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 66"
         ],
         "To": [
-          "recipient-66-a@benchmark.invalid"
+          "recipient-66-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "66"
@@ -5189,26 +5189,26 @@
     },
     {
       "destinations": [
-        "recipient-66-b@benchmark.invalid"
+        "recipient-66-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.47493@benchmark.invalid>"
+          "<20261009102132.1011.53833@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-66-a@benchmark.invalid"
+          "recipient-66-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 66"
         ],
         "To": [
-          "recipient-66-b@benchmark.invalid"
+          "recipient-66-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "66"
@@ -5232,13 +5232,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.57011@benchmark.invalid>"
+          "<20261009102132.1011.12825@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-67-b@benchmark.invalid"
@@ -5271,13 +5271,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.42386@benchmark.invalid>"
+          "<20261009102132.1011.79443@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-67-a@benchmark.invalid"
@@ -5306,26 +5306,26 @@
     },
     {
       "destinations": [
-        "recipient-68-b@benchmark.invalid"
+        "recipient-68-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.64600@benchmark.invalid>"
+          "<20261009102132.1011.44693@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-68-a@benchmark.invalid"
+          "recipient-68-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 68"
         ],
         "To": [
-          "recipient-68-b@benchmark.invalid"
+          "recipient-68-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "68"
@@ -5345,26 +5345,26 @@
     },
     {
       "destinations": [
-        "recipient-68-a@benchmark.invalid"
+        "recipient-68-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.54164@benchmark.invalid>"
+          "<20261009102132.1011.41041@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-68-b@benchmark.invalid"
+          "recipient-68-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 68"
         ],
         "To": [
-          "recipient-68-a@benchmark.invalid"
+          "recipient-68-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "68"
@@ -5388,13 +5388,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.80387@benchmark.invalid>"
+          "<20261009102132.1011.30518@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-69-a@benchmark.invalid"
@@ -5427,13 +5427,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.87196@benchmark.invalid>"
+          "<20261009102132.1011.16373@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-69-b@benchmark.invalid"
@@ -5466,13 +5466,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.2947@benchmark.invalid>"
+          "<20261009102132.1011.23876@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-70-a@benchmark.invalid"
@@ -5505,13 +5505,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.74016@benchmark.invalid>"
+          "<20261009102132.1011.17418@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-70-b@benchmark.invalid"
@@ -5540,26 +5540,26 @@
     },
     {
       "destinations": [
-        "recipient-71-a@benchmark.invalid"
+        "recipient-71-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.7771@benchmark.invalid>"
+          "<20261009102132.1011.69247@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-71-b@benchmark.invalid"
+          "recipient-71-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 71"
         ],
         "To": [
-          "recipient-71-a@benchmark.invalid"
+          "recipient-71-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "71"
@@ -5579,26 +5579,26 @@
     },
     {
       "destinations": [
-        "recipient-71-b@benchmark.invalid"
+        "recipient-71-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.33538@benchmark.invalid>"
+          "<20261009102132.1011.27363@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-71-a@benchmark.invalid"
+          "recipient-71-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 71"
         ],
         "To": [
-          "recipient-71-b@benchmark.invalid"
+          "recipient-71-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "71"
@@ -5622,13 +5622,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.76847@benchmark.invalid>"
+          "<20261009102132.1011.84046@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-72-a@benchmark.invalid"
@@ -5661,13 +5661,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.4456@benchmark.invalid>"
+          "<20261009102132.1011.16121@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-72-b@benchmark.invalid"
@@ -5700,13 +5700,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.80667@benchmark.invalid>"
+          "<20261009102132.1011.43218@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-73-b@benchmark.invalid"
@@ -5735,17 +5735,56 @@
     },
     {
       "destinations": [
-        "recipient-74-a@benchmark.invalid"
+        "recipient-73-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.73572@benchmark.invalid>"
+          "<20261009102132.1011.92893@benchmark.invalid>"
+        ],
+        "Reply-To": [
+          "recipient-73-a@benchmark.invalid"
+        ],
+        "Subject": [
+          "Historical Sentry fixture 73"
+        ],
+        "To": [
+          "recipient-73-b@benchmark.invalid"
+        ],
+        "X-Benchmark": [
+          "73"
+        ]
+      },
+      "parts": [
+        {
+          "content": "Plain body 73 with unicode: caf\u00e9",
+          "content_type": "text/plain"
+        },
+        {
+          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 73: caf&#233;</p></body></html>",
+          "content_type": "text/html"
+        }
+      ],
+      "sender": "sender@benchmark.invalid"
+    },
+    {
+      "destinations": [
+        "recipient-74-a@benchmark.invalid"
+      ],
+      "headers": {
+        "Date": [
+          "Fri, 09 Oct 2026 10:21:32 -0000"
+        ],
+        "From": [
+          "sender@benchmark.invalid"
+        ],
+        "Message-Id": [
+          "<20261009102132.1011.7668@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-74-b@benchmark.invalid"
@@ -5774,56 +5813,17 @@
     },
     {
       "destinations": [
-        "recipient-73-b@benchmark.invalid"
-      ],
-      "headers": {
-        "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
-        ],
-        "From": [
-          "sender@benchmark.invalid"
-        ],
-        "Message-Id": [
-          "<20261009084550.1006.1025@benchmark.invalid>"
-        ],
-        "Reply-To": [
-          "recipient-73-a@benchmark.invalid"
-        ],
-        "Subject": [
-          "Historical Sentry fixture 73"
-        ],
-        "To": [
-          "recipient-73-b@benchmark.invalid"
-        ],
-        "X-Benchmark": [
-          "73"
-        ]
-      },
-      "parts": [
-        {
-          "content": "Plain body 73 with unicode: caf\u00e9",
-          "content_type": "text/plain"
-        },
-        {
-          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 73: caf&#233;</p></body></html>",
-          "content_type": "text/html"
-        }
-      ],
-      "sender": "sender@benchmark.invalid"
-    },
-    {
-      "destinations": [
         "recipient-74-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.13673@benchmark.invalid>"
+          "<20261009102132.1011.17451@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-74-a@benchmark.invalid"
@@ -5856,13 +5856,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.18570@benchmark.invalid>"
+          "<20261009102132.1011.58283@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-75-b@benchmark.invalid"
@@ -5895,13 +5895,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.71658@benchmark.invalid>"
+          "<20261009102132.1011.15875@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-75-a@benchmark.invalid"
@@ -5930,26 +5930,26 @@
     },
     {
       "destinations": [
-        "recipient-76-b@benchmark.invalid"
+        "recipient-76-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.42346@benchmark.invalid>"
+          "<20261009102132.1011.88937@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-76-a@benchmark.invalid"
+          "recipient-76-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 76"
         ],
         "To": [
-          "recipient-76-b@benchmark.invalid"
+          "recipient-76-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "76"
@@ -5969,26 +5969,26 @@
     },
     {
       "destinations": [
-        "recipient-76-a@benchmark.invalid"
+        "recipient-76-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.23340@benchmark.invalid>"
+          "<20261009102132.1011.97724@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-76-b@benchmark.invalid"
+          "recipient-76-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 76"
         ],
         "To": [
-          "recipient-76-a@benchmark.invalid"
+          "recipient-76-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "76"
@@ -6012,13 +6012,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.81898@benchmark.invalid>"
+          "<20261009102132.1011.33293@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-77-b@benchmark.invalid"
@@ -6051,13 +6051,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.9540@benchmark.invalid>"
+          "<20261009102132.1011.72935@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-77-a@benchmark.invalid"
@@ -6086,26 +6086,26 @@
     },
     {
       "destinations": [
-        "recipient-78-a@benchmark.invalid"
+        "recipient-78-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.16165@benchmark.invalid>"
+          "<20261009102132.1011.23484@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-78-b@benchmark.invalid"
+          "recipient-78-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 78"
         ],
         "To": [
-          "recipient-78-a@benchmark.invalid"
+          "recipient-78-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "78"
@@ -6125,26 +6125,26 @@
     },
     {
       "destinations": [
-        "recipient-78-b@benchmark.invalid"
+        "recipient-78-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.91110@benchmark.invalid>"
+          "<20261009102132.1011.41372@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-78-a@benchmark.invalid"
+          "recipient-78-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 78"
         ],
         "To": [
-          "recipient-78-b@benchmark.invalid"
+          "recipient-78-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "78"
@@ -6168,13 +6168,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.72981@benchmark.invalid>"
+          "<20261009102132.1011.67586@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-79-b@benchmark.invalid"
@@ -6207,13 +6207,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.77310@benchmark.invalid>"
+          "<20261009102132.1011.258@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-79-a@benchmark.invalid"
@@ -6242,56 +6242,17 @@
     },
     {
       "destinations": [
-        "recipient-80-b@benchmark.invalid"
-      ],
-      "headers": {
-        "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
-        ],
-        "From": [
-          "sender@benchmark.invalid"
-        ],
-        "Message-Id": [
-          "<20261009084550.1006.32351@benchmark.invalid>"
-        ],
-        "Reply-To": [
-          "recipient-80-a@benchmark.invalid"
-        ],
-        "Subject": [
-          "Historical Sentry fixture 80"
-        ],
-        "To": [
-          "recipient-80-b@benchmark.invalid"
-        ],
-        "X-Benchmark": [
-          "80"
-        ]
-      },
-      "parts": [
-        {
-          "content": "Plain body 80 with unicode: caf\u00e9",
-          "content_type": "text/plain"
-        },
-        {
-          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 80: caf&#233;</p></body></html>",
-          "content_type": "text/html"
-        }
-      ],
-      "sender": "sender@benchmark.invalid"
-    },
-    {
-      "destinations": [
         "recipient-80-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.79367@benchmark.invalid>"
+          "<20261009102132.1011.42456@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-80-b@benchmark.invalid"
@@ -6320,26 +6281,65 @@
     },
     {
       "destinations": [
-        "recipient-81-b@benchmark.invalid"
+        "recipient-80-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.47085@benchmark.invalid>"
+          "<20261009102132.1011.72232@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-81-a@benchmark.invalid"
+          "recipient-80-a@benchmark.invalid"
+        ],
+        "Subject": [
+          "Historical Sentry fixture 80"
+        ],
+        "To": [
+          "recipient-80-b@benchmark.invalid"
+        ],
+        "X-Benchmark": [
+          "80"
+        ]
+      },
+      "parts": [
+        {
+          "content": "Plain body 80 with unicode: caf\u00e9",
+          "content_type": "text/plain"
+        },
+        {
+          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 80: caf&#233;</p></body></html>",
+          "content_type": "text/html"
+        }
+      ],
+      "sender": "sender@benchmark.invalid"
+    },
+    {
+      "destinations": [
+        "recipient-81-a@benchmark.invalid"
+      ],
+      "headers": {
+        "Date": [
+          "Fri, 09 Oct 2026 10:21:32 -0000"
+        ],
+        "From": [
+          "sender@benchmark.invalid"
+        ],
+        "Message-Id": [
+          "<20261009102132.1011.47314@benchmark.invalid>"
+        ],
+        "Reply-To": [
+          "recipient-81-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 81"
         ],
         "To": [
-          "recipient-81-b@benchmark.invalid"
+          "recipient-81-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "81"
@@ -6359,26 +6359,26 @@
     },
     {
       "destinations": [
-        "recipient-81-a@benchmark.invalid"
+        "recipient-81-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.34597@benchmark.invalid>"
+          "<20261009102132.1011.85767@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-81-b@benchmark.invalid"
+          "recipient-81-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 81"
         ],
         "To": [
-          "recipient-81-a@benchmark.invalid"
+          "recipient-81-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "81"
@@ -6402,13 +6402,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.86269@benchmark.invalid>"
+          "<20261009102132.1011.98489@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-82-b@benchmark.invalid"
@@ -6437,26 +6437,65 @@
     },
     {
       "destinations": [
-        "recipient-83-a@benchmark.invalid"
+        "recipient-82-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.19857@benchmark.invalid>"
+          "<20261009102132.1011.19230@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-83-b@benchmark.invalid"
+          "recipient-82-a@benchmark.invalid"
+        ],
+        "Subject": [
+          "Historical Sentry fixture 82"
+        ],
+        "To": [
+          "recipient-82-b@benchmark.invalid"
+        ],
+        "X-Benchmark": [
+          "82"
+        ]
+      },
+      "parts": [
+        {
+          "content": "Plain body 82 with unicode: caf\u00e9",
+          "content_type": "text/plain"
+        },
+        {
+          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 82: caf&#233;</p></body></html>",
+          "content_type": "text/html"
+        }
+      ],
+      "sender": "sender@benchmark.invalid"
+    },
+    {
+      "destinations": [
+        "recipient-83-b@benchmark.invalid"
+      ],
+      "headers": {
+        "Date": [
+          "Fri, 09 Oct 2026 10:21:32 -0000"
+        ],
+        "From": [
+          "sender@benchmark.invalid"
+        ],
+        "Message-Id": [
+          "<20261009102132.1011.26353@benchmark.invalid>"
+        ],
+        "Reply-To": [
+          "recipient-83-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 83"
         ],
         "To": [
-          "recipient-83-a@benchmark.invalid"
+          "recipient-83-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "83"
@@ -6476,104 +6515,26 @@
     },
     {
       "destinations": [
-        "recipient-82-b@benchmark.invalid"
+        "recipient-83-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.20530@benchmark.invalid>"
+          "<20261009102132.1011.17821@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-82-a@benchmark.invalid"
-        ],
-        "Subject": [
-          "Historical Sentry fixture 82"
-        ],
-        "To": [
-          "recipient-82-b@benchmark.invalid"
-        ],
-        "X-Benchmark": [
-          "82"
-        ]
-      },
-      "parts": [
-        {
-          "content": "Plain body 82 with unicode: caf\u00e9",
-          "content_type": "text/plain"
-        },
-        {
-          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 82: caf&#233;</p></body></html>",
-          "content_type": "text/html"
-        }
-      ],
-      "sender": "sender@benchmark.invalid"
-    },
-    {
-      "destinations": [
-        "recipient-84-a@benchmark.invalid"
-      ],
-      "headers": {
-        "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
-        ],
-        "From": [
-          "sender@benchmark.invalid"
-        ],
-        "Message-Id": [
-          "<20261009084550.1006.79967@benchmark.invalid>"
-        ],
-        "Reply-To": [
-          "recipient-84-b@benchmark.invalid"
-        ],
-        "Subject": [
-          "Historical Sentry fixture 84"
-        ],
-        "To": [
-          "recipient-84-a@benchmark.invalid"
-        ],
-        "X-Benchmark": [
-          "84"
-        ]
-      },
-      "parts": [
-        {
-          "content": "Plain body 84 with unicode: caf\u00e9",
-          "content_type": "text/plain"
-        },
-        {
-          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 84: caf&#233;</p></body></html>",
-          "content_type": "text/html"
-        }
-      ],
-      "sender": "sender@benchmark.invalid"
-    },
-    {
-      "destinations": [
-        "recipient-83-b@benchmark.invalid"
-      ],
-      "headers": {
-        "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
-        ],
-        "From": [
-          "sender@benchmark.invalid"
-        ],
-        "Message-Id": [
-          "<20261009084550.1006.47477@benchmark.invalid>"
-        ],
-        "Reply-To": [
-          "recipient-83-a@benchmark.invalid"
+          "recipient-83-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 83"
         ],
         "To": [
-          "recipient-83-b@benchmark.invalid"
+          "recipient-83-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "83"
@@ -6597,13 +6558,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.52532@benchmark.invalid>"
+          "<20261009102132.1011.76953@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-84-a@benchmark.invalid"
@@ -6632,17 +6593,56 @@
     },
     {
       "destinations": [
-        "recipient-85-a@benchmark.invalid"
+        "recipient-84-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.51735@benchmark.invalid>"
+          "<20261009102132.1011.68586@benchmark.invalid>"
+        ],
+        "Reply-To": [
+          "recipient-84-b@benchmark.invalid"
+        ],
+        "Subject": [
+          "Historical Sentry fixture 84"
+        ],
+        "To": [
+          "recipient-84-a@benchmark.invalid"
+        ],
+        "X-Benchmark": [
+          "84"
+        ]
+      },
+      "parts": [
+        {
+          "content": "Plain body 84 with unicode: caf\u00e9",
+          "content_type": "text/plain"
+        },
+        {
+          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 84: caf&#233;</p></body></html>",
+          "content_type": "text/html"
+        }
+      ],
+      "sender": "sender@benchmark.invalid"
+    },
+    {
+      "destinations": [
+        "recipient-85-a@benchmark.invalid"
+      ],
+      "headers": {
+        "Date": [
+          "Fri, 09 Oct 2026 10:21:32 -0000"
+        ],
+        "From": [
+          "sender@benchmark.invalid"
+        ],
+        "Message-Id": [
+          "<20261009102132.1011.835@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-85-b@benchmark.invalid"
@@ -6675,13 +6675,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.84731@benchmark.invalid>"
+          "<20261009102132.1011.90341@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-85-a@benchmark.invalid"
@@ -6710,26 +6710,26 @@
     },
     {
       "destinations": [
-        "recipient-86-b@benchmark.invalid"
+        "recipient-86-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:32 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.86630@benchmark.invalid>"
+          "<20261009102132.1011.91872@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-86-a@benchmark.invalid"
+          "recipient-86-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 86"
         ],
         "To": [
-          "recipient-86-b@benchmark.invalid"
+          "recipient-86-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "86"
@@ -6749,26 +6749,26 @@
     },
     {
       "destinations": [
-        "recipient-86-a@benchmark.invalid"
+        "recipient-86-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.44588@benchmark.invalid>"
+          "<20261009102132.1011.39560@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-86-b@benchmark.invalid"
+          "recipient-86-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 86"
         ],
         "To": [
-          "recipient-86-a@benchmark.invalid"
+          "recipient-86-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "86"
@@ -6792,13 +6792,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.78161@benchmark.invalid>"
+          "<20261009102132.1011.18949@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-87-b@benchmark.invalid"
@@ -6831,13 +6831,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.85328@benchmark.invalid>"
+          "<20261009102132.1011.88765@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-87-a@benchmark.invalid"
@@ -6870,13 +6870,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.68651@benchmark.invalid>"
+          "<20261009102132.1011.81729@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-88-b@benchmark.invalid"
@@ -6909,13 +6909,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.87055@benchmark.invalid>"
+          "<20261009102132.1011.38897@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-88-a@benchmark.invalid"
@@ -6948,13 +6948,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.43955@benchmark.invalid>"
+          "<20261009102132.1011.28412@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-89-b@benchmark.invalid"
@@ -6987,13 +6987,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.39984@benchmark.invalid>"
+          "<20261009102132.1011.82853@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-89-a@benchmark.invalid"
@@ -7026,13 +7026,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.7549@benchmark.invalid>"
+          "<20261009102132.1011.99042@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-90-b@benchmark.invalid"
@@ -7065,13 +7065,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.80181@benchmark.invalid>"
+          "<20261009102132.1011.92019@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-90-a@benchmark.invalid"
@@ -7100,56 +7100,17 @@
     },
     {
       "destinations": [
-        "recipient-91-a@benchmark.invalid"
-      ],
-      "headers": {
-        "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
-        ],
-        "From": [
-          "sender@benchmark.invalid"
-        ],
-        "Message-Id": [
-          "<20261009084550.1006.6919@benchmark.invalid>"
-        ],
-        "Reply-To": [
-          "recipient-91-b@benchmark.invalid"
-        ],
-        "Subject": [
-          "Historical Sentry fixture 91"
-        ],
-        "To": [
-          "recipient-91-a@benchmark.invalid"
-        ],
-        "X-Benchmark": [
-          "91"
-        ]
-      },
-      "parts": [
-        {
-          "content": "Plain body 91 with unicode: caf\u00e9",
-          "content_type": "text/plain"
-        },
-        {
-          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 91: caf&#233;</p></body></html>",
-          "content_type": "text/html"
-        }
-      ],
-      "sender": "sender@benchmark.invalid"
-    },
-    {
-      "destinations": [
         "recipient-91-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.18958@benchmark.invalid>"
+          "<20261009102132.1011.68075@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-91-a@benchmark.invalid"
@@ -7178,26 +7139,65 @@
     },
     {
       "destinations": [
-        "recipient-92-a@benchmark.invalid"
+        "recipient-91-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.65148@benchmark.invalid>"
+          "<20261009102132.1011.30555@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-92-b@benchmark.invalid"
+          "recipient-91-b@benchmark.invalid"
+        ],
+        "Subject": [
+          "Historical Sentry fixture 91"
+        ],
+        "To": [
+          "recipient-91-a@benchmark.invalid"
+        ],
+        "X-Benchmark": [
+          "91"
+        ]
+      },
+      "parts": [
+        {
+          "content": "Plain body 91 with unicode: caf\u00e9",
+          "content_type": "text/plain"
+        },
+        {
+          "content": "<!DOCTYPE html>\r\n<html><head></head><body><p class=\"fixture\" style=\"color: red\">HTML body 91: caf&#233;</p></body></html>",
+          "content_type": "text/html"
+        }
+      ],
+      "sender": "sender@benchmark.invalid"
+    },
+    {
+      "destinations": [
+        "recipient-92-b@benchmark.invalid"
+      ],
+      "headers": {
+        "Date": [
+          "Fri, 09 Oct 2026 10:21:33 -0000"
+        ],
+        "From": [
+          "sender@benchmark.invalid"
+        ],
+        "Message-Id": [
+          "<20261009102132.1011.33503@benchmark.invalid>"
+        ],
+        "Reply-To": [
+          "recipient-92-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 92"
         ],
         "To": [
-          "recipient-92-a@benchmark.invalid"
+          "recipient-92-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "92"
@@ -7217,26 +7217,26 @@
     },
     {
       "destinations": [
-        "recipient-92-b@benchmark.invalid"
+        "recipient-92-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.13599@benchmark.invalid>"
+          "<20261009102132.1011.83927@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-92-a@benchmark.invalid"
+          "recipient-92-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 92"
         ],
         "To": [
-          "recipient-92-b@benchmark.invalid"
+          "recipient-92-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "92"
@@ -7260,13 +7260,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.49964@benchmark.invalid>"
+          "<20261009102132.1011.27528@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-93-a@benchmark.invalid"
@@ -7299,13 +7299,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.10369@benchmark.invalid>"
+          "<20261009102132.1011.36561@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-93-b@benchmark.invalid"
@@ -7334,26 +7334,26 @@
     },
     {
       "destinations": [
-        "recipient-94-b@benchmark.invalid"
+        "recipient-94-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.93747@benchmark.invalid>"
+          "<20261009102132.1011.32016@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-94-a@benchmark.invalid"
+          "recipient-94-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 94"
         ],
         "To": [
-          "recipient-94-b@benchmark.invalid"
+          "recipient-94-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "94"
@@ -7373,26 +7373,26 @@
     },
     {
       "destinations": [
-        "recipient-94-a@benchmark.invalid"
+        "recipient-94-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.73675@benchmark.invalid>"
+          "<20261009102132.1011.29732@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-94-b@benchmark.invalid"
+          "recipient-94-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 94"
         ],
         "To": [
-          "recipient-94-a@benchmark.invalid"
+          "recipient-94-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "94"
@@ -7416,13 +7416,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.1864@benchmark.invalid>"
+          "<20261009102132.1011.84629@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-95-a@benchmark.invalid"
@@ -7455,13 +7455,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.48346@benchmark.invalid>"
+          "<20261009102132.1011.85044@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-95-b@benchmark.invalid"
@@ -7494,13 +7494,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.95318@benchmark.invalid>"
+          "<20261009102132.1011.27141@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-96-b@benchmark.invalid"
@@ -7533,13 +7533,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.45708@benchmark.invalid>"
+          "<20261009102132.1011.44969@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-96-a@benchmark.invalid"
@@ -7572,13 +7572,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.19134@benchmark.invalid>"
+          "<20261009102132.1011.38323@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-97-a@benchmark.invalid"
@@ -7611,13 +7611,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.73535@benchmark.invalid>"
+          "<20261009102132.1011.55403@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-97-b@benchmark.invalid"
@@ -7646,26 +7646,26 @@
     },
     {
       "destinations": [
-        "recipient-98-b@benchmark.invalid"
+        "recipient-98-a@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.14061@benchmark.invalid>"
+          "<20261009102132.1011.2919@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-98-a@benchmark.invalid"
+          "recipient-98-b@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 98"
         ],
         "To": [
-          "recipient-98-b@benchmark.invalid"
+          "recipient-98-a@benchmark.invalid"
         ],
         "X-Benchmark": [
           "98"
@@ -7685,26 +7685,26 @@
     },
     {
       "destinations": [
-        "recipient-98-a@benchmark.invalid"
+        "recipient-98-b@benchmark.invalid"
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.15840@benchmark.invalid>"
+          "<20261009102132.1011.60154@benchmark.invalid>"
         ],
         "Reply-To": [
-          "recipient-98-b@benchmark.invalid"
+          "recipient-98-a@benchmark.invalid"
         ],
         "Subject": [
           "Historical Sentry fixture 98"
         ],
         "To": [
-          "recipient-98-a@benchmark.invalid"
+          "recipient-98-b@benchmark.invalid"
         ],
         "X-Benchmark": [
           "98"
@@ -7728,13 +7728,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.60876@benchmark.invalid>"
+          "<20261009102132.1011.18290@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-99-b@benchmark.invalid"
@@ -7767,13 +7767,13 @@
       ],
       "headers": {
         "Date": [
-          "Fri, 09 Oct 2026 08:45:50 -0000"
+          "Fri, 09 Oct 2026 10:21:33 -0000"
         ],
         "From": [
           "sender@benchmark.invalid"
         ],
         "Message-Id": [
-          "<20261009084550.1006.8432@benchmark.invalid>"
+          "<20261009102132.1011.59425@benchmark.invalid>"
         ],
         "Reply-To": [
           "recipient-99-a@benchmark.invalid"

@@ -68,22 +68,22 @@
   "measurement_window": {
     "clock_domain": "unix_time_ns",
     "end": {
-      "monotonic_ns": 1070502944078,
-      "timestamp_ns": 1791536151215635107,
-      "uncertainty_ns": 431
+      "monotonic_ns": 1242162262537,
+      "timestamp_ns": 1791542175934017186,
+      "uncertainty_ns": 611
     },
     "schema_version": 1,
     "start": {
-      "monotonic_ns": 1067390268221,
-      "timestamp_ns": 1791536148102959566,
-      "uncertainty_ns": 115
+      "monotonic_ns": 1237743159156,
+      "timestamp_ns": 1791542171514914145,
+      "uncertainty_ns": 160
     }
   },
   "metrics": {
     "cpu_seconds": null,
-    "messages_per_second": 32.12669888999624,
+    "messages_per_second": 22.629024799453994,
     "peak_rss_bytes": null,
-    "wall_seconds": 3.112675857
+    "wall_seconds": 4.419103381
   },
   "native_execution": {
     "check": "live_task_origin_and_ast",
@@ -2508,7 +2508,7 @@
   "repetition": 1,
   "scenario": "native_two_factor_notification",
   "setup": {
-    "archive_sha256": "bb0b1ccab36bbb2add6fe201139c15467dd31a834e7d29ea146c3c45051267cc",
+    "archive_sha256": "ce45965a6f27e6f2eea8b5c805ce9e2b2e11b455d260e08961f22ac05145de41",
     "cache_key": "0edf407ea4f6e07edb1db20c35a289b5da5dfee040dee6377b13a1078ed7bca2",
     "cache_scope": "same_run_output_directory",
     "mode": "native_full_schema_restore",
@@ -5282,6 +5282,6 @@
   },
   "workflow_trace": {
     "path": "posthog-1-dbworker/workflow.jsonl",
-    "sha256": "c06b2e334ccba883b28f021bba41f0a61eaf94ad16027047008ce9be1d2f96a8"
+    "sha256": "5af08e159fdef7301658bbf2c87a05bd163e81a143a5d41db8836a28fc089b4a"
   }
 }
