@@ -8,7 +8,7 @@ from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 from pathlib import Path
 
-from sqlalchemy import create_engine, select, update
+from sqlalchemy import create_engine, func, select, update
 from sqlalchemy.orm import Session, sessionmaker
 
 from imagededup_system_dbwork.db.engine import Base
@@ -110,10 +110,26 @@ class ProcessTest(unittest.TestCase):
         worker = self.worker(started_file=str(started), proceed_file=str(release))
         self.coordinator.start()
         self.wait_for(started.exists)
+        table = worker.table
+        observation = select(
+            func.julianday('now').label('observed_at'),
+            func.julianday(table.c.lease_expires_at).label('expires_at'),
+            table.c.lease_expires_at,
+            table.c.execution_status,
+            table.c.claim_token,
+        ).where(table.c.source_id == 1)
         try:
+            with self.session_factory() as session:
+                initial = session.execute(observation).one()
             time.sleep(1.4)
             with self.session_factory() as session:
-                self.assertGreater(worker.state(session, 1)['lease_expires_at'], now())
+                observed = session.execute(observation).one()
+            # Compare one database observation: a thread pause after reading an
+            # expiry must not compare that old snapshot with a later clock.
+            self.assertGreater(observed.expires_at, observed.observed_at)
+            self.assertGreater(observed.lease_expires_at, initial.lease_expires_at)
+            self.assertEqual(observed.execution_status, 'working')
+            self.assertEqual(observed.claim_token, initial.claim_token)
         finally:
             release.touch()
         self.coordinator.stop()
