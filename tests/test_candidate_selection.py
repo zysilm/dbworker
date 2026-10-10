@@ -189,3 +189,25 @@ class CandidateSelectionTest(unittest.TestCase):
         with self.session_factory() as session:
             for claim in claims:
                 self.assertEqual(self.worker.state(session, claim.source_id)["claim_token"], claim.token)
+
+    def test_slow_batch_refreshes_leases_before_committing(self) -> None:
+        self.add_pending_sources()
+        self.coordinator.lease_seconds = 1
+        clock = [now()]
+        record_claim = self.coordinator._record_claim
+
+        def slow_record(session, worker, source_id, timestamp):
+            claim = record_claim(session, worker, source_id, timestamp)
+            clock[0] += timedelta(seconds=2)
+            return claim
+
+        with patch("dbworker.now", side_effect=lambda: clock[0]):
+            with patch.object(self.coordinator, "_record_claim", side_effect=slow_record):
+                claims = self.coordinator._claim_many(self.worker, 2)
+            with self.session_factory() as session:
+                for claim in claims:
+                    self.assertEqual(self.worker.state(session, claim.source_id)["lease_expires_at"],
+                                     clock[0] + timedelta(seconds=1))
+            # Once committed, another claimant must not immediately steal the
+            # first item just because recording the later item took time.
+            self.assertEqual([claim.source_id for claim in self.coordinator._claim_many(self.worker, 2)], ["0"])

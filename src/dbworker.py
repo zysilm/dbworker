@@ -18,7 +18,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, TypeAlias, TypeVar, cast
 from multiprocessing.util import Finalize
 
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, String, Table, Text, and_, create_engine, event, exists, inspect, insert, or_, select, update
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, String, Table, Text, and_, create_engine, event, exists, inspect, insert, or_, select, tuple_, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine import CursorResult, RowMapping, URL, make_url
 from sqlalchemy.orm import DeclarativeBase, Mapper, Session, sessionmaker
@@ -388,8 +388,18 @@ class Coordinator:
                 query = query.with_for_update(skip_locked=True, of=worker.source_table)
             # Custom eligibility joins may return the same source more than once.
             source_ids = dict.fromkeys(session.scalars(query))
-            return [claim for source_id in source_ids
-                    if (claim := self._record_claim(session, worker, source_id, timestamp)) is not None]
+            claims = [claim for source_id in source_ids
+                      if (claim := self._record_claim(session, worker, source_id, timestamp)) is not None]
+            if claims:
+                # Earlier records must not enter the queue with leases aged by
+                # the rest of this batch. Refresh while ownership is still locked.
+                table = worker.table
+                session.execute(update(table).where(
+                    table.c.execution_status == ExecutionStatus.WORKING,
+                    tuple_(table.c.source_id, table.c.claim_token).in_(
+                        [(claim.source_id, claim.token) for claim in claims]),
+                ).values(lease_expires_at=now() + timedelta(seconds=self.lease_seconds)))
+            return claims
 
     def renew(self, worker: _Worker, claims: Iterable[Claim]) -> None:
         table = worker.table
