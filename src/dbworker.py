@@ -433,6 +433,8 @@ class Coordinator:
             for future in list(active):
                 if future.done():
                     claim = active.pop(future)
+                    # Completion can publish eligible children after an empty query.
+                    next_claim_at = 0.0
                     try:
                         future.result()
                     except LostClaim:

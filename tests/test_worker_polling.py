@@ -29,6 +29,28 @@ class ClockEvent:
             self.now += timeout
 
 
+class CompletionEvent(ClockEvent):
+    """Complete an in-flight handler before an outstanding polling deadline."""
+
+    def __init__(self, parent: Future[Outcome], *, fail: bool = False) -> None:
+        super().__init__()
+        self.parent = parent
+        self.fail = fail
+
+    def wait(self, timeout: float) -> None:
+        if self.signalled:
+            return
+        if not self.parent.done() and self.now < .1 <= self.now + timeout:
+            self.waits.append(timeout)
+            self.now = .1
+            if self.fail:
+                self.parent.set_exception(RuntimeError('Controlled worker failure'))
+            else:
+                self.parent.set_result(Finished())
+        else:
+            super().wait(timeout)
+
+
 class PollingTest(unittest.TestCase):
     def setUp(self) -> None:
         self.engine = create_engine('sqlite://')
@@ -78,6 +100,54 @@ class PollingTest(unittest.TestCase):
             self.run_scheduler()
         self.assertEqual(times, [0] * 5)
         self.assertEqual(self.clock.waits, [])
+
+    def test_committed_child_ignores_previous_empty_claim_deadline(self) -> None:
+        self.worker.concurrency = 2
+        parent: Future[Outcome] = Future()
+        child: Future[Outcome] = Future()
+        child.set_result(Finished())
+        self.clock = CompletionEvent(parent)
+        self.handlers.submit.side_effect = [parent, child]
+        times: list[float] = []
+        limits: list[int] = []
+
+        def claim_many(worker: _Worker, limit: int) -> list[Claim]:
+            times.append(self.clock.now)
+            limits.append(limit)
+            if len(times) == 1:
+                return [Claim(1, 'parent')]
+            if parent.done():
+                self.coordinator._stop.set()
+                return [Claim(2, 'child')]
+            return []
+
+        with patch.object(self.coordinator, '_claim_many', side_effect=claim_many):
+            self.run_scheduler()
+        self.assertEqual(times, [0, 0, .1])
+        self.assertEqual(limits, [2, 1, 2])
+        self.assertEqual(self.handlers.submit.call_count, 2)
+
+    def test_failed_completion_rechecks_without_resetting_idle_delay(self) -> None:
+        self.worker.concurrency = 2
+        parent: Future[Outcome] = Future()
+        self.clock = CompletionEvent(parent, fail=True)
+        self.handlers.submit.return_value = parent
+        times: list[float] = []
+
+        def claim_many(worker: _Worker, limit: int) -> list[Claim]:
+            times.append(self.clock.now)
+            if len(times) == 1:
+                return [Claim(1, 'parent')]
+            if len(times) == 4:
+                self.coordinator._stop.set()
+            return []
+
+        with patch.object(self.coordinator, '_claim_many', side_effect=claim_many), \
+                patch.object(self.coordinator, '_fail') as fail, patch('dbworker.logger.exception'):
+            self.run_scheduler()
+        self.assertEqual(times[:3], [0, 0, .1])
+        self.assertAlmostEqual(times[3], .6)
+        fail.assert_called_once()
 
     def test_renewal_continues_while_draining_on_shutdown(self) -> None:
         self.coordinator.lease_seconds = 3
