@@ -9,6 +9,7 @@ import json
 import os
 import platform
 import shutil
+import signal
 import socket
 import subprocess
 import sys
@@ -75,12 +76,13 @@ def main():
     directory = Path(config["output_directory"]).resolve() / f"posthog-{args.repetition}-{args.backend}"
     directory.mkdir()
     children, streams = [], []
-    runtime = engine = smtp = None
+    runtime = engine = smtp = dbworker_service = None
 
-    def launch(command, name):
+    def launch(command, name, *, new_session=False):
         stream = (directory / name).open("wb")
         streams.append(stream)
-        child = subprocess.Popen(command, stdout=stream, stderr=subprocess.STDOUT)
+        child = subprocess.Popen(command, stdout=stream, stderr=subprocess.STDOUT,
+                                 start_new_session=new_session)
         children.append(child)
         return child
 
@@ -185,7 +187,23 @@ def main():
                     "--concurrency", "8", "--loglevel", "WARNING", "--hostname", f"posthog-{redis_port}@localhost"], "worker.log")
             wait_for(lambda: app.control.ping(timeout=1))
         else:
-            runtime.start()
+            ready_file = directory / "worker-ready.json"
+            dbworker_service = launch(
+                [sys.executable, "-m", "examples.posthog_dbworker.worker",
+                 "--concurrency", "8", "--ready-file", str(ready_file)],
+                "worker.log", new_session=True)
+
+            def dbworker_ready():
+                if dbworker_service.poll() is not None:
+                    raise RuntimeError("The PostHog dbworker service exited before readiness")
+                if not ready_file.exists():
+                    return False
+                receipt = json.loads(ready_file.read_text())
+                if receipt["pid"] != dbworker_service.pid or receipt["concurrency"] != 8:
+                    raise RuntimeError("The PostHog dbworker service readiness identity differs")
+                return True
+
+            wait_for(dbworker_ready)
 
         warmup_operations = [f"warmup:notification-{i:04d}" for i in range(2)]
         producer_identities, api_outcomes = [], []
@@ -334,6 +352,7 @@ def main():
         row["configuration"]["submission_window_seconds"] = profile.get("submission_window_seconds", 60)
         row["configuration"]["load_profile"] = "One fixed open-loop schedule; no concurrency or rate sweep"
         row["configuration"]["contention_observation"] = "Concurrent API submission latency, lateness and task backlog; database lock wait duration unavailable"
+        row["configuration"]["scheduler_placement"] = "Separate worker service process; eight handler processes"
         write_json(directory / "sample.json", row)
     except Exception as exc:
         write_json(directory / "admission.json", {"schema_version": 1, "suite_id": "posthog",
@@ -342,6 +361,20 @@ def main():
             "performance_sample_created": False})
         raise
     finally:
+        # Drain the worker while its database and SMTP dependencies are alive.
+        # Its own process group includes spawned handlers and the resource tracker.
+        if dbworker_service is not None:
+            if dbworker_service.poll() is None:
+                dbworker_service.terminate()
+            try:
+                dbworker_service.wait(timeout=60)
+            except subprocess.TimeoutExpired:
+                pass
+            try:
+                os.killpg(dbworker_service.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            dbworker_service.wait()
         if runtime is not None:
             runtime.stop()
             runtime.session_factory.kw["bind"].dispose()

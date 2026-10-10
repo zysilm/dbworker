@@ -5,6 +5,8 @@ on:
     branches: [feature/worker-handoff-profiling]
     paths:
       - src/dbworker.py
+      - examples/posthog_dbworker/worker.py
+      - benchmarks/upstream/posthog_backend.py
       - .github/workflows/benchmark-posthog-diagnostic.yml
   workflow_dispatch:
     inputs:
