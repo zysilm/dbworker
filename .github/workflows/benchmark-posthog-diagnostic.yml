@@ -1,0 +1,102 @@
+name: PostHog optimization diagnostic
+
+on:
+  push:
+    branches: [feature/worker-handoff-profiling]
+    paths:
+      - src/dbworker.py
+      - .github/workflows/benchmark-posthog-diagnostic.yml
+  workflow_dispatch:
+    inputs:
+      run_baseline:
+        description: "Also run the immutable baseline first on the same runner"
+        type: boolean
+        default: false
+
+concurrency:
+  group: posthog-optimization-diagnostic-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  paired-sources:
+    name: "2FA - 5,000 APIs, 10,000 tasks, 8 slots, three paired repetitions"
+    if: startsWith(github.ref, 'refs/heads/feature/')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - name: Check out the optimization candidate
+        uses: actions/checkout@v5
+        with:
+          path: candidate
+      - name: Check out the immutable baseline
+        if: inputs.run_baseline
+        uses: actions/checkout@v5
+        with:
+          ref: 69d9fbd8442c714f361a5e9196bd314aed75f099
+          path: baseline
+      - name: Initialize and admit the same original PostHog source
+        run: |
+          for source in candidate baseline; do
+            if [ ! -d "$source" ]; then continue; fi
+            git -C "$source" submodule update --init --depth 1 -- examples/posthog
+            (cd "$source" && python3 -m benchmarks.check_native --suite posthog)
+          done
+      - name: Build the existing isolated benchmark image
+        run: docker build --pull --tag dbworker-posthog-diagnostic --file candidate/benchmarks/Dockerfile candidate/benchmarks
+      - name: Run the immutable baseline first
+        if: inputs.run_baseline
+        env:
+          RUN_ID: github-${{ github.run_id }}-${{ github.run_attempt }}-baseline
+        run: |
+          docker run --rm --init \
+            --user "$(id -u):$(id -g)" \
+            --env HOME=/tmp --env BENCHMARK_RUNNER_CLASS=github-hosted-docker \
+            --env PYTHONPATH=/workspace:/workspace/src \
+            --volume "$GITHUB_WORKSPACE/baseline:/workspace" \
+            dbworker-posthog-diagnostic benchmarks/run_all.py \
+            --suite posthog --profile full --provision --run-id "$RUN_ID" \
+            --timeout-seconds 4800 --output-dir benchmarks/results/posthog-diagnostic
+      - name: Package baseline evidence
+        if: ${{ always() && inputs.run_baseline }}
+        run: |
+          python3 baseline/benchmarks/ci_results.py package \
+            --source baseline/benchmarks/results/posthog-diagnostic \
+            --output baseline-artifact --suite posthog
+      - name: Run the candidate after baseline shutdown
+        if: ${{ !cancelled() }}
+        env:
+          RUN_ID: github-${{ github.run_id }}-${{ github.run_attempt }}-candidate
+        run: |
+          docker run --rm --init \
+            --user "$(id -u):$(id -g)" \
+            --env HOME=/tmp --env BENCHMARK_RUNNER_CLASS=github-hosted-docker \
+            --env PYTHONPATH=/workspace:/workspace/src \
+            --volume "$GITHUB_WORKSPACE/candidate:/workspace" \
+            dbworker-posthog-diagnostic benchmarks/run_all.py \
+            --suite posthog --profile full --provision --run-id "$RUN_ID" \
+            --timeout-seconds 4800 --output-dir benchmarks/results/posthog-diagnostic
+      - name: Package candidate evidence
+        if: always()
+        run: |
+          python3 candidate/benchmarks/ci_results.py package \
+            --source candidate/benchmarks/results/posthog-diagnostic \
+            --output candidate-artifact --suite posthog
+      - name: Upload baseline evidence and diagnostics
+        if: ${{ always() && inputs.run_baseline }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: posthog-diagnostic-baseline
+          path: baseline-artifact/
+          retention-days: 2
+          if-no-files-found: warn
+      - name: Upload candidate evidence and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: posthog-diagnostic-candidate
+          path: candidate-artifact/
+          retention-days: 2
+          if-no-files-found: warn

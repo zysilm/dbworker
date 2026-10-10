@@ -368,6 +368,29 @@ class Coordinator:
             return self._claim_with_db_lock(worker)
         return self._claim_with_conditional_update(worker)
 
+    def _claim_many(self, worker: _Worker, limit: int) -> list[Claim]:
+        """Commit ownership for free execution slots before dispatching work."""
+        if limit == 1:
+            claim = self.claim(worker)
+            return [] if claim is None else [claim]
+        supports_skip_locked = self._supports_skip_locked
+        timestamp = now()
+        with self.session_factory.begin() as session:
+            connection = session.connection()
+            if (connection.dialect.name == "sqlite"
+                    and not connection.connection.driver_connection.in_transaction):
+                # Legacy sqlite3 transaction control does not begin on SELECT.
+                # Without an outer transaction, releasing the first insertion
+                # savepoint would commit it even if a later claim fails.
+                connection.exec_driver_sql("BEGIN IMMEDIATE")
+            query = self._candidate(worker, timestamp).limit(limit)
+            if supports_skip_locked:
+                query = query.with_for_update(skip_locked=True, of=worker.source_table)
+            # Custom eligibility joins may return the same source more than once.
+            source_ids = dict.fromkeys(session.scalars(query))
+            return [claim for source_id in source_ids
+                    if (claim := self._record_claim(session, worker, source_id, timestamp)) is not None]
+
     def renew(self, worker: _Worker, claims: Iterable[Claim]) -> None:
         table = worker.table
         with self.session_factory.begin() as session:
@@ -413,16 +436,17 @@ class Coordinator:
                 next_renewal = time.monotonic() + self.lease_seconds / 3
             if not self._stop.is_set() and time.monotonic() >= next_claim_at:
                 while len(active) < worker.concurrency and not self._stop.is_set():
-                    next_claim = self.claim(worker)
-                    if next_claim is None:
+                    claims = self._claim_many(worker, worker.concurrency - len(active))
+                    if not claims:
                         next_claim_at = time.monotonic() + delay
                         delay = min(delay * 2, self.max_poll_seconds)
                         break
                     delay = self.poll_seconds
                     next_claim_at = 0.0
-                    future = handlers.submit(_execute_in_process, next_claim)
-                    active[future] = next_claim
-                    future.add_done_callback(lambda completed: wakeup.set())
+                    for claim in claims:
+                        future = handlers.submit(_execute_in_process, claim)
+                        active[future] = claim
+                        future.add_done_callback(lambda completed: wakeup.set())
             deadlines: list[float] = []
             if active:
                 deadlines.append(next_renewal)

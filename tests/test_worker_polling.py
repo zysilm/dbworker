@@ -119,10 +119,30 @@ class PollingTest(unittest.TestCase):
         def renew(worker: _Worker, claims: object) -> None:
             renewals.append(self.clock.now)
 
-        with patch.object(self.coordinator, 'claim', side_effect=claim), patch.object(self.coordinator, 'renew', side_effect=renew):
+        def claim_many(worker: _Worker, limit: int) -> list[Claim]:
+            value = claim(worker)
+            return [] if value is None else [value]
+
+        with patch.object(self.coordinator, '_claim_many', side_effect=claim_many), patch.object(self.coordinator, 'renew', side_effect=renew):
             self.run_scheduler()
         self.assertEqual(times, [0, 0, .25, .75, 1.75, 3.75])
         self.assertEqual(renewals, [1, 2, 3])
+
+    def test_committed_batch_is_dispatched_when_stop_arrives_during_claiming(self) -> None:
+        self.worker.concurrency = 3
+        completed: Future[Outcome] = Future()
+        completed.set_result(Finished())
+        self.handlers.submit.return_value = completed
+
+        def claim_many(worker: _Worker, limit: int) -> list[Claim]:
+            self.assertEqual(limit, 3)
+            self.coordinator._stop.set()
+            return [Claim(i, str(i)) for i in range(3)]
+
+        with patch.object(self.coordinator, '_claim_many', side_effect=claim_many):
+            self.run_scheduler()
+        self.assertEqual(self.handlers.submit.call_count, 3)
+        self.assertEqual(self.clock.waits, [])
 
     def test_maximum_poll_interval_validation(self) -> None:
         with self.assertRaises(ValueError):
