@@ -32,8 +32,12 @@ class PostHogNativeTests(unittest.TestCase):
                 session.flush()
                 identity = job.id
             trace = Path(temporary) / 'trace.jsonl'
+            task = types.SimpleNamespace(name='posthog.email._send_email')
+            app = types.SimpleNamespace(tasks={task.name: task})
             with patch.dict(os.environ, {'BENCHMARK_TRACE_PATH': str(trace)}), \
-                    patch.object(adapter, 'initialize'), patch.object(adapter, 'deliver'), \
+                    patch.object(adapter, 'initialize', return_value=app), patch.object(adapter, 'deliver'), \
+                    patch('examples.posthog_dbworker.runtime.worker_origin',
+                          return_value={'offline_test_fixture': True}) as origin, \
                     patch('django.db.close_old_connections'):
                 worker = runtime.workers['posthog_workflow']
                 claim = runtime.claim(worker)
@@ -45,6 +49,8 @@ class PostHogNativeTests(unittest.TestCase):
                                      ExecutionStatus.FINISHED)
                 self.assertEqual([record['event'] for record in read_trace(trace)], ['started', 'succeeded'])
                 self.assertIsNone(runtime.claim(worker))
+                # This fixture checks transactions, not live native task origin.
+                origin.assert_called_once_with(task, 'posthog')
             engine.dispose()
 
     def test_delivery_success_observation_waits_for_owned_commit(self):
@@ -61,8 +67,12 @@ class PostHogNativeTests(unittest.TestCase):
                 session.add(job)
                 session.flush()
                 identity = job.id
+            task = types.SimpleNamespace(name='posthog.email._send_email')
+            app = types.SimpleNamespace(tasks={task.name: task})
             with patch.dict(os.environ, {'BENCHMARK_TRACE_PATH': str(trace)}), \
-                    patch.object(adapter, 'initialize'), patch.object(adapter, 'deliver') as deliver, \
+                    patch.object(adapter, 'initialize', return_value=app), patch.object(adapter, 'deliver') as deliver, \
+                    patch('examples.posthog_dbworker.runtime.worker_origin',
+                          return_value={'offline_test_fixture': True}) as origin, \
                     patch('django.db.close_old_connections'):
                 with sessions() as session:
                     handle(session.get(Job, identity), session)
@@ -70,6 +80,8 @@ class PostHogNativeTests(unittest.TestCase):
                     session.commit()
                     self.assertEqual([row['event'] for row in read_trace(trace)], ['started', 'succeeded'])
                 deliver.assert_called_once_with({'subject': 'original'})
+                # Production admission still requires the real native proof.
+                origin.assert_called_once_with(task, 'posthog')
             engine.dispose()
 
     def test_both_stages_share_one_two_process_pool(self):
