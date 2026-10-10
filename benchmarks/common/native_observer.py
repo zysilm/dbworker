@@ -99,7 +99,7 @@ def record(stage, operation_id, task_id, event, parent_id=None, *, backend=None,
     row = {"schema_version": 1, "backend": backend or os.environ.get("BENCHMARK_BACKEND", "celery"),
            "stage": str(stage), "operation_id": str(operation_id) if operation_id is not None else None,
            "node_id": str(task_id), "parent_id": str(parent_id) if parent_id else None,
-           "event": event, "timestamp_ns": time.time_ns(), "details": details}
+           "event": event, "timestamp_ns": time.time_ns(), "process_id": os.getpid(), "details": details}
     payload = (json.dumps(row, sort_keys=True, allow_nan=False) + "\n").encode()
     destination = Path(path)
     destination.parent.mkdir(parents=True, exist_ok=True)

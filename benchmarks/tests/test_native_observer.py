@@ -15,6 +15,29 @@ from benchmarks.common.workflow_graph import read_trace, validate_graph
 
 
 class NativeObserverTests(unittest.TestCase):
+    def test_real_receipts_identify_recording_process_without_changing_payload(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            trace = Path(temporary) / 'trace.jsonl'
+            arguments = {'task_name': 'original.delivery', 'argument_sha256': 'unchanged',
+                         'native_worker_origin': {'source': 'original'}}
+            expected_arguments = copy.deepcopy(arguments)
+            with patch.dict(os.environ, self.environment(trace)):
+                for phase in ('submitted', 'started', 'succeeded'):
+                    observer.record('delivery', 'operation', 'delivery-0', phase,
+                                    'notification-0', **arguments)
+            events = read_trace(trace)
+            self.assertEqual([row['event'] for row in events], ['submitted', 'started', 'succeeded'])
+            self.assertEqual(arguments, expected_arguments)
+            for row in events:
+                self.assertEqual(row['schema_version'], 1)
+                self.assertEqual(row['process_id'], os.getpid())
+                self.assertIs(type(row['timestamp_ns']), int)
+                self.assertGreater(row['timestamp_ns'], 0)
+                self.assertEqual(row['details'], expected_arguments)
+                self.assertEqual(row['parent_id'], 'notification-0')
+            self.assertEqual([row['timestamp_ns'] for row in events],
+                             sorted(row['timestamp_ns'] for row in events))
+
     def environment(self, path):
         return {'BENCHMARK_TRACE_PATH': str(path), 'BENCHMARK_BACKEND': 'celery',
                 'BENCHMARK_TASK_STAGES': json.dumps({'original.delivery': 'delivery'})}
