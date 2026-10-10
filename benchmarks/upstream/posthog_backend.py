@@ -36,6 +36,7 @@ from benchmarks.common.native_observer import operation
 from benchmarks.common.native_admission import check_original_tasks
 from benchmarks.common.workflow_graph import read_trace, validate_graph
 from benchmarks.common.timing_evidence import begin_window, end_window, elapsed_seconds, validate_timing_window
+from benchmarks.common.smtp_receiver import SMTPReceiver
 from examples.posthog_dbworker import producer
 
 
@@ -117,17 +118,8 @@ def main():
         os.environ.update(DBWORKER_DATABASE_URL=url, POSTHOG_BENCHMARK_DATABASE="notification",
                           POSTHOG_BENCHMARK_PG_PORT=str(pg_port), POSTHOG_BENCHMARK_PG_USER="benchmark",
                           PYTHONPATH=str(ROOT) + os.pathsep + str(ROOT / "src"))
-        from aiosmtpd.controller import Controller
-        class Sink:
-            def __init__(self):
-                self.messages = []
-            async def handle_DATA(self, server, session, envelope):
-                self.messages.append({"mail_from": envelope.mail_from, "rcpt_tos": envelope.rcpt_tos,
-                                      "content": bytes(envelope.original_content)})
-                return "250 Message accepted"
-        sink = Sink()
         smtp_port = port()
-        smtp = Controller(sink, hostname="127.0.0.1", port=smtp_port)
+        sink = smtp = SMTPReceiver(smtp_port)
         smtp.start()
         os.environ.update(EMAIL_HOST="127.0.0.1", EMAIL_PORT=str(smtp_port),
                           EMAIL_DEFAULT_FROM="sender@benchmark.invalid", EMAIL_REPLY_TO="reply@benchmark.invalid",
@@ -235,7 +227,7 @@ def main():
                 finally:
                     connections.close_all()
             load = run_load(list(zip(ops, values, fixture_values, strict=True)), submit,
-                producers=1 if warmup else profile.get("producers", 8),
+                producers=profile.get("producers", 8),
                 duration_seconds=0 if warmup else profile.get("submission_window_seconds", 60))
             for result in load.pop("results"):
                 producer_identities.append(result["identity"])
@@ -246,8 +238,7 @@ def main():
                 nonlocal latest_graph_error
                 if any(child.poll() is not None for child in children):
                     raise RuntimeError("A native PostHog service exited")
-                accepted = [row for row in sink.messages if row["rcpt_tos"][0] in recipients]
-                if len(accepted) != len(values):
+                if sink.accepted_count(recipients) != len(values):
                     return False
                 try:
                     graph = validate_graph(read_trace(trace), ops,
@@ -264,7 +255,7 @@ def main():
             try:
                 graph = wait_for(complete, timeout=max(180, len(values) * 10))
             except TimeoutError as error:
-                accepted = sum(row['rcpt_tos'][0] in recipients for row in sink.messages)
+                accepted = sink.accepted_count(recipients)
                 raise TimeoutError(f'{error}; accepted SMTP messages: {accepted}/{len(values)}; '
                                    f'latest workflow admission error: {latest_graph_error}') from error
             window = end_window(started)
@@ -355,10 +346,12 @@ def main():
                                  "sha256": hashlib.sha256(trace.read_bytes()).hexdigest()}
         row["metrics"]["task_load"] = task_load_metrics(read_trace(trace), [f"notification-{i:04d}" for i in range(profile["requests"])])
         row["configuration"]["producer_concurrency"] = profile.get("producers", 8)
+        row["configuration"]["warmup_producer_concurrency"] = profile.get("producers", 8)
         row["configuration"]["submission_window_seconds"] = profile.get("submission_window_seconds", 60)
         row["configuration"]["load_profile"] = "One fixed open-loop schedule; no concurrency or rate sweep"
         row["configuration"]["contention_observation"] = "Concurrent API submission latency, lateness and task backlog; database lock wait duration unavailable"
         row["configuration"]["scheduler_placement"] = "Separate worker service process; eight handler processes"
+        row["configuration"]["smtp_receiver_placement"] = "Separate owned process; exact envelopes exported after measurement"
         write_json(directory / "sample.json", row)
     except Exception as exc:
         write_json(directory / "admission.json", {"schema_version": 1, "suite_id": "posthog",

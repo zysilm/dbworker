@@ -9,6 +9,7 @@ on:
       - examples/posthog_dbworker/runtime.py
       - benchmarks/upstream/posthog_backend.py
       - benchmarks/common/native_observer.py
+      - benchmarks/common/smtp_receiver.py
       - benchmarks/common/business_evidence.py
       - benchmarks/common/performance_admission.py
       - benchmarks/run_all.py
