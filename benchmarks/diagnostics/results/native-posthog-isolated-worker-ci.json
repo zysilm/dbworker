@@ -1,0 +1,192 @@
+{
+  "source_commit": "1af319e7f68e1fd11b45a6138a0af9ceb69bb2b2",
+  "registry": "benchmarks/registry.json",
+  "profile": {
+    "requests": 5000,
+    "repetitions": 3,
+    "producers": 8,
+    "submission_window_seconds": 60,
+    "worker_concurrency": 8
+  },
+  "independent_native_admission": true,
+  "implementation_files_checked": 41,
+  "samples": [
+    {
+      "backend": "celery",
+      "repetition": 1,
+      "wall_seconds": 133.627919931,
+      "mean_execution_span": 6.1107505718776425,
+      "mean_measurement": 6.087544769439205,
+      "peak_running": 8,
+      "peak_published_outstanding": 18,
+      "queue_wait_p95_seconds": 0.074220665,
+      "output_digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15"
+    },
+    {
+      "backend": "dbworker",
+      "repetition": 1,
+      "wall_seconds": 171.326146297,
+      "mean_execution_span": 3.5457978173079416,
+      "mean_measurement": 3.534328031235259,
+      "peak_running": 8,
+      "peak_published_outstanding": 2947,
+      "queue_wait_p95_seconds": 38.778690074,
+      "output_digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15"
+    },
+    {
+      "backend": "dbworker",
+      "repetition": 2,
+      "wall_seconds": 167.661161119,
+      "mean_execution_span": 3.6330595519221087,
+      "mean_measurement": 3.6128502446912605,
+      "peak_running": 8,
+      "peak_published_outstanding": 2700,
+      "queue_wait_p95_seconds": 38.708898834,
+      "output_digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15"
+    },
+    {
+      "backend": "celery",
+      "repetition": 2,
+      "wall_seconds": 123.949268707,
+      "mean_execution_span": 6.255791897994396,
+      "mean_measurement": 6.232540074755376,
+      "peak_running": 8,
+      "peak_published_outstanding": 16,
+      "queue_wait_p95_seconds": 0.068027573,
+      "output_digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15"
+    },
+    {
+      "backend": "celery",
+      "repetition": 3,
+      "wall_seconds": 125.676673989,
+      "mean_execution_span": 6.229587227349139,
+      "mean_measurement": 6.207703914867167,
+      "peak_running": 8,
+      "peak_published_outstanding": 19,
+      "queue_wait_p95_seconds": 0.067778476,
+      "output_digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15"
+    },
+    {
+      "backend": "dbworker",
+      "repetition": 3,
+      "wall_seconds": 227.860861435,
+      "mean_execution_span": 3.657081241348549,
+      "mean_measurement": 3.6450744148745784,
+      "peak_running": 8,
+      "peak_published_outstanding": 2653,
+      "queue_wait_p95_seconds": 48.469291264,
+      "output_digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15"
+    }
+  ],
+  "paired_goal_checks": [
+    {
+      "repetition": 1,
+      "wall_ratio": 1.2821133965526503,
+      "mean_concurrency_ratio": 0.5802556945502079,
+      "allowed_backlog": 36,
+      "checks": {
+        "wall": false,
+        "mean_concurrency": false,
+        "peak": true,
+        "backlog": false
+      },
+      "passed": false
+    },
+    {
+      "repetition": 2,
+      "wall_ratio": 1.352659542633763,
+      "mean_concurrency_ratio": 0.5807513439005006,
+      "allowed_backlog": 32,
+      "checks": {
+        "wall": false,
+        "mean_concurrency": false,
+        "peak": true,
+        "backlog": false
+      },
+      "passed": false
+    },
+    {
+      "repetition": 3,
+      "wall_ratio": 1.8130720220599075,
+      "mean_concurrency_ratio": 0.5870503306050885,
+      "allowed_backlog": 38,
+      "checks": {
+        "wall": false,
+        "mean_concurrency": false,
+        "peak": true,
+        "backlog": false
+      },
+      "passed": false
+    }
+  ],
+  "numeric_goal_passed": false,
+  "medians": {
+    "celery": {
+      "wall_seconds": 125.676673989,
+      "mean_execution_span": 6.229587227349139,
+      "mean_measurement": 6.207703914867167,
+      "peak_running": 8,
+      "peak_published_outstanding": 18,
+      "queue_wait_p95_seconds": 0.068027573
+    },
+    "dbworker": {
+      "wall_seconds": 171.326146297,
+      "mean_execution_span": 3.6330595519221087,
+      "mean_measurement": 3.6128502446912605,
+      "peak_running": 8,
+      "peak_published_outstanding": 2700,
+      "queue_wait_p95_seconds": 38.778690074
+    }
+  },
+  "limitations": [
+    "Full-pool application readiness requires separate worker evidence.",
+    "Numeric admission does not replace correctness and architecture review.",
+    "In every dbworker repetition six child application initialization milestones occurred after measurement started; full-pool warmup diagnostic is running separately."
+  ],
+  "workflow_url": "https://github.com/zysilm/dbworker/actions/runs/38038066870",
+  "scope": "Native PostHog 2FA; isolated dbworker scheduler service; original two-operation warmup; three paired Linux CI repetitions",
+  "implementation_sha256": {
+    "benchmarks/Dockerfile": "a658717d5a7dc6dfbaaf120c538d2af5fe7fdf8512e76381a315222ced800fce",
+    "benchmarks/common/__init__.py": "bb0609faf6962672e71a7f7c3a2fc365a274e9cd8eaf92ec8a548b88b4c7a2ec",
+    "benchmarks/common/argument_evidence.py": "427cfd39420208c5e903dc675ee88733713fb9436ce09b83baef6451f37cc3ae",
+    "benchmarks/common/business_evidence.py": "1d38050ab40c9d4825945d3d4aa8ad693abe9c6430367b81359e74978c58f44a",
+    "benchmarks/common/business_input.py": "55264bff288f42de6e26092865b3a350436dde00249af9fd425dd6fa2bfd8b90",
+    "benchmarks/common/load.py": "c97225cd53b4c7840979a3d459881e3c6da505fb7524152b5cf687a4cb003aa8",
+    "benchmarks/common/load_evidence.py": "7821c5a2510ef8292dbb2a84e489a4ee0758158e0a8db4fa02501835196d88ad",
+    "benchmarks/common/native_admission.py": "8af4cafb3d8770f39f6757938e02efaf61d26ca71a1dd2e02b8662271592a98a",
+    "benchmarks/common/native_binding.py": "e11fb7e4a2390e1ebdeeb075734ad77428332e369ec5dc239da049221957824e",
+    "benchmarks/common/native_observer.py": "598aebaace9d4f61c4893df9934acc1e4c8b1cf6e4295eb66ec28a657e68eb4a",
+    "benchmarks/common/performance_admission.py": "ea5fb3dfe6cfb4375d6151066e3c1136ddc31fad42b1c9dd127939c59ac88691",
+    "benchmarks/common/processes.py": "9c5cd3b0c68de327dcdac9087afed540af34a98d721af0297a162221e1928986",
+    "benchmarks/common/reporting.py": "4f29c7df823f4aa8bcfca4b776d91a5a09480086c4cd0898078644de6b1ad437",
+    "benchmarks/common/smtp_evidence.py": "0f65704808b43d1b8c029d33249122dc3ab71eb530740b0023676396a7898dfd",
+    "benchmarks/common/superset_output.py": "984e9b57a03a88c8541410792df123acb0c83eda8302f63e84fe2d74fcafe0d6",
+    "benchmarks/common/timing_evidence.py": "3ec9de7aa509f36808fa172878edc33d5b5a477bdb4afee302bb1fcd48ae10b0",
+    "benchmarks/common/workflow_graph.py": "a3b2847d838d232f7f0a43f29d5f801946af8a60923030109460c2436ef903ff",
+    "benchmarks/provision.py": "f94ab8fa20fdf7f18af4d29abaa7046a872eb8f3e73cb86830887700c560531d",
+    "benchmarks/registry.json": "c33b2cc4847b57b59f41d1253ed6bd7eda3166132364c695d9feef0e653cc236",
+    "benchmarks/requirements.txt": "ce972e5602f1badf47b56ce597ebf4a3cbc516ca6c8979c95ee75c067d275840",
+    "benchmarks/run_all.py": "cc4c4a45429f601a0155395f121e3a4a8ef047d5248d651790c7588eb29edb9c",
+    "benchmarks/upstream/__init__.py": "7c7d8a2dfdd9ec5e8abdce344b92e304feb675736a0423397975b3f8d7f18926",
+    "benchmarks/upstream/paperless_ngx_backend.py": "fd2bc927b08c75c15eb0ec83496bf2fb7867b161b833fbdaa030df00b14ee707",
+    "benchmarks/upstream/paperless_ngx_metrics.py": "8a39403b87385843eb4f47707ad73ca730065677ef53711d12e03e9759eeff80",
+    "benchmarks/upstream/posthog_backend.py": "65b92f8a11d8a550832b98fadb69e3b636522f6374998300c1e985a5c42a8d65",
+    "benchmarks/upstream/posthog_setup.py": "ea3217ebe2b5fc62a8abe57d2f7ade87b34f1c799c33ced7c3b01e93acb5897a",
+    "benchmarks/upstream/saleor_backend.py": "c06e596b4a7c8d7e1e469752d1c93c73a1e1a158f6eb4f03149e694018c96c80",
+    "benchmarks/upstream/sentry_backend.py": "89ef468147230f660773fd99a5c0e7e3d7475c24c84dc5829fbf24e870d73e2d",
+    "benchmarks/upstream/sentry_provision.py": "1472bf850f9fef82fc3c391eb5a67c0d205eb1a3ea7b3c09c5efd60c9bda8b68",
+    "benchmarks/upstream/suite.py": "aa37afa809f048666b7ef66193113a4de51d62e11fb61d4e8d971ca7017a1b33",
+    "benchmarks/upstream/superset_backend.py": "b23f8efeeabf03b8a5d513686b9bba289b2dd3e284f2ecc8987d4861e62fbb89",
+    "examples/dbworker_integration/__init__.py": "0ebfeefbbeea1f0514103c27d8514e230fd1a827c38ff1f14eeda119a6dfccb7",
+    "examples/dbworker_integration/runtime.py": "68a4017785b97be8276f9767e5458412f302eef87b75db6ac95dc2a18e96180e",
+    "examples/posthog_dbworker/__init__.py": "6bf7116c1960ed4b6f285b3fa2f1f3613d4a4c16406348eb9ab1026c2366522f",
+    "examples/posthog_dbworker/adapter.py": "87792051e1bef67fdb26753667070d2d1297650cc086612dbffca0f373fce5db",
+    "examples/posthog_dbworker/bootstrap.py": "a23c1cb0214027356e43742e5d0abd310d212dd001f5010728017b9a358ab1a4",
+    "examples/posthog_dbworker/producer.py": "861b11a3990f6728412297ae7111e0792a7d8240f49957662154d486c40d6422",
+    "examples/posthog_dbworker/runtime.py": "3e6345017ecd1e86bbcf37b67fba5ad52bfb541c76870a8f4cc788fc505db8b5",
+    "examples/posthog_dbworker/settings.py": "5b5059c3357029bf1bdf1344bb0ab78a1caca9b6c0094ad35192456dc2d99217",
+    "examples/posthog_dbworker/worker.py": "4ca9a9c06ef7e314af80e370eab20d08208901e1f48775d8bcfdefe2904aa04d",
+    "src/dbworker.py": "a8fb36be58797ce3ec7d5831d44dd96594a45b6e53cfe6d26ebfc66be921bd43"
+  },
+  "upstream_commit": "526d64dd82340b1bf4293d6d9baea7e965997048"
+}
