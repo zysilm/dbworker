@@ -111,6 +111,38 @@ def route_notification(submit, expected_user_id):
                 _notification_original = None
 
 
+# Only reviewed stable API categories may enter benchmark failure output.
+# Response messages, field names, credentials and unknown code values stay private.
+_ERROR_CODES = frozenset({
+    "setup_expired", "token_invalid", "invalid", "invalid_input", "required", "blank", "null",
+    "parse_error", "authentication_failed", "not_authenticated", "permission_denied",
+    "throttled", "method_not_allowed", "not_found", "unsupported_media_type", "not_acceptable",
+    "sensitive_action_required_reauth",
+})
+
+
+def _error_codes(data):
+    """Read only allowlisted native codes, including nested DRF ErrorDetail values."""
+    codes = set()
+
+    def collect(value):
+        code = getattr(value, "code", None)
+        if isinstance(code, str) and code in _ERROR_CODES:
+            codes.add(code)
+        if isinstance(value, dict):
+            code = value.get("code")
+            if isinstance(code, str) and code in _ERROR_CODES:
+                codes.add(code)
+            for child in value.values():
+                collect(child)
+        elif isinstance(value, (list, tuple)):
+            for child in value:
+                collect(child)
+
+    collect(data)
+    return sorted(codes)
+
+
 def validate(fixture):
     """Run native request dispatch, then persist its actual session mutations."""
     from django.conf import settings
@@ -129,7 +161,9 @@ def validate(fixture):
     AuthenticationMiddleware(lambda request: None).process_request(request)
     response = UserViewSet.as_view({"post": "two_factor_validate"})(request, uuid="@me")
     if response.status_code != 200 or response.data != {"success": True}:
-        raise AssertionError(f"Original 2FA validation API failed: HTTP {response.status_code}")
+        raise AssertionError(
+            f"Original 2FA validation API failed: HTTP {response.status_code}; "
+            f"error_codes={_error_codes(response.data)}")
     request.session.save()
     effects = verify(fixture)
     return {"status_code": response.status_code, "response": dict(response.data), "effects": effects}
