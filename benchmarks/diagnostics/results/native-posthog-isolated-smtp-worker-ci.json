@@ -1,0 +1,387 @@
+{
+  "schema_version": 1,
+  "scope": "Optimization diagnostic; excluded from official README benchmark publication",
+  "workflow_run_id": 38051616874,
+  "workflow_url": "https://github.com/zysilm/dbworker/actions/runs/38051616874",
+  "source_commit": "a077910cfc88fe2cb13bfb602d28dd8ffdbff9b1",
+  "registry": "benchmarks/diagnostics/posthog-fullwarm-registry.json",
+  "registry_sha256": "1858e9fa4d2774f97208aef76273f8132b7c9aadcc3000c62f8b0a9afa10b447",
+  "profile": {
+    "requests": 5000,
+    "repetitions": 3,
+    "producers": 8,
+    "submission_window_seconds": 60,
+    "worker_concurrency": 8,
+    "warmup_requests": 8
+  },
+  "smtp_receiver_placement": "Separate owned process for both backends",
+  "independent_native_admission": true,
+  "implementation_files_checked": 42,
+  "complete_fingerprint_set": true,
+  "all_measured_worker_pids_prewarmed": true,
+  "samples": [
+    {
+      "backend": "celery",
+      "repetition": 1,
+      "wall_seconds": 217.120858568,
+      "mean_execution_span": 3.319645730511895,
+      "mean_measurement": 3.30637593445296,
+      "peak_running": 8,
+      "peak_published_outstanding": 14,
+      "queue_wait_p95_seconds": 0.08681103,
+      "output_digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15",
+      "producer_submission_wall_seconds": 216.357925782,
+      "actual_api_operations_per_second": 23.10985364611948,
+      "last_api_to_last_success_seconds": 0.057043232,
+      "workflow_trace_sha256": "77ea7a7087e599aabcbf0c27e13ae9eee62f3a6ac492058912cf2d008e949964",
+      "measured_api_calls": 5000,
+      "measured_tasks": 10000,
+      "warmup_api_calls": 8,
+      "warmup_tasks": 16,
+      "warmup_pid_readiness": "verified",
+      "verified_warm_workers": 8,
+      "measured_worker_ids": [
+        424,
+        428,
+        430,
+        432,
+        434,
+        436,
+        438,
+        440
+      ],
+      "sample_sha256": "9d98d4337e4962ded0fad68ca63bf1615d2cfa83a608d1e001a4e98b1012fc36",
+      "handler_elapsed_by_stage": {
+        "notification": {
+          "count": 5000,
+          "sum_seconds": 448.232722881,
+          "mean_seconds": 0.0896465445762,
+          "median_seconds": 0.09073827849999999,
+          "p95_seconds": 0.132851771
+        },
+        "delivery": {
+          "count": 5000,
+          "sum_seconds": 269.650458756,
+          "mean_seconds": 0.0539300917512,
+          "median_seconds": 0.0531658965,
+          "p95_seconds": 0.083685627
+        }
+      },
+      "sample_path": "posthog-1-celery/sample.json"
+    },
+    {
+      "backend": "dbworker",
+      "repetition": 1,
+      "wall_seconds": 193.685348999,
+      "mean_execution_span": 4.102718971152301,
+      "mean_measurement": 4.075219653398126,
+      "peak_running": 8,
+      "peak_published_outstanding": 285,
+      "queue_wait_p95_seconds": 4.559824246,
+      "output_digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15",
+      "producer_submission_wall_seconds": 186.739177931,
+      "actual_api_operations_per_second": 26.775313329522618,
+      "last_api_to_last_success_seconds": 5.976541383,
+      "workflow_trace_sha256": "60fbe13afe7379e2a9ddcca8d8adf2fb40bd412a0cbda14f9060e293b0abdc6a",
+      "measured_api_calls": 5000,
+      "measured_tasks": 10000,
+      "warmup_api_calls": 8,
+      "warmup_tasks": 16,
+      "warmup_pid_readiness": "verified",
+      "verified_warm_workers": 8,
+      "measured_worker_ids": [
+        15589,
+        15592,
+        15593,
+        15594,
+        15595,
+        15596,
+        15597,
+        15598
+      ],
+      "sample_sha256": "701e40fe3542ac3130f665056084567139c13c0fb2c799bbf1817ae670c92aa2",
+      "handler_elapsed_by_stage": {
+        "notification": {
+          "count": 5000,
+          "sum_seconds": 451.843324981,
+          "mean_seconds": 0.0903686649962,
+          "median_seconds": 0.09077752,
+          "p95_seconds": 0.12251762
+        },
+        "delivery": {
+          "count": 5000,
+          "sum_seconds": 337.467015835,
+          "mean_seconds": 0.067493403167,
+          "median_seconds": 0.0676336,
+          "p95_seconds": 0.09482285
+        }
+      },
+      "sample_path": "posthog-1-dbworker/sample.json"
+    },
+    {
+      "backend": "dbworker",
+      "repetition": 2,
+      "wall_seconds": 186.520220276,
+      "mean_execution_span": 4.234630584108496,
+      "mean_measurement": 4.209189922992068,
+      "peak_running": 8,
+      "peak_published_outstanding": 355,
+      "queue_wait_p95_seconds": 5.496693943,
+      "output_digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15",
+      "producer_submission_wall_seconds": 178.203423527,
+      "actual_api_operations_per_second": 28.057822352904676,
+      "last_api_to_last_success_seconds": 7.495568373,
+      "workflow_trace_sha256": "d2b4b11fb80cf48bd312440e4ac5a6bcf6c9e9d459ace7e8024a119fb3805626",
+      "measured_api_calls": 5000,
+      "measured_tasks": 10000,
+      "warmup_api_calls": 8,
+      "warmup_tasks": 16,
+      "warmup_pid_readiness": "verified",
+      "verified_warm_workers": 8,
+      "measured_worker_ids": [
+        30855,
+        30858,
+        30859,
+        30860,
+        30861,
+        30862,
+        30863,
+        30864
+      ],
+      "sample_sha256": "0fbb226cbfbea8e75a4a5b84aeb23e9850d4938614eebbab1581af2bf069c575",
+      "handler_elapsed_by_stage": {
+        "notification": {
+          "count": 5000,
+          "sum_seconds": 452.722179053,
+          "mean_seconds": 0.0905444358106,
+          "median_seconds": 0.09094167950000001,
+          "p95_seconds": 0.123447264
+        },
+        "delivery": {
+          "count": 5000,
+          "sum_seconds": 332.376852567,
+          "mean_seconds": 0.0664753705134,
+          "median_seconds": 0.06608185,
+          "p95_seconds": 0.094269148
+        }
+      },
+      "sample_path": "posthog-2-dbworker/sample.json"
+    },
+    {
+      "backend": "celery",
+      "repetition": 2,
+      "wall_seconds": 205.280572552,
+      "mean_execution_span": 3.5042773510224428,
+      "mean_measurement": 3.4904167639804218,
+      "peak_running": 8,
+      "peak_published_outstanding": 14,
+      "queue_wait_p95_seconds": 0.079640106,
+      "output_digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15",
+      "producer_submission_wall_seconds": 204.581718848,
+      "actual_api_operations_per_second": 24.440111404650466,
+      "last_api_to_last_success_seconds": 0.041849613,
+      "workflow_trace_sha256": "ae361fd0ef4ca1649f47269eedf970ae6bf60f16cbc318c012f50ac633a37cde",
+      "measured_api_calls": 5000,
+      "measured_tasks": 10000,
+      "warmup_api_calls": 8,
+      "warmup_tasks": 16,
+      "warmup_pid_readiness": "verified",
+      "verified_warm_workers": 8,
+      "measured_worker_ids": [
+        46110,
+        46113,
+        46115,
+        46117,
+        46119,
+        46121,
+        46123,
+        46125
+      ],
+      "sample_sha256": "5bc83df85000539cc1c67b47935d3dffb33fef407200b1c4517a3fbde277a530",
+      "handler_elapsed_by_stage": {
+        "notification": {
+          "count": 5000,
+          "sum_seconds": 470.866279247,
+          "mean_seconds": 0.0941732558494,
+          "median_seconds": 0.09666707050000001,
+          "p95_seconds": 0.135215439
+        },
+        "delivery": {
+          "count": 5000,
+          "sum_seconds": 245.648472508,
+          "mean_seconds": 0.0491296945016,
+          "median_seconds": 0.048460955,
+          "p95_seconds": 0.075277109
+        }
+      },
+      "sample_path": "posthog-2-celery/sample.json"
+    },
+    {
+      "backend": "celery",
+      "repetition": 3,
+      "wall_seconds": 203.718640193,
+      "mean_execution_span": 3.4242239861632484,
+      "mean_measurement": 3.4136319995321442,
+      "peak_running": 8,
+      "peak_published_outstanding": 15,
+      "queue_wait_p95_seconds": 0.08001129,
+      "output_digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15",
+      "producer_submission_wall_seconds": 203.209640782,
+      "actual_api_operations_per_second": 24.605131827204588,
+      "last_api_to_last_success_seconds": 0.048966621,
+      "workflow_trace_sha256": "f93140159732ad1f6a5d38d70da798152657dd54d91a879b1ab835229adcab35",
+      "measured_api_calls": 5000,
+      "measured_tasks": 10000,
+      "warmup_api_calls": 8,
+      "warmup_tasks": 16,
+      "warmup_pid_readiness": "verified",
+      "verified_warm_workers": 8,
+      "measured_worker_ids": [
+        61260,
+        61264,
+        61266,
+        61268,
+        61270,
+        61272,
+        61274,
+        61276
+      ],
+      "sample_sha256": "a49cefbaf81d3342bc9b4a7b255b8e2fef4e1afe3589aa10464b345fbd89c6ae",
+      "handler_elapsed_by_stage": {
+        "notification": {
+          "count": 5000,
+          "sum_seconds": 445.111393833,
+          "mean_seconds": 0.0890222787666,
+          "median_seconds": 0.0903656585,
+          "p95_seconds": 0.128985358
+        },
+        "delivery": {
+          "count": 5000,
+          "sum_seconds": 250.309075231,
+          "mean_seconds": 0.0500618150462,
+          "median_seconds": 0.049275664,
+          "p95_seconds": 0.076915365
+        }
+      },
+      "sample_path": "posthog-3-celery/sample.json"
+    },
+    {
+      "backend": "dbworker",
+      "repetition": 3,
+      "wall_seconds": 183.822759186,
+      "mean_execution_span": 4.227769590463899,
+      "mean_measurement": 4.20319389449598,
+      "peak_running": 8,
+      "peak_published_outstanding": 305,
+      "queue_wait_p95_seconds": 4.845253146,
+      "output_digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15",
+      "producer_submission_wall_seconds": 176.776354957,
+      "actual_api_operations_per_second": 28.284325701908642,
+      "last_api_to_last_success_seconds": 6.28122816,
+      "workflow_trace_sha256": "00bbe92f36f3ee64975c18adde321ef4fbf8dd44cb97cef8f943f77927f5a75b",
+      "measured_api_calls": 5000,
+      "measured_tasks": 10000,
+      "warmup_api_calls": 8,
+      "warmup_tasks": 16,
+      "warmup_pid_readiness": "verified",
+      "verified_warm_workers": 8,
+      "measured_worker_ids": [
+        76422,
+        76425,
+        76426,
+        76427,
+        76428,
+        76429,
+        76430,
+        76431
+      ],
+      "sample_sha256": "c0d1d020a67f120f68dc17fabc5b2a72519c0f83137d0e9f337259b0319c5acd",
+      "handler_elapsed_by_stage": {
+        "notification": {
+          "count": 5000,
+          "sum_seconds": 446.825464552,
+          "mean_seconds": 0.0893650929104,
+          "median_seconds": 0.0899340625,
+          "p95_seconds": 0.121082235
+        },
+        "delivery": {
+          "count": 5000,
+          "sum_seconds": 325.817234528,
+          "mean_seconds": 0.0651634469056,
+          "median_seconds": 0.0652626255,
+          "p95_seconds": 0.091403641
+        }
+      },
+      "sample_path": "posthog-3-dbworker/sample.json"
+    }
+  ],
+  "medians": {
+    "celery": {
+      "wall_seconds": 205.280572552,
+      "mean_execution_span": 3.4242239861632484,
+      "peak_running": 8,
+      "peak_published_outstanding": 14,
+      "queue_wait_p95_seconds": 0.08001129
+    },
+    "dbworker": {
+      "wall_seconds": 186.520220276,
+      "mean_execution_span": 4.227769590463899,
+      "peak_running": 8,
+      "peak_published_outstanding": 305,
+      "queue_wait_p95_seconds": 4.845253146
+    }
+  },
+  "comparisons": [
+    {
+      "repetition": 1,
+      "wall_ratio": 0.892062376118229,
+      "mean_concurrency_ratio": 1.2358906052663803,
+      "backlog_ratio": 20.357142857142858,
+      "queue_wait_p95_ratio": 52.525862738870856,
+      "allowed_backlog": 32,
+      "goal_checks": {
+        "wall": true,
+        "mean_concurrency": true,
+        "peak": true,
+        "backlog": false
+      }
+    },
+    {
+      "repetition": 2,
+      "wall_ratio": 0.9086111654757404,
+      "mean_concurrency_ratio": 1.2084176450454065,
+      "backlog_ratio": 25.357142857142858,
+      "queue_wait_p95_ratio": 69.01916909804214,
+      "allowed_backlog": 32,
+      "goal_checks": {
+        "wall": true,
+        "mean_concurrency": true,
+        "peak": true,
+        "backlog": false
+      }
+    },
+    {
+      "repetition": 3,
+      "wall_ratio": 0.9023364725576858,
+      "mean_concurrency_ratio": 1.2346650241186479,
+      "backlog_ratio": 20.333333333333332,
+      "queue_wait_p95_ratio": 60.55711820169379,
+      "allowed_backlog": 32,
+      "goal_checks": {
+        "wall": true,
+        "mean_concurrency": true,
+        "peak": true,
+        "backlog": false
+      }
+    }
+  ],
+  "all_pairs_meet_goal": false,
+  "limitations": [
+    "All three rounds meet wall, mean execution concurrency and instantaneous peak criteria; all three fail the peak unfinished backlog limit of 32.",
+    "Queue-wait P95 remains materially higher for dbworker.",
+    "Median achieved API arrival rates are 24.440/s for Celery and 28.058/s for dbworker despite the same planned 83.333/s schedule; no backend was deliberately throttled.",
+    "Mean handler execution overlap includes database and SMTP waits and does not measure CPU utilization.",
+    "Cross-runner comparisons with earlier diagnostics cannot establish causal improvement.",
+    "Full native local Docker comparison failed during dbworker warmup due to OOM; it supplies no admitted performance pair."
+  ]
+}
