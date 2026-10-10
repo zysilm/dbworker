@@ -1,0 +1,1078 @@
+{
+  "schema_version": 1,
+  "scope": "Incomplete native optimization diagnostic; not an official benchmark result or goal acceptance",
+  "workflow_run_id": 38093344354,
+  "workflow_url": "https://github.com/zysilm/dbworker/actions/runs/38093344354",
+  "source_commit": "a4c1a3f3d8f7e8de4bd9ba74ea9cf0b3cc3cb14c",
+  "workflow_conclusion": "failure",
+  "profile": {
+    "requests": 5000,
+    "repetitions": 3,
+    "producers": 8,
+    "submission_window_seconds": 60,
+    "worker_concurrency": 8,
+    "warmup_requests": 8
+  },
+  "source_binding": {
+    "implementation_files_checked": 42,
+    "complete_fingerprint_set": true,
+    "registry_sha256": "1858e9fa4d2774f97208aef76273f8132b7c9aadcc3000c62f8b0a9afa10b447"
+  },
+  "completed_sample_native_replay": {
+    "count": 5,
+    "complete_pairs": 2,
+    "independent_reviews": 2,
+    "all_measured_workers_previously_warm": true
+  },
+  "samples": [
+    {
+      "backend": "celery",
+      "repetition": 1,
+      "wall_seconds": 124.850016883,
+      "mean_execution_span": 3.8422415802964376,
+      "mean_measurement": 3.7381213800103863,
+      "peak_running": 8,
+      "peak_published_outstanding": 15,
+      "queue_wait_p95_seconds": 0.052839606,
+      "output_digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15",
+      "producer_submission_wall_seconds": 121.525659765,
+      "actual_api_operations_per_second": 41.14357420209641,
+      "planned_api_operations_per_second": 83.33333333333333,
+      "producer_api_duration": {
+        "count": 5000,
+        "sum_seconds": 969.930758307,
+        "mean_seconds": 0.1939861516614,
+        "median_seconds": 0.19197120950000002,
+        "p95_seconds": 0.261241062
+      },
+      "producer_lateness_p95_seconds": 57.927934916,
+      "handler_elapsed_by_stage": {
+        "notification": {
+          "count": 5000,
+          "sum_seconds": 275.048709232,
+          "mean_seconds": 0.0550097418464,
+          "median_seconds": 0.05513412,
+          "p95_seconds": 0.084160254
+        },
+        "delivery": {
+          "count": 5000,
+          "sum_seconds": 191.655808173,
+          "mean_seconds": 0.0383311616346,
+          "median_seconds": 0.0377131175,
+          "p95_seconds": 0.061243373
+        }
+      },
+      "last_api_to_last_success_seconds": 0.030305644,
+      "warmup_readiness": {
+        "status": "verified",
+        "scope": "Distinct native workers completed warmup before measured publication; assumes no pool recycling",
+        "measurement_start_ns": 1791673977651806660,
+        "expected_workers": 8,
+        "verified_workers": 8,
+        "worker_evidence": {
+          "416": [
+            {
+              "node_id": "72502537-a8f2-4e17-96ad-4b1d750390bf",
+              "initialized_by_ns": 1791673977249038765,
+              "warmup_completed_ns": 1791673977368971702
+            },
+            {
+              "node_id": "f7cd0cc2-81c4-4769-b81a-cd04ae0dd5ec",
+              "initialized_by_ns": 1791673977400709826,
+              "warmup_completed_ns": 1791673977490747423
+            },
+            {
+              "node_id": "a4610d11-c2fc-4414-86b4-9aa9a8401ea1",
+              "initialized_by_ns": 1791673977496253628,
+              "warmup_completed_ns": 1791673977526271155
+            }
+          ],
+          "422": [
+            {
+              "node_id": "4aec0b7f-5772-440a-b618-9f9930a7ed1a",
+              "initialized_by_ns": 1791673977346476263,
+              "warmup_completed_ns": 1791673977441673709
+            },
+            {
+              "node_id": "17139f33-c4db-4d11-b874-9ceb6df8e8f4",
+              "initialized_by_ns": 1791673977462136259,
+              "warmup_completed_ns": 1791673977522889594
+            }
+          ],
+          "426": [
+            {
+              "node_id": "cb64bda8-984d-486a-ae74-63b21bd355f7",
+              "initialized_by_ns": 1791673977349108040,
+              "warmup_completed_ns": 1791673977432689600
+            },
+            {
+              "node_id": "c5ade64b-e137-4ac4-b867-0fd42619a8e6",
+              "initialized_by_ns": 1791673977477477865,
+              "warmup_completed_ns": 1791673977546510883
+            }
+          ],
+          "420": [
+            {
+              "node_id": "e0f3d15c-8bdf-44fa-888c-4f0b55f4aa13",
+              "initialized_by_ns": 1791673977387949271,
+              "warmup_completed_ns": 1791673977504283133
+            },
+            {
+              "node_id": "0c4fc8a0-c772-4bbd-b909-a7b74381fc8a",
+              "initialized_by_ns": 1791673977540454711,
+              "warmup_completed_ns": 1791673977560430105
+            }
+          ],
+          "424": [
+            {
+              "node_id": "1587c46b-e12d-419e-a308-cf9a8c465b8b",
+              "initialized_by_ns": 1791673977391969099,
+              "warmup_completed_ns": 1791673977476429405
+            },
+            {
+              "node_id": "a54ad738-f7c1-4c39-9bfe-17eccef46fea",
+              "initialized_by_ns": 1791673977513499559,
+              "warmup_completed_ns": 1791673977538699979
+            }
+          ],
+          "413": [
+            {
+              "node_id": "caf1e272-1faf-4e66-8832-5f461fb499e2",
+              "initialized_by_ns": 1791673977393202365,
+              "warmup_completed_ns": 1791673977476983778
+            },
+            {
+              "node_id": "0b50a233-12fe-478f-b44b-83f1fdba61e3",
+              "initialized_by_ns": 1791673977497760427,
+              "warmup_completed_ns": 1791673977547863671
+            }
+          ],
+          "428": [
+            {
+              "node_id": "4f12c772-8043-487c-808e-5580537b32d0",
+              "initialized_by_ns": 1791673977401403576,
+              "warmup_completed_ns": 1791673977507304136
+            }
+          ],
+          "418": [
+            {
+              "node_id": "49f97377-ca4a-42b9-adac-3e506e98b3b1",
+              "initialized_by_ns": 1791673977402543927,
+              "warmup_completed_ns": 1791673977486297874
+            },
+            {
+              "node_id": "acdaae2e-b1d2-4ee7-9ade-d670bf87dea5",
+              "initialized_by_ns": 1791673977513116823,
+              "warmup_completed_ns": 1791673977543887403
+            }
+          ]
+        },
+        "measured_worker_ids": [
+          413,
+          416,
+          418,
+          420,
+          422,
+          424,
+          426,
+          428
+        ],
+        "measured_identity_complete": true,
+        "measured_workers_missing_warm_proof": [],
+        "reason": "Complete observed pool and measured-worker coverage"
+      },
+      "workflow_trace_sha256": "a035bf2bb3067735d11bff7996c424cec0e308edb6d62b2f3cdbf9ee7866a5c1"
+    },
+    {
+      "backend": "dbworker",
+      "repetition": 1,
+      "wall_seconds": 109.078898146,
+      "mean_execution_span": 5.230743104588718,
+      "mean_measurement": 5.20544036743024,
+      "peak_running": 8,
+      "peak_published_outstanding": 240,
+      "queue_wait_p95_seconds": 2.870163068,
+      "output_digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15",
+      "producer_submission_wall_seconds": 106.563637632,
+      "actual_api_operations_per_second": 46.920320205909995,
+      "planned_api_operations_per_second": 83.33333333333333,
+      "producer_api_duration": {
+        "count": 5000,
+        "sum_seconds": 848.18839958,
+        "mean_seconds": 0.169637679916,
+        "median_seconds": 0.162475489,
+        "p95_seconds": 0.232474835
+      },
+      "producer_lateness_p95_seconds": 44.359056104,
+      "handler_elapsed_by_stage": {
+        "notification": {
+          "count": 5000,
+          "sum_seconds": 297.362281256,
+          "mean_seconds": 0.0594724562512,
+          "median_seconds": 0.059237408500000005,
+          "p95_seconds": 0.081526156
+        },
+        "delivery": {
+          "count": 5000,
+          "sum_seconds": 270.441418388,
+          "mean_seconds": 0.0540882836776,
+          "median_seconds": 0.0538199865,
+          "p95_seconds": 0.076030636
+        }
+      },
+      "last_api_to_last_success_seconds": 2.17503923,
+      "warmup_readiness": {
+        "status": "verified",
+        "scope": "Distinct native workers completed warmup before measured publication; assumes no pool recycling",
+        "measurement_start_ns": 1791674234225104118,
+        "expected_workers": 8,
+        "verified_workers": 8,
+        "worker_evidence": {
+          "15573": [
+            {
+              "node_id": "notification:warmup:notification-0003",
+              "initialized_by_ns": 1791674232487899208,
+              "warmup_completed_ns": 1791674232559776168
+            },
+            {
+              "node_id": "delivery:warmup:notification-0003",
+              "initialized_by_ns": 1791674232601414336,
+              "warmup_completed_ns": 1791674232668712422
+            },
+            {
+              "node_id": "delivery:warmup:notification-0002",
+              "initialized_by_ns": 1791674233206652249,
+              "warmup_completed_ns": 1791674233238861303
+            },
+            {
+              "node_id": "delivery:warmup:notification-0000",
+              "initialized_by_ns": 1791674233434071586,
+              "warmup_completed_ns": 1791674233483363757
+            }
+          ],
+          "15577": [
+            {
+              "node_id": "notification:warmup:notification-0002",
+              "initialized_by_ns": 1791674233100644466,
+              "warmup_completed_ns": 1791674233192072508
+            },
+            {
+              "node_id": "delivery:warmup:notification-0007",
+              "initialized_by_ns": 1791674233348311854,
+              "warmup_completed_ns": 1791674233392668900
+            },
+            {
+              "node_id": "delivery:warmup:notification-0004",
+              "initialized_by_ns": 1791674233512214789,
+              "warmup_completed_ns": 1791674233523748884
+            }
+          ],
+          "15574": [
+            {
+              "node_id": "notification:warmup:notification-0007",
+              "initialized_by_ns": 1791674233216677091,
+              "warmup_completed_ns": 1791674233281468847
+            },
+            {
+              "node_id": "delivery:warmup:notification-0001",
+              "initialized_by_ns": 1791674233487985625,
+              "warmup_completed_ns": 1791674233513696767
+            }
+          ],
+          "15570": [
+            {
+              "node_id": "notification:warmup:notification-0000",
+              "initialized_by_ns": 1791674233332971103,
+              "warmup_completed_ns": 1791674233421133100
+            },
+            {
+              "node_id": "delivery:warmup:notification-0006",
+              "initialized_by_ns": 1791674233748483700,
+              "warmup_completed_ns": 1791674233767535596
+            }
+          ],
+          "15576": [
+            {
+              "node_id": "notification:warmup:notification-0001",
+              "initialized_by_ns": 1791674233395040209,
+              "warmup_completed_ns": 1791674233434222561
+            },
+            {
+              "node_id": "delivery:warmup:notification-0005",
+              "initialized_by_ns": 1791674234085242192,
+              "warmup_completed_ns": 1791674234101747637
+            }
+          ],
+          "15578": [
+            {
+              "node_id": "notification:warmup:notification-0004",
+              "initialized_by_ns": 1791674233467609713,
+              "warmup_completed_ns": 1791674233505383483
+            }
+          ],
+          "15575": [
+            {
+              "node_id": "notification:warmup:notification-0006",
+              "initialized_by_ns": 1791674233698117085,
+              "warmup_completed_ns": 1791674233732759415
+            }
+          ],
+          "15579": [
+            {
+              "node_id": "notification:warmup:notification-0005",
+              "initialized_by_ns": 1791674234051232520,
+              "warmup_completed_ns": 1791674234073043404
+            }
+          ]
+        },
+        "measured_worker_ids": [
+          15570,
+          15573,
+          15574,
+          15575,
+          15576,
+          15577,
+          15578,
+          15579
+        ],
+        "measured_identity_complete": true,
+        "measured_workers_missing_warm_proof": [],
+        "reason": "Complete observed pool and measured-worker coverage"
+      },
+      "workflow_trace_sha256": "2e66e5e02b87c0af242b6d54c2021e85e21dbd7762db6a0c76a8ff4cbedda4aa"
+    },
+    {
+      "backend": "dbworker",
+      "repetition": 2,
+      "wall_seconds": 104.564580587,
+      "mean_execution_span": 5.29629618008987,
+      "mean_measurement": 5.268383385927232,
+      "peak_running": 8,
+      "peak_published_outstanding": 181,
+      "queue_wait_p95_seconds": 1.702423473,
+      "output_digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15",
+      "producer_submission_wall_seconds": 103.644547875,
+      "actual_api_operations_per_second": 48.24180434488677,
+      "planned_api_operations_per_second": 83.33333333333333,
+      "producer_api_duration": {
+        "count": 5000,
+        "sum_seconds": 825.693663029,
+        "mean_seconds": 0.1651387326058,
+        "median_seconds": 0.15778899000000002,
+        "p95_seconds": 0.217087393
+      },
+      "producer_lateness_p95_seconds": 41.41944601,
+      "handler_elapsed_by_stage": {
+        "notification": {
+          "count": 5000,
+          "sum_seconds": 292.302459035,
+          "mean_seconds": 0.058460491807,
+          "median_seconds": 0.0583639055,
+          "p95_seconds": 0.079832324
+        },
+        "delivery": {
+          "count": 5000,
+          "sum_seconds": 258.583840086,
+          "mean_seconds": 0.0517167680172,
+          "median_seconds": 0.0513629785,
+          "p95_seconds": 0.071089132
+        }
+      },
+      "last_api_to_last_success_seconds": 0.578347422,
+      "warmup_readiness": {
+        "status": "verified",
+        "scope": "Distinct native workers completed warmup before measured publication; assumes no pool recycling",
+        "measurement_start_ns": 1791674473654330707,
+        "expected_workers": 8,
+        "verified_workers": 8,
+        "worker_evidence": {
+          "30830": [
+            {
+              "node_id": "notification:warmup:notification-0007",
+              "initialized_by_ns": 1791674471489287382,
+              "warmup_completed_ns": 1791674471566970408
+            },
+            {
+              "node_id": "delivery:warmup:notification-0007",
+              "initialized_by_ns": 1791674471623581070,
+              "warmup_completed_ns": 1791674471663629340
+            },
+            {
+              "node_id": "delivery:warmup:notification-0006",
+              "initialized_by_ns": 1791674472280992591,
+              "warmup_completed_ns": 1791674472317332766
+            },
+            {
+              "node_id": "delivery:warmup:notification-0000",
+              "initialized_by_ns": 1791674472370188958,
+              "warmup_completed_ns": 1791674472398573928
+            },
+            {
+              "node_id": "delivery:warmup:notification-0001",
+              "initialized_by_ns": 1791674473508013195,
+              "warmup_completed_ns": 1791674473519390678
+            }
+          ],
+          "30833": [
+            {
+              "node_id": "notification:warmup:notification-0006",
+              "initialized_by_ns": 1791674472209283532,
+              "warmup_completed_ns": 1791674472269481849
+            },
+            {
+              "node_id": "delivery:warmup:notification-0003",
+              "initialized_by_ns": 1791674472385426162,
+              "warmup_completed_ns": 1791674472420481819
+            },
+            {
+              "node_id": "delivery:warmup:notification-0005",
+              "initialized_by_ns": 1791674473516434170,
+              "warmup_completed_ns": 1791674473528797154
+            }
+          ],
+          "30832": [
+            {
+              "node_id": "notification:warmup:notification-0003",
+              "initialized_by_ns": 1791674472282102492,
+              "warmup_completed_ns": 1791674472342709059
+            },
+            {
+              "node_id": "delivery:warmup:notification-0004",
+              "initialized_by_ns": 1791674473365758553,
+              "warmup_completed_ns": 1791674473382182589
+            }
+          ],
+          "30834": [
+            {
+              "node_id": "notification:warmup:notification-0000",
+              "initialized_by_ns": 1791674472284196133,
+              "warmup_completed_ns": 1791674472361644880
+            },
+            {
+              "node_id": "delivery:warmup:notification-0002",
+              "initialized_by_ns": 1791674473493378675,
+              "warmup_completed_ns": 1791674473512486852
+            }
+          ],
+          "30836": [
+            {
+              "node_id": "notification:warmup:notification-0004",
+              "initialized_by_ns": 1791674473313090762,
+              "warmup_completed_ns": 1791674473344900153
+            }
+          ],
+          "30835": [
+            {
+              "node_id": "notification:warmup:notification-0002",
+              "initialized_by_ns": 1791674473439004932,
+              "warmup_completed_ns": 1791674473474742672
+            }
+          ],
+          "30831": [
+            {
+              "node_id": "notification:warmup:notification-0001",
+              "initialized_by_ns": 1791674473470519915,
+              "warmup_completed_ns": 1791674473500317834
+            }
+          ],
+          "30827": [
+            {
+              "node_id": "notification:warmup:notification-0005",
+              "initialized_by_ns": 1791674473484598935,
+              "warmup_completed_ns": 1791674473510392676
+            }
+          ]
+        },
+        "measured_worker_ids": [
+          30827,
+          30830,
+          30831,
+          30832,
+          30833,
+          30834,
+          30835,
+          30836
+        ],
+        "measured_identity_complete": true,
+        "measured_workers_missing_warm_proof": [],
+        "reason": "Complete observed pool and measured-worker coverage"
+      },
+      "workflow_trace_sha256": "825ab962d547deb459b3ba42a619b7de780ae31e5e5315c28fa7e2f901373f17"
+    },
+    {
+      "backend": "celery",
+      "repetition": 2,
+      "wall_seconds": 117.497246368,
+      "mean_execution_span": 3.8487451849968473,
+      "mean_measurement": 3.8330903024094947,
+      "peak_running": 8,
+      "peak_published_outstanding": 15,
+      "queue_wait_p95_seconds": 0.049795546,
+      "output_digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15",
+      "producer_submission_wall_seconds": 117.078160526,
+      "actual_api_operations_per_second": 42.70651313222188,
+      "planned_api_operations_per_second": 83.33333333333333,
+      "producer_api_duration": {
+        "count": 5000,
+        "sum_seconds": 934.269943098,
+        "mean_seconds": 0.1868539886196,
+        "median_seconds": 0.18376590399999998,
+        "p95_seconds": 0.244900736
+      },
+      "producer_lateness_p95_seconds": 54.039841491,
+      "handler_elapsed_by_stage": {
+        "notification": {
+          "count": 5000,
+          "sum_seconds": 265.543058006,
+          "mean_seconds": 0.0531086116012,
+          "median_seconds": 0.0536505905,
+          "p95_seconds": 0.079948461
+        },
+        "delivery": {
+          "count": 5000,
+          "sum_seconds": 184.834497607,
+          "mean_seconds": 0.0369668995214,
+          "median_seconds": 0.036043662500000004,
+          "p95_seconds": 0.05754839
+        }
+      },
+      "last_api_to_last_success_seconds": 0.039366546,
+      "warmup_readiness": {
+        "status": "verified",
+        "scope": "Distinct native workers completed warmup before measured publication; assumes no pool recycling",
+        "measurement_start_ns": 1791674689116222021,
+        "expected_workers": 8,
+        "verified_workers": 8,
+        "worker_evidence": {
+          "46090": [
+            {
+              "node_id": "8131d3fd-5bcf-4dd4-a547-cae6e9a538ea",
+              "initialized_by_ns": 1791674688758083077,
+              "warmup_completed_ns": 1791674688844382326
+            },
+            {
+              "node_id": "b3eb16ea-9c0f-4ee2-82f6-882e7e0a990a",
+              "initialized_by_ns": 1791674688899988709,
+              "warmup_completed_ns": 1791674688943437790
+            },
+            {
+              "node_id": "c223b5e9-98bf-45b2-a60f-e9b889fdf341",
+              "initialized_by_ns": 1791674689007192085,
+              "warmup_completed_ns": 1791674689024628406
+            }
+          ],
+          "46088": [
+            {
+              "node_id": "f551d2ec-30ae-4682-9fb7-1ec011b5b673",
+              "initialized_by_ns": 1791674688755147238,
+              "warmup_completed_ns": 1791674688820435747
+            },
+            {
+              "node_id": "79a72970-757b-4986-94f6-89b89811e4d0",
+              "initialized_by_ns": 1791674688846002988,
+              "warmup_completed_ns": 1791674688897458811
+            },
+            {
+              "node_id": "64ef33c0-90d9-4c7a-a0ea-01c08c8d13ba",
+              "initialized_by_ns": 1791674688942452761,
+              "warmup_completed_ns": 1791674688959534753
+            },
+            {
+              "node_id": "0ea804db-ab84-420e-9489-4483b913b4de",
+              "initialized_by_ns": 1791674688977971004,
+              "warmup_completed_ns": 1791674688988238587
+            },
+            {
+              "node_id": "30019513-0ba8-4b73-afb1-1f8377f3094b",
+              "initialized_by_ns": 1791674688999879459,
+              "warmup_completed_ns": 1791674689029333012
+            }
+          ],
+          "46092": [
+            {
+              "node_id": "102bfc78-ec36-4f87-a410-d88f1e6f7df8",
+              "initialized_by_ns": 1791674688765800997,
+              "warmup_completed_ns": 1791674688878036228
+            },
+            {
+              "node_id": "66751504-1f5b-450d-9bd4-6200645e919d",
+              "initialized_by_ns": 1791674688913384083,
+              "warmup_completed_ns": 1791674688947026187
+            },
+            {
+              "node_id": "501c0735-19e1-4fbd-8750-25ffdd154066",
+              "initialized_by_ns": 1791674689011093399,
+              "warmup_completed_ns": 1791674689034140172
+            }
+          ],
+          "46082": [
+            {
+              "node_id": "d1a16957-1bcb-48be-80ba-bdfdf43b80b7",
+              "initialized_by_ns": 1791674688851032424,
+              "warmup_completed_ns": 1791674688941625086
+            }
+          ],
+          "46077": [
+            {
+              "node_id": "2b97070b-5dfc-4d8a-84f7-c8cf1ca491d8",
+              "initialized_by_ns": 1791674688890191172,
+              "warmup_completed_ns": 1791674688975121369
+            }
+          ],
+          "46080": [
+            {
+              "node_id": "279e986c-f69d-4272-84c4-f55bbe608e0f",
+              "initialized_by_ns": 1791674688932210616,
+              "warmup_completed_ns": 1791674689001368479
+            }
+          ],
+          "46086": [
+            {
+              "node_id": "b2ea62e3-b2e2-41ba-9c80-ec546e786e5e",
+              "initialized_by_ns": 1791674688949120341,
+              "warmup_completed_ns": 1791674689008844315
+            }
+          ],
+          "46084": [
+            {
+              "node_id": "199a218e-7a79-423a-83e6-462aa18967dd",
+              "initialized_by_ns": 1791674688952862907,
+              "warmup_completed_ns": 1791674689008847159
+            }
+          ]
+        },
+        "measured_worker_ids": [
+          46077,
+          46080,
+          46082,
+          46084,
+          46086,
+          46088,
+          46090,
+          46092
+        ],
+        "measured_identity_complete": true,
+        "measured_workers_missing_warm_proof": [],
+        "reason": "Complete observed pool and measured-worker coverage"
+      },
+      "workflow_trace_sha256": "aa5bc816b2d18309feae4758eae5a76dc1badb37f936ff15309c94177c5d7763"
+    },
+    {
+      "backend": "celery",
+      "repetition": 3,
+      "wall_seconds": 125.654678995,
+      "mean_execution_span": 3.7936163268363536,
+      "mean_measurement": 3.7792113968226846,
+      "peak_running": 8,
+      "peak_published_outstanding": 15,
+      "queue_wait_p95_seconds": 0.051243522,
+      "output_digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15",
+      "producer_submission_wall_seconds": 125.240963862,
+      "actual_api_operations_per_second": 39.923039920942955,
+      "planned_api_operations_per_second": 83.33333333333333,
+      "producer_api_duration": {
+        "count": 5000,
+        "sum_seconds": 999.353010618,
+        "mean_seconds": 0.1998706021236,
+        "median_seconds": 0.19626137700000001,
+        "p95_seconds": 0.264380563
+      },
+      "producer_lateness_p95_seconds": 61.835116227,
+      "handler_elapsed_by_stage": {
+        "notification": {
+          "count": 5000,
+          "sum_seconds": 279.642455383,
+          "mean_seconds": 0.0559284910766,
+          "median_seconds": 0.056735340999999995,
+          "p95_seconds": 0.083072355
+        },
+        "delivery": {
+          "count": 5000,
+          "sum_seconds": 195.233139539,
+          "mean_seconds": 0.0390466279078,
+          "median_seconds": 0.037871551,
+          "p95_seconds": 0.061714728
+        }
+      },
+      "last_api_to_last_success_seconds": 0.023748038,
+      "warmup_readiness": {
+        "status": "verified",
+        "scope": "Distinct native workers completed warmup before measured publication; assumes no pool recycling",
+        "measurement_start_ns": 1791674905310941853,
+        "expected_workers": 8,
+        "verified_workers": 8,
+        "worker_evidence": {
+          "61235": [
+            {
+              "node_id": "30292ae1-75bf-482d-aa93-6e686f88d886",
+              "initialized_by_ns": 1791674904924470690,
+              "warmup_completed_ns": 1791674904957530383
+            },
+            {
+              "node_id": "4cfc7e1d-0470-4857-a741-bc9e31a7a823",
+              "initialized_by_ns": 1791674904971770355,
+              "warmup_completed_ns": 1791674904991110734
+            },
+            {
+              "node_id": "5f68ea81-b9bd-4cba-8c13-ba95fca4df02",
+              "initialized_by_ns": 1791674905040558823,
+              "warmup_completed_ns": 1791674905073431929
+            },
+            {
+              "node_id": "d8f1137e-e14f-4859-a966-78a9e228c93b",
+              "initialized_by_ns": 1791674905158516216,
+              "warmup_completed_ns": 1791674905181428533
+            },
+            {
+              "node_id": "990e4c82-3d11-4643-86cf-c0c3e72d2d37",
+              "initialized_by_ns": 1791674905194560682,
+              "warmup_completed_ns": 1791674905207126822
+            }
+          ],
+          "61237": [
+            {
+              "node_id": "d7861a3a-798f-411f-b217-18a97c7f299c",
+              "initialized_by_ns": 1791674904979059934,
+              "warmup_completed_ns": 1791674905037914950
+            },
+            {
+              "node_id": "ca3092ca-3921-4991-a9c1-f0915b1ce7f8",
+              "initialized_by_ns": 1791674905080945286,
+              "warmup_completed_ns": 1791674905122022439
+            },
+            {
+              "node_id": "32a9cb35-e875-4835-aafc-8d0886f9d48b",
+              "initialized_by_ns": 1791674905198675871,
+              "warmup_completed_ns": 1791674905209479556
+            }
+          ],
+          "61225": [
+            {
+              "node_id": "87712e5c-0984-4c42-b61a-bdd5bb17acac",
+              "initialized_by_ns": 1791674905003365980,
+              "warmup_completed_ns": 1791674905068927335
+            },
+            {
+              "node_id": "2207b5e7-1997-4980-b1a3-4cd9afe0cdd4",
+              "initialized_by_ns": 1791674905092212719,
+              "warmup_completed_ns": 1791674905114035421
+            }
+          ],
+          "61227": [
+            {
+              "node_id": "eb8981a7-7335-487f-a808-2da674ef06f4",
+              "initialized_by_ns": 1791674905019987398,
+              "warmup_completed_ns": 1791674905063723407
+            }
+          ],
+          "61233": [
+            {
+              "node_id": "1c004d04-d168-404e-b812-e55fdead9576",
+              "initialized_by_ns": 1791674905084668701,
+              "warmup_completed_ns": 1791674905157721135
+            },
+            {
+              "node_id": "4c1234e2-2f1a-4895-82e9-0d57aad8e9ed",
+              "initialized_by_ns": 1791674905179024192,
+              "warmup_completed_ns": 1791674905198278518
+            }
+          ],
+          "61222": [
+            {
+              "node_id": "f3431473-6be0-482c-9034-f6f118747de1",
+              "initialized_by_ns": 1791674905133159007,
+              "warmup_completed_ns": 1791674905165319560
+            }
+          ],
+          "61229": [
+            {
+              "node_id": "76bd37ab-8538-4da4-a6aa-84f317a85fba",
+              "initialized_by_ns": 1791674905156834748,
+              "warmup_completed_ns": 1791674905194757416
+            }
+          ],
+          "61231": [
+            {
+              "node_id": "8ad6daac-ad23-462c-97d9-47a977b26ad7",
+              "initialized_by_ns": 1791674905164123741,
+              "warmup_completed_ns": 1791674905194568780
+            }
+          ]
+        },
+        "measured_worker_ids": [
+          61222,
+          61225,
+          61227,
+          61229,
+          61231,
+          61233,
+          61235,
+          61237
+        ],
+        "measured_identity_complete": true,
+        "measured_workers_missing_warm_proof": [],
+        "reason": "Complete observed pool and measured-worker coverage"
+      },
+      "workflow_trace_sha256": "338ed676d9dc1a5b52d106de30ff75ab128f489877b5dcc99c568be3c6e04f66"
+    }
+  ],
+  "comparisons": [
+    {
+      "repetition": 1,
+      "wall_ratio": 0.8736794825444077,
+      "mean_concurrency_ratio": 1.361377986072691,
+      "backlog_ratio": 16.0,
+      "queue_wait_p95_ratio": 54.318404039575924,
+      "allowed_backlog": 32,
+      "goal_checks": {
+        "wall": true,
+        "mean_concurrency": true,
+        "peak": true,
+        "backlog": false
+      }
+    },
+    {
+      "repetition": 2,
+      "wall_ratio": 0.8899321798530064,
+      "mean_concurrency_ratio": 1.376109855424011,
+      "backlog_ratio": 12.066666666666666,
+      "queue_wait_p95_ratio": 34.18826802300752,
+      "allowed_backlog": 32,
+      "goal_checks": {
+        "wall": true,
+        "mean_concurrency": true,
+        "peak": true,
+        "backlog": false
+      }
+    }
+  ],
+  "paired_medians": {
+    "celery": {
+      "wall_seconds": 121.17363162550001,
+      "mean_execution_span": 3.8454933826466426,
+      "peak_running": 8.0,
+      "peak_published_outstanding": 15.0,
+      "queue_wait_p95_seconds": 0.051317576000000004
+    },
+    "dbworker": {
+      "wall_seconds": 106.8217393665,
+      "mean_execution_span": 5.263519642339293,
+      "peak_running": 8.0,
+      "peak_published_outstanding": 210.5,
+      "queue_wait_p95_seconds": 2.2862932705
+    }
+  },
+  "goal_achieved": false,
+  "failure": {
+    "backend": "dbworker",
+    "repetition": 3,
+    "native_api_status": 400,
+    "native_error_code": "not recorded",
+    "first_missing_operation": "notification-0594",
+    "hypothesis": "Live-clock TOTP form rollover can skip the matching counter; independently reproduced on the unchanged pinned form. CI timing is consistent but does not prove causality.",
+    "retries_added": false,
+    "validator_changed": false
+  },
+  "remaining_capacity_diagnostic": [
+    {
+      "backend": "celery",
+      "repetition": 1,
+      "queue_by_stage": {
+        "notification": {
+          "mean_queue_seconds": 0.034856040859,
+          "p95_queue_seconds": 0.060364387
+        },
+        "delivery": {
+          "mean_queue_seconds": 0.0211319440594,
+          "p95_queue_seconds": 0.037997893
+        }
+      },
+      "seconds_with_backlog_over32": 0,
+      "mean_running_when_backlog_over32": null,
+      "unused_handler_slot_seconds_with_backlog_over32": 0,
+      "largest_start_success_gaps_with_backlog": [],
+      "limitations": [
+        "Publication may precede transaction commit.",
+        "Handler lifecycle overlap is not CPU utilization.",
+        "Trace lacks claim commit and pool dispatch timestamps."
+      ]
+    },
+    {
+      "backend": "dbworker",
+      "repetition": 1,
+      "queue_by_stage": {
+        "notification": {
+          "mean_queue_seconds": 1.2196728997084,
+          "p95_queue_seconds": 2.722948579
+        },
+        "delivery": {
+          "mean_queue_seconds": 1.2166376677948,
+          "p95_queue_seconds": 3.099128395
+        }
+      },
+      "seconds_with_backlog_over32": 98.17076870099972,
+      "mean_running_when_backlog_over32": 5.2844744951326375,
+      "unused_handler_slot_seconds_with_backlog_over32": 266.58522623999835,
+      "largest_start_success_gaps_with_backlog": [
+        {
+          "seconds": 0.100768351,
+          "running": 6,
+          "outstanding": 91
+        },
+        {
+          "seconds": 0.084301125,
+          "running": 5,
+          "outstanding": 54
+        },
+        {
+          "seconds": 0.068328837,
+          "running": 5,
+          "outstanding": 52
+        },
+        {
+          "seconds": 0.064161635,
+          "running": 6,
+          "outstanding": 229
+        },
+        {
+          "seconds": 0.029992242,
+          "running": 7,
+          "outstanding": 129
+        },
+        {
+          "seconds": 0.027177852,
+          "running": 7,
+          "outstanding": 75
+        },
+        {
+          "seconds": 0.02669542,
+          "running": 3,
+          "outstanding": 110
+        },
+        {
+          "seconds": 0.025466992,
+          "running": 7,
+          "outstanding": 200
+        },
+        {
+          "seconds": 0.025452018,
+          "running": 5,
+          "outstanding": 128
+        },
+        {
+          "seconds": 0.025006038,
+          "running": 6,
+          "outstanding": 128
+        }
+      ],
+      "limitations": [
+        "Publication may precede transaction commit.",
+        "Handler lifecycle overlap is not CPU utilization.",
+        "Trace lacks claim commit and pool dispatch timestamps."
+      ]
+    },
+    {
+      "backend": "celery",
+      "repetition": 2,
+      "queue_by_stage": {
+        "notification": {
+          "mean_queue_seconds": 0.034420287791,
+          "p95_queue_seconds": 0.055674149
+        },
+        "delivery": {
+          "mean_queue_seconds": 0.0206530238636,
+          "p95_queue_seconds": 0.035800465
+        }
+      },
+      "seconds_with_backlog_over32": 0,
+      "mean_running_when_backlog_over32": null,
+      "unused_handler_slot_seconds_with_backlog_over32": 0,
+      "largest_start_success_gaps_with_backlog": [],
+      "limitations": [
+        "Publication may precede transaction commit.",
+        "Handler lifecycle overlap is not CPU utilization.",
+        "Trace lacks claim commit and pool dispatch timestamps."
+      ]
+    },
+    {
+      "backend": "dbworker",
+      "repetition": 2,
+      "queue_by_stage": {
+        "notification": {
+          "mean_queue_seconds": 0.6448319102016,
+          "p95_queue_seconds": 1.708194974
+        },
+        "delivery": {
+          "mean_queue_seconds": 0.6412939206748,
+          "p95_queue_seconds": 1.693637347
+        }
+      },
+      "seconds_with_backlog_over32": 74.64407273800033,
+      "mean_running_when_backlog_over32": 5.362092650582817,
+      "unused_handler_slot_seconds_with_backlog_over32": 196.90414806599975,
+      "largest_start_success_gaps_with_backlog": [
+        {
+          "seconds": 0.075949622,
+          "running": 7,
+          "outstanding": 73
+        },
+        {
+          "seconds": 0.07243195,
+          "running": 6,
+          "outstanding": 150
+        },
+        {
+          "seconds": 0.028231228,
+          "running": 5,
+          "outstanding": 42
+        },
+        {
+          "seconds": 0.027204997,
+          "running": 6,
+          "outstanding": 150
+        },
+        {
+          "seconds": 0.02700189,
+          "running": 6,
+          "outstanding": 91
+        },
+        {
+          "seconds": 0.025650961,
+          "running": 5,
+          "outstanding": 149
+        },
+        {
+          "seconds": 0.025029999,
+          "running": 5,
+          "outstanding": 148
+        },
+        {
+          "seconds": 0.024887107,
+          "running": 4,
+          "outstanding": 70
+        },
+        {
+          "seconds": 0.024536864,
+          "running": 3,
+          "outstanding": 101
+        },
+        {
+          "seconds": 0.023637893,
+          "running": 5,
+          "outstanding": 43
+        }
+      ],
+      "limitations": [
+        "Publication may precede transaction commit.",
+        "Handler lifecycle overlap is not CPU utilization.",
+        "Trace lacks claim commit and pool dispatch timestamps."
+      ]
+    }
+  ],
+  "limitations": [
+    "Only two complete pairs are comparable; the unpaired third Celery sample is excluded from paired medians.",
+    "No causal improvement percentage is inferred across separate CI runners.",
+    "Task elapsed overlap and unused execution slots do not measure CPU utilization.",
+    "All three paired repetitions are still required for final acceptance."
+  ]
+}
