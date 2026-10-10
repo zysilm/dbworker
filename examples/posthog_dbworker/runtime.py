@@ -2,7 +2,7 @@
 from __future__ import annotations
 import os
 import time
-from sqlalchemy import JSON, Float, Integer, String, create_engine, event, select
+from sqlalchemy import JSON, Float, Index, Integer, String, create_engine, event, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 from dbworker import Coordinator, Finished, Unfinished
 from benchmarks.common.native_observer import job_context, record, worker_origin, argument_digest
@@ -24,6 +24,9 @@ class Job(Base):
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     next_run: Mapped[float] = mapped_column(Float, default=0)
     complete: Mapped[bool] = mapped_column(default=False)
+
+
+Index("posthog_notification_pending_id", Job.id, postgresql_where=Job.complete.is_(False)).ddl_if(dialect="postgresql")
 
 
 def node(operation_id, stage):
@@ -103,6 +106,6 @@ def coordinator(url, concurrency=2):
     # Both stages share the configured resource budget through one worker, but
     # each source row is a separate business job and the graph verifies fan-out.
     runtime.transactional_worker(name="posthog_workflow", source=Job, concurrency=concurrency,
-                                 eligible=lambda: select(Job).where(Job.next_run <= time.time()))(handle)
+                                 eligible=lambda: select(Job).where(Job.next_run <= time.time(), Job.complete.is_(False)))(handle)
     runtime.create_worker_tables()
     return runtime
