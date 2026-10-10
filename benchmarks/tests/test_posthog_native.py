@@ -6,8 +6,8 @@ import types
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-from sqlalchemy import create_engine, inspect, select
-from dbworker import ExecutionStatus, Finished, _execute_claim
+from sqlalchemy import create_engine, inspect, select, update
+from dbworker import ExecutionStatus, Finished, LostClaim, _execute_claim
 from sqlalchemy.orm import sessionmaker
 from benchmarks.common.native_admission import check_worker_source
 from benchmarks.common.native_observer import job_context, record
@@ -18,6 +18,51 @@ from examples.posthog_dbworker.adapter import route_delivery
 ROOT = Path(__file__).resolve().parents[2]
 
 class PostHogNativeTests(unittest.TestCase):
+    def test_stale_notification_rolls_back_completion_and_delivery(self):
+        from examples.posthog_dbworker import adapter
+        with tempfile.TemporaryDirectory() as temporary:
+            runtime = coordinator(f'sqlite:///{Path(temporary) / "jobs.db"}')
+            engine = runtime.session_factory.kw['bind']
+            self.addCleanup(engine.dispose)
+            worker = runtime.workers['posthog_workflow']
+            with runtime.session_factory.begin() as session:
+                job = Job(operation_id='operation', stage='notification', payload={'user_id': 7})
+                session.add(job)
+                session.flush()
+                identity = job.id
+            claim = runtime.claim(worker)
+            self.assertEqual(claim.source_id, identity)
+            trace = Path(temporary) / 'trace.jsonl'
+            task = types.SimpleNamespace(name='posthog.tasks.email.send_two_factor_auth_enabled_email')
+            app = types.SimpleNamespace(tasks={task.name: task})
+
+            def notify(user_id, submit):
+                self.assertEqual(user_id, 7)
+                submit({'subject': 'original delivery'})
+                # Replace ownership while the native notification seam runs.
+                # Its child is pending in the old owner's transaction.
+                with runtime.session_factory.begin() as session:
+                    session.execute(update(worker.table).where(
+                        worker.table.c.source_id == identity,
+                    ).values(claim_token='replacement-owner'))
+
+            with patch.dict(os.environ, {'BENCHMARK_TRACE_PATH': str(trace)}), \
+                    patch.object(adapter, 'initialize', return_value=app), \
+                    patch.object(adapter, 'notify', side_effect=notify), \
+                    patch('examples.posthog_dbworker.runtime.worker_origin',
+                          return_value={'offline_test_fixture': True}), \
+                    patch('django.db.close_old_connections'):
+                with self.assertRaises(LostClaim):
+                    _execute_claim(worker, claim, runtime.session_factory)
+            with runtime.session_factory() as session:
+                jobs = session.scalars(select(Job)).all()
+                self.assertEqual(len(jobs), 1)
+                self.assertFalse(jobs[0].complete)
+                self.assertEqual(worker.state(session, identity)['claim_token'], 'replacement-owner')
+                self.assertEqual(runtime.execution_status(
+                    session, worker='posthog_workflow', source_id=identity), ExecutionStatus.WORKING)
+            self.assertNotIn('succeeded', [row['event'] for row in read_trace(trace)])
+
     def test_registered_ledger_exists_and_owned_handler_claim_commits(self):
         # Real source/ledger tables and coordinator claim execution; only the
         # upstream business callable is replaced by an offline test double.
