@@ -49,17 +49,20 @@ def git(*args: str, cwd: Path = ROOT) -> str:
 
 def run_suite(suite: dict[str, Any], *, output: Path, run_id: str, profile: str,
               overrides: dict[str, Any], timeout: float, provision_environments: bool = False,
-              uv: str = "uv") -> dict[str, Any]:
+              uv: str = "uv", registry_path: Path = ROOT / "benchmarks/registry.json") -> dict[str, Any]:
     suite_id = suite["suite_id"]
     report_path = output / f"{suite_id}.json"
     report = new_report(suite_id, run_id, profile)
     report["source"] = {"local_commit": git("rev-parse", "HEAD"), "repository": suite["repository"],
                         "expected_commit": suite.get("commit"), "historical": suite.get("historical", False),
                         "comparison_contract": suite.get("comparison_contract")}
+    registry_path = registry_path.resolve()
+    registry_name = str(registry_path.relative_to(ROOT) if registry_path.is_relative_to(ROOT) else registry_path)
+    report["source"]["registry"] = {"path": registry_name, "sha256": digest(registry_path)}
     report["environment"] = {"orchestrator_python": sys.version, "platform": platform.platform()}
     report["environment"]["runner_class"] = os.environ.get("BENCHMARK_RUNNER_CLASS", "local-unspecified")
     files = [ROOT / suite["entrypoint"], ROOT / "src/dbworker.py"]
-    files += [ROOT / "benchmarks/run_all.py", ROOT / "benchmarks/registry.json",
+    files += [ROOT / "benchmarks/run_all.py", registry_path,
               ROOT / "benchmarks/provision.py", ROOT / "benchmarks/Dockerfile",
               ROOT / "benchmarks/requirements.txt"]
     files += sorted((ROOT / "benchmarks/locks").glob(f"{suite_id}*.txt"))
@@ -199,7 +202,8 @@ def main(argv: list[str] | None = None) -> int:
         for suite in selected:
             report = run_suite(suite, output=output, run_id=run_id, profile=args.profile,
                                overrides=overrides, timeout=args.timeout_seconds,
-                               provision_environments=args.provision, uv=args.uv)
+                               provision_environments=args.provision, uv=args.uv,
+                               registry_path=args.registry)
             path = output / f"{suite['suite_id']}.json"
             index["reports"].append({"suite_id": suite["suite_id"], "path": path.name,
                                      "status": report["status"], "sha256": digest(path)})

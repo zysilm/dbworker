@@ -7,6 +7,7 @@ import json
 import os
 import signal
 import threading
+import time
 from pathlib import Path
 
 from examples.posthog_dbworker.runtime import coordinator
@@ -39,6 +40,7 @@ def main():
     try:
         runtime.start()
         receipt = {"pid": os.getpid(), "concurrency": args.concurrency,
+                   "timestamp_ns": time.time_ns(),
                    "readiness_scope": "coordinator started; application warmup is separate"}
         temporary = args.ready_file.with_name(f"{args.ready_file.name}.{os.getpid()}.tmp")
         temporary.write_text(json.dumps(receipt) + "\n")

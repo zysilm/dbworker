@@ -11,7 +11,8 @@ from pathlib import Path
 from benchmarks.common.load_evidence import task_load_metrics, validate_fixed_load
 from benchmarks.common.native_admission import APPLICATIONS, NativeAdmissionError
 from benchmarks.common.native_binding import validate_task_binding
-from benchmarks.common.business_evidence import validate_business_binding as _validate_business_binding
+from benchmarks.common.business_evidence import (validate_business_binding as _validate_business_binding,
+                                                trusted_warmup_requests)
 from benchmarks.common.smtp_evidence import validate_smtp_evidence
 from benchmarks.common.superset_output import validate_superset_output
 from benchmarks.common.timing_evidence import elapsed_seconds, validate_timing_window
@@ -120,13 +121,14 @@ def replay_graph(row, suite, directory, expected_requests, *, expected_profile=N
     events = read_trace(path)
     warmups = {event.get('operation_id') for event in events
                if isinstance(event.get('operation_id'), str) and event['operation_id'].startswith('warmup:')}
-    if len(warmups) != 2:
-        raise WorkflowMismatch('Persisted native trace must contain exactly two complete warmup operations')
+    warmup_count = trusted_warmup_requests(suite, expected_profile)
+    if len(warmups) != warmup_count:
+        raise WorkflowMismatch('Persisted native trace differs from trusted warmup count')
     if any(event.get('backend') != row['backend'] for event in events):
         raise WorkflowMismatch('Trace backend differs from sample backend')
     declared_warmup = row.get('warmup_operations')
-    if (not isinstance(declared_warmup, list) or len(declared_warmup) != 2
-            or len(set(declared_warmup)) != 2 or set(declared_warmup) != warmups):
+    if (not isinstance(declared_warmup, list) or len(declared_warmup) != warmup_count
+            or len(set(declared_warmup)) != warmup_count or set(declared_warmup) != warmups):
         raise WorkflowMismatch('Missing or changed explicit warmup identities')
     _validate_worker_and_arguments(events, suite)
     replayed = validate_graph(events, operations, contract_stages, contract_edges,

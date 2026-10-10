@@ -110,6 +110,7 @@ jobs:
         run: >-
           python -m unittest
           benchmarks.tests.test_ci_results benchmarks.tests.test_reporting
+          benchmarks.tests.test_orchestration
           benchmarks.tests.test_native_admission benchmarks.tests.test_native_origin
           benchmarks.tests.test_native_observer benchmarks.tests.test_native_binding
           benchmarks.tests.test_argument_evidence benchmarks.tests.test_worker_origin
@@ -120,7 +121,7 @@ jobs:
           benchmarks.tests.test_load benchmarks.tests.test_load_evidence
           benchmarks.tests.test_performance_admission benchmarks.tests.test_saleor_producer
           benchmarks.tests.test_posthog_producer benchmarks.tests.test_paperless_producer
-          benchmarks.tests.test_posthog_trace
+          benchmarks.tests.test_posthog_trace benchmarks.tests.test_posthog_worker_service
           benchmarks.tests.test_superset_binding benchmarks.tests.test_superset_result_capacity
           benchmarks.tests.test_superset_output
           benchmarks.tests.test_upstream_correctness

@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 from benchmarks.common.argument_evidence import argument_digest
 from benchmarks.common.business_evidence import (
-    POSTHOG_API_SHA256, expected_operations, validate_posthog_delivery_records,
+    POSTHOG_API_SHA256, expected_operations, trusted_warmup_requests, validate_posthog_delivery_records,
     validate_business_binding as _validate_business_binding,
 )
 from benchmarks.common.workflow_graph import WorkflowMismatch
@@ -23,6 +23,49 @@ def sha(value):
 
 
 class BusinessEvidenceTests(unittest.TestCase):
+    def warm_eight_fixture(self):
+        row, events = self.fixture('posthog', count=8)
+        renamed = {f'notification-{i:04d}': f'warmup:notification-{i:04d}' for i in range(2, 8)}
+        for event in events:
+            event['operation_id'] = renamed.get(event['operation_id'], event['operation_id'])
+        for key in ('producer_identities', 'producer_api_outcomes'):
+            for value in row[key]:
+                value['operation_id'] = renamed.get(value['operation_id'], value['operation_id'])
+                if key == 'producer_identities':
+                    identity = {k: value[k] for k in ('operation_id', 'user_id', 'recipient_sha256')}
+                    value['sha256'] = sha(json.dumps(identity, sort_keys=True))
+        row['warmup_operations'] = [f'warmup:notification-{i:04d}' for i in range(8)]
+        row['producer_execution'].update(measured_calls=2, warmup_calls=8)
+        row.setdefault('validation', {})['warmup_messages'] = 8
+        row.setdefault('dataset', {})['warmup_requests'] = 8
+        return row, events
+
+    def test_trusted_warmup_defaults_and_diagnostic_scope(self):
+        self.assertEqual(trusted_warmup_requests('posthog'), 2)
+        self.assertEqual(trusted_warmup_requests('posthog', {'warmup_requests': 8}), 8)
+        for suite, count in [('posthog', True), ('posthog', 4), ('posthog', '8'), ('saleor', 8)]:
+            with self.subTest(suite=suite, count=count), self.assertRaises(WorkflowMismatch):
+                trusted_warmup_requests(suite, {'warmup_requests': count})
+
+    def test_eight_warmups_preserve_all_original_measured_bindings(self):
+        row, events = self.warm_eight_fixture()
+        validate_business_binding(row, 'posthog', events, 2, expected_profile={'requests': 2, 'warmup_requests': 8})
+        with self.assertRaises(WorkflowMismatch):
+            validate_business_binding(row, 'posthog', events, 2)
+
+    def test_eight_warmup_tampering_is_rejected(self):
+        original, original_events = self.warm_eight_fixture()
+        for change in ('count', 'recipient', 'argument', 'operation', 'messages', 'dataset'):
+            row, events = copy.deepcopy(original), copy.deepcopy(original_events)
+            if change == 'count': row['producer_execution']['warmup_calls'] = 2
+            if change == 'messages': row['validation']['warmup_messages'] = 2
+            if change == 'dataset': row['dataset']['warmup_requests'] = 2
+            if change == 'recipient': row['producer_identities'][2]['recipient_sha256'] = sha('recipient-0008@benchmark.invalid')
+            if change == 'argument': events[0]['details']['argument_sha256'] = argument_digest((999,), {})
+            if change == 'operation': events[0]['operation_id'] = 'warmup:notification-9999'
+            with self.subTest(change=change), self.assertRaises(WorkflowMismatch):
+                validate_business_binding(row, 'posthog', events, 2, expected_profile={'requests': 2, 'warmup_requests': 8})
+
     def fixture(self, suite, count=2, products=256):
         measured, warmups = expected_operations(suite, count)
         operations = warmups + measured

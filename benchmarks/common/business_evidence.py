@@ -32,13 +32,22 @@ def _positive(value):
     return value
 
 
-def expected_operations(suite, count):
+def trusted_warmup_requests(suite, expected_profile=None):
+    """Accept diagnostic warmup only from the caller's trusted profile."""
+    count = (expected_profile or {}).get('warmup_requests', 2)
+    _require(type(count) is int and count in (2, 8), 'invalid trusted warmup count')
+    _require(suite == 'posthog' or count == 2, 'diagnostic warmup is PostHog only')
+    return count
+
+
+def expected_operations(suite, count, *, expected_profile=None):
     """Fixture identities are a trusted contract, never inferred from results."""
     _require(type(count) is int and count > 0, 'invalid request count')
+    warmup_count = trusted_warmup_requests(suite, expected_profile)
     if suite == 'superset':
         return [f'query-{i}' for i in range(count)], ['warmup:0', 'warmup:1']
     if suite == 'posthog':
-        return [f'notification-{i:04d}' for i in range(count)], ['warmup:notification-0000', 'warmup:notification-0001']
+        return [f'notification-{i:04d}' for i in range(count)], [f'warmup:notification-{i:04d}' for i in range(warmup_count)]
     if suite in ('saleor', 'paperless_ngx'):
         return [str(i) for i in range(count)], ['warmup:0', 'warmup:1']
     if suite == 'sentry':
@@ -117,7 +126,7 @@ def validate_posthog_delivery_records(users, records, email_hash):
 def validate_business_binding(row, suite, events, expected_requests, *, expected_profile=None):
     """Reject missing, substituted or shortcut producer evidence before scoring."""
     _require(isinstance(row, dict) and isinstance(events, list) and all(isinstance(event, dict) and isinstance(event.get('operation_id'), str) for event in events), 'invalid evidence types')
-    measured, warmups = expected_operations(suite, expected_requests)
+    measured, warmups = expected_operations(suite, expected_requests, expected_profile=expected_profile)
     all_ops = warmups + measured
     _require(row.get('warmup_operations') == warmups, 'warmup fixture identities differ')
     _require({event.get('operation_id') for event in events} == set(all_ops), 'observed fixture identities differ')
@@ -205,12 +214,18 @@ def validate_business_binding(row, suite, events, expected_requests, *, expected
     _require(configuration.get('producer_api') == 'posthog.api.user.UserViewSet.two_factor_validate'
              and configuration.get('producer_api_timed') is True and configuration.get('producer_api_effects_validated') is True,
              'PostHog API shortcut or untimed producer')
+    if len(warmups) == 8:
+        _require(row.get('validation', {}).get('warmup_messages') == 8
+                 and type(row.get('validation', {}).get('warmup_messages')) is int
+                 and row.get('dataset', {}).get('warmup_requests') == 8
+                 and type(row.get('dataset', {}).get('warmup_requests')) is int,
+                 'diagnostic warmup result counts differ')
     execution = row.get('producer_execution')
     _require(isinstance(execution, dict) and execution.get('passed') is True
              and execution.get('api') == configuration['producer_api']
              and execution.get('source_file') == 'posthog/api/user.py' and execution.get('sha256') == POSTHOG_API_SHA256,
              'original 2FA API source differs')
-    for field, expected in (('measured_calls', expected_requests), ('warmup_calls', 2), ('root_jobs_per_call', 1), ('delivery_jobs_per_call', 1)):
+    for field, expected in (('measured_calls', expected_requests), ('warmup_calls', len(warmups)), ('root_jobs_per_call', 1), ('delivery_jobs_per_call', 1)):
         _require(type(execution.get(field)) is int and execution[field] == expected, 'API call/job counts differ')
     _require(execution.get('effects') == ['verified_totp_device', 'persistent_session_flags', 'setup_cache_cleanup', 'other_session_revocation'], 'API effects contract differs')
     bindings = _indexed(row.get('producer_identities'), all_ops)
@@ -220,7 +235,11 @@ def validate_business_binding(row, suite, events, expected_requests, *, expected
     for index, op in enumerate(all_ops):
         binding, outcome = bindings[op], outcomes[op]
         user_id = _positive(binding.get('user_id'))
-        recipient_sha = hashlib.sha256(f'recipient-{index:04d}@benchmark.invalid'.encode()).hexdigest()
+        if index < len(warmups):
+            fixture_index = index if index < 2 else expected_requests + index
+        else:
+            fixture_index = index - len(warmups) + 2
+        recipient_sha = hashlib.sha256(f'recipient-{fixture_index:04d}@benchmark.invalid'.encode()).hexdigest()
         identity = {'operation_id': op, 'user_id': user_id, 'recipient_sha256': recipient_sha}
         _require(binding == {**identity, 'sha256': hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()}, 'user/recipient receipt differs')
         _require(roots[op]['submitted']['details']['argument_sha256'] == argument_digest((user_id,), {}), 'notification user input differs')

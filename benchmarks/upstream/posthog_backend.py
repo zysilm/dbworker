@@ -28,7 +28,7 @@ from sqlalchemy.orm import sessionmaker
 from dbworker import ExecutionStatus
 
 from benchmarks.common.reporting import write_json
-from benchmarks.common.business_evidence import validate_posthog_delivery_records
+from benchmarks.common.business_evidence import validate_posthog_delivery_records, trusted_warmup_requests
 from benchmarks.common.load import run_load
 from benchmarks.common.load_evidence import task_load_metrics
 from examples.posthog_dbworker.runtime import Job, STAGES, coordinator, enqueue
@@ -73,10 +73,12 @@ def main():
     args = parser.parse_args()
     config = json.loads(args.config.read_text())
     profile = config["suite"]["profiles"][config["profile"]]
+    warmup_count = trusted_warmup_requests("posthog", profile)
     directory = Path(config["output_directory"]).resolve() / f"posthog-{args.repetition}-{args.backend}"
     directory.mkdir()
     children, streams = [], []
     runtime = engine = smtp = dbworker_service = None
+    worker_service_readiness = None
 
     def launch(command, name, *, new_session=False):
         stream = (directory / name).open("wb")
@@ -167,7 +169,7 @@ def main():
                 "worker_total_concurrency": 8, "dbworker_shared_stage_pool": 8,
                 "task_acks_late": app.conf.task_acks_late})
         users, expected, fixtures = [], {}, []
-        for index in range(profile["requests"] + 2):
+        for index in range(profile["requests"] + warmup_count):
             recipient = f"recipient-{index:04d}@benchmark.invalid"
             user = User.objects.create_user(email=recipient, password=None,
                 first_name=f"Benchmark User {index:04d}", distinct_id=f"benchmark-user-{index:04d}")
@@ -204,8 +206,9 @@ def main():
                 return True
 
             wait_for(dbworker_ready)
+            worker_service_readiness = json.loads(ready_file.read_text())
 
-        warmup_operations = [f"warmup:notification-{i:04d}" for i in range(2)]
+        warmup_operations = [f"warmup:notification-{i:04d}" for i in range(warmup_count)]
         producer_identities, api_outcomes = [], []
 
         def execute_batch(values, fixture_values, warmup=False):
@@ -268,9 +271,10 @@ def main():
             seconds = elapsed_seconds(window)
             validate_timing_window(window, seconds, read_trace(trace), ops)
             return seconds, graph, window, load
-        execute_batch(users[:2], fixtures[:2], warmup=True)
-        seconds, graph, measurement_window, load_metrics = execute_batch(users[2:], fixtures[2:])
-        expected_recipients = sorted(user.email for user in users[2:])
+        execute_batch(users[:2] + users[profile["requests"] + 2:],
+                      fixtures[:2] + fixtures[profile["requests"] + 2:], warmup=True)
+        seconds, graph, measurement_window, load_metrics = execute_batch(users[2:profile["requests"] + 2], fixtures[2:profile["requests"] + 2])
+        expected_recipients = sorted(user.email for user in users[2:profile["requests"] + 2])
         normalized, ids = [], set()
         for envelope in sink.messages:
             if len(envelope["rcpt_tos"]) != 1:
@@ -315,7 +319,7 @@ def main():
                "unavailable_metrics": {"cpu_seconds": "Not collected by this suite",
                                        "peak_rss_bytes": "Not collected by this suite"},
                "validation": {"passed": True, "output_digest": hashlib.sha256(json.dumps(normalized, sort_keys=True).encode()).hexdigest(),
-                              "messages": len(normalized), "warmup_messages": 2, "duplicate_acceptance": 0},
+                              "messages": len(normalized), "warmup_messages": warmup_count, "duplicate_acceptance": 0},
                "environment": {"python": platform.python_version(), "interpreter": sys.executable, "packages": packages,
                                "upstream_files": source_files},
                "configuration": {"concurrency": 8, "database": "postgresql", "transport": "real_local_smtp",
@@ -326,12 +330,14 @@ def main():
                                  "producer_api_timed": True, "producer_api_effects_validated": True,
                                  "celery_publication": "original API .delay and native nested delivery publication",
                                  "fault_recovery": "untested"},
-               "dataset": {"template": "2fa_enabled", "requests": profile["requests"], "warmup_requests": 2,
+               "dataset": {"template": "2fa_enabled", "requests": profile["requests"], "warmup_requests": warmup_count,
                            "content": "real users and original 2FA notification content"},
                "capabilities": {"verified": ["upstream_template_rendering", "css_inlining", "smtp_acceptance", "messaging_records", "two_stage_workflow", "native_task_origin", "two_factor_validation_api",
                                              "totp_device", "session_verification", "setup_cache_cleanup", "other_session_revocation"],
                                 "untested": ["whole_http_middleware_stack", "clickhouse_queries", "delivery_retries", "ambiguous_acceptance_recovery",
                                              "campaign_deduplication", "salt_rotation", "rejection_and_error_capture"]}}
+        if worker_service_readiness is not None:
+            row["configuration"]["worker_service_readiness"] = worker_service_readiness
         row["measurement_window"] = measurement_window
         row["warmup_operations"] = warmup_operations
         row["producer_identities"] = producer_identities
@@ -339,7 +345,7 @@ def main():
         row["producer_execution"] = {
             "passed": True, "api": "posthog.api.user.UserViewSet.two_factor_validate",
             "source_file": "posthog/api/user.py", "sha256": source_files["api/user.py"],
-            "measured_calls": profile["requests"], "warmup_calls": 2,
+            "measured_calls": profile["requests"], "warmup_calls": warmup_count,
             "effects": ["verified_totp_device", "persistent_session_flags", "setup_cache_cleanup", "other_session_revocation"],
             "root_jobs_per_call": 1, "delivery_jobs_per_call": 1}
         row["native_execution"] = native_execution

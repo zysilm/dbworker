@@ -11,7 +11,7 @@ from benchmarks.run_all import main, run_suite
 
 class OrchestrationTests(unittest.TestCase):
     def test_source_mutation_and_forged_source_evidence_fail_admission(self):
-        for mutation in ("implementation", "evidence"):
+        for mutation in ("implementation", "evidence", "registry"):
             with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 child = root / "child.py"
@@ -28,6 +28,9 @@ report['runs'] = [
     for backend in ('celery', 'dbworker')]
 if config['suite']['mutation'] == 'evidence':
     report['source']['local_commit'] = 'forged'
+elif config['suite']['mutation'] == 'registry':
+    registry = Path(report['source']['registry']['path'])
+    registry.write_text(registry.read_text() + '\\n')
 else:
     source = Path(__file__)
     source.write_text(source.read_text() + '\\n# Changed during execution\\n')
@@ -39,12 +42,17 @@ path.write_text(json.dumps(report))
                                           for role in ("benchmark", "celery", "dbworker")}}
                 output = root / "results"
                 output.mkdir()
+                registry = root / "diagnostic-registry.json"
+                registry.write_text(json.dumps({"schema_version": 1, "suites": [suite]}))
                 report = run_suite(suite, output=output, run_id="source-test", profile="full",
-                                   overrides={}, timeout=30)
+                                   overrides={}, timeout=30, registry_path=registry)
                 self.assertEqual(report["status"], "failed")
                 self.assertNotEqual(report["source"]["local_commit"], "forged")
                 reason = report["errors"][-1]["message"]
-                self.assertIn("source changed" if mutation == "implementation"
+                self.assertEqual(report["source"]["registry"]["path"], str(registry.resolve()))
+                self.assertEqual(report["source"]["registry"]["sha256"],
+                                 report["source"]["implementation_sha256"][str(registry.resolve())])
+                self.assertIn("source changed" if mutation in ("implementation", "registry")
                               else "source evidence", reason)
 
     def test_failed_provisioning_preserves_every_suite_report_and_index(self):

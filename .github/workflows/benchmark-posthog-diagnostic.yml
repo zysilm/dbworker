@@ -7,11 +7,15 @@ on:
       - src/dbworker.py
       - examples/posthog_dbworker/worker.py
       - benchmarks/upstream/posthog_backend.py
+      - benchmarks/common/business_evidence.py
+      - benchmarks/common/performance_admission.py
+      - benchmarks/run_all.py
+      - benchmarks/diagnostics/posthog-fullwarm-registry.json
       - .github/workflows/benchmark-posthog-diagnostic.yml
   workflow_dispatch:
     inputs:
       run_baseline:
-        description: "Also run the immutable baseline first on the same runner"
+        description: "Compare the immutable baseline with original two-operation warmup on both sources"
         type: boolean
         default: false
 
@@ -28,6 +32,9 @@ jobs:
     if: startsWith(github.ref, 'refs/heads/feature/')
     runs-on: ubuntu-24.04
     timeout-minutes: 180
+    env:
+      # The immutable baseline cannot admit the newer full-pool warmup profile.
+      REGISTRY_PATH: ${{ inputs.run_baseline && 'benchmarks/registry.json' || 'benchmarks/diagnostics/posthog-fullwarm-registry.json' }}
     steps:
       - name: Check out the optimization candidate
         uses: actions/checkout@v5
@@ -60,6 +67,7 @@ jobs:
             --volume "$GITHUB_WORKSPACE/baseline:/workspace" \
             dbworker-posthog-diagnostic benchmarks/run_all.py \
             --suite posthog --profile full --provision --run-id "$RUN_ID" \
+            --registry "$REGISTRY_PATH" \
             --timeout-seconds 4800 --output-dir benchmarks/results/posthog-diagnostic
       - name: Package baseline evidence
         if: ${{ always() && inputs.run_baseline }}
@@ -79,6 +87,7 @@ jobs:
             --volume "$GITHUB_WORKSPACE/candidate:/workspace" \
             dbworker-posthog-diagnostic benchmarks/run_all.py \
             --suite posthog --profile full --provision --run-id "$RUN_ID" \
+            --registry "$REGISTRY_PATH" \
             --timeout-seconds 4800 --output-dir benchmarks/results/posthog-diagnostic
       - name: Package candidate evidence
         if: always()
@@ -86,6 +95,7 @@ jobs:
           python3 candidate/benchmarks/ci_results.py package \
             --source candidate/benchmarks/results/posthog-diagnostic \
             --output candidate-artifact --suite posthog
+          cp "candidate/$REGISTRY_PATH" candidate-artifact/registry.json
       - name: Upload baseline evidence and diagnostics
         if: ${{ always() && inputs.run_baseline }}
         uses: actions/upload-artifact@v4
