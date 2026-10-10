@@ -42,6 +42,41 @@ class NativeObserverTests(unittest.TestCase):
         return {'BENCHMARK_TRACE_PATH': str(path), 'BENCHMARK_BACKEND': 'celery',
                 'BENCHMARK_TASK_STAGES': json.dumps({'original.delivery': 'delivery'})}
 
+    def test_correlated_headers_skip_trace_lookup_and_preserve_native_lifecycle(self):
+        for header_parent, request_parent, expected_parent in (
+                (None, None, None), ('explicit-parent', 'request-parent', 'explicit-parent'),
+                (None, 'request-parent', 'request-parent')):
+            with self.subTest(parent=expected_parent), tempfile.TemporaryDirectory() as temporary:
+                trace = Path(temporary) / 'trace.jsonl'
+                headers = {'benchmark_operation': 'operation'}
+                if header_parent is not None:
+                    headers['benchmark_parent'] = header_parent
+                task = SimpleNamespace(name='original.delivery',
+                                       request=SimpleNamespace(headers=headers, parent_id=request_parent))
+                arguments, keywords = ([42], {'recipient': 'unit@example.invalid'})
+                payload = copy.deepcopy((headers, arguments, keywords))
+                origin = {'native_worker_origin': {'source': 'original'}}
+                with patch.dict(os.environ, self.environment(trace)), \
+                        patch.object(observer, '_context', side_effect=AssertionError('Unnecessary trace lookup')), \
+                        patch.object(observer, '_observed_worker_origin', return_value=origin):
+                    observer._started(task=task, task_id='delivery-0', args=arguments, kwargs=keywords)
+                    self.assertEqual(observer._current.get(), 'operation')
+                    self.assertEqual(observer._parent.get(), 'delivery-0')
+                    observer._finished(task=task, task_id='delivery-0', state='SUCCESS')
+                self.assertEqual((headers, arguments, keywords), payload)
+                self.assertIsNone(observer._current.get())
+                self.assertIsNone(observer._parent.get())
+                events = read_trace(trace)
+                self.assertEqual([row['event'] for row in events], ['started', 'succeeded'])
+                for row in events:
+                    self.assertEqual(row['operation_id'], 'operation')
+                    self.assertEqual(row['parent_id'], expected_parent)
+                    self.assertEqual(row['details']['task_name'], 'original.delivery')
+                self.assertEqual(events[0]['details']['argument_sha256'],
+                                 observer.argument_digest(arguments, keywords))
+                self.assertEqual(events[0]['details']['native_worker_origin'], origin['native_worker_origin'])
+                self.assertEqual(events[1]['details']['state'], 'SUCCESS')
+
     def test_protocol_one_worker_can_start_inside_publish_before_after_signal(self):
         from celery import Celery, signals
         from kombu import Producer

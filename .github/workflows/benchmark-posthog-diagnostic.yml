@@ -6,7 +6,9 @@ on:
     paths:
       - src/dbworker.py
       - examples/posthog_dbworker/worker.py
+      - examples/posthog_dbworker/runtime.py
       - benchmarks/upstream/posthog_backend.py
+      - benchmarks/common/native_observer.py
       - benchmarks/common/business_evidence.py
       - benchmarks/common/performance_admission.py
       - benchmarks/run_all.py

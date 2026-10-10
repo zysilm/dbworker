@@ -176,7 +176,7 @@ def _context(node_id):
 def _started(sender=None, task_id=None, task=None, args=None, kwargs=None, **signal_kwargs):
     task = task or sender
     headers = getattr(task.request, "headers", None) or {}
-    observed_op, observed_parent = _context(task_id)
+    observed_op, observed_parent = (None, None) if headers.get("benchmark_operation") else _context(task_id)
     op = headers.get("benchmark_operation") or observed_op
     _current.set(op)
     _parent.set(task_id)
@@ -192,7 +192,7 @@ def _finished(sender=None, task_id=None, task=None, state=None, **kwargs):
     task = task or sender
     headers = getattr(task.request, "headers", None) or {}
     event = {"SUCCESS": "succeeded", "FAILURE": "failed", "RETRY": "retried", "REVOKED": "revoked"}.get(state, "unknown")
-    observed_op, observed_parent = _context(task_id)
+    observed_op, observed_parent = (None, None) if headers.get("benchmark_operation") else _context(task_id)
     record(_stage(task.name), headers.get("benchmark_operation") or observed_op, task_id, event,
            headers.get("benchmark_parent") or getattr(task.request, "parent_id", None) or observed_parent, task_name=task.name, state=state)
     _current.set(None)
