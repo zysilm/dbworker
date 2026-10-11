@@ -1,0 +1,636 @@
+{
+  "schema_version": 1,
+  "decision": "rejected_without_repository_runtime_changes",
+  "scope": "Reduced native single-process mechanism probe with separate coordinator and handler engines. Not the exact full benchmark and not goal performance evidence.",
+  "baseline_git_commit": "bf3d6267f6adf11c33c01dd521eb99e521dd129c",
+  "candidate_change": "Retain PostgreSQL READ COMMITTED normal read transaction; preserve rollback for other backends, autocommit and stronger isolation. Query actual isolation per task.",
+  "candidate_runtime_sha256": "2b8d974a3bf22d7cd9c60f56dcafedf2b272bd8655f58a510cdbfbd5661008c2",
+  "load": {
+    "warmup_api_requests": 2,
+    "measured_api_requests": 20,
+    "measured_tasks": 40,
+    "handler_processes": 1,
+    "coordinator_handler_engines_separate": true
+  },
+  "stages": {
+    "notification": {
+      "baseline": {
+        "total_seconds": {
+          "n": 20,
+          "mean_ms": 10.480560339055955,
+          "median_ms": 10.539583628997207,
+          "p95_ms": 11.039500124752522
+        },
+        "source_fetch_to_handler_seconds": {
+          "n": 20,
+          "mean_ms": 0.4384999396279454,
+          "median_ms": 0.4447505343705416,
+          "p95_ms": 0.48174988478422165
+        },
+        "prestart_seconds": {
+          "n": 20,
+          "mean_ms": 0.2038145437836647,
+          "median_ms": 0.20802044309675694,
+          "p95_ms": 0.22716587409377098
+        },
+        "completion_and_observer_remainder_seconds": {
+          "n": 20,
+          "mean_ms": 1.666656183078885,
+          "median_ms": 1.6713121440261602,
+          "p95_ms": 1.9962089136242867
+        },
+        "close_old_connections": {
+          "n": 20,
+          "mean_ms": 0.050116702914237976,
+          "median_ms": 0.048625050112605095,
+          "p95_ms": 0.06079208105802536
+        },
+        "initialize": {
+          "n": 20,
+          "mean_ms": 0.001377146691083908,
+          "median_ms": 0.0013748649507761002,
+          "p95_ms": 0.0016670674085617065
+        },
+        "native_notification_body": {
+          "n": 20,
+          "mean_ms": 8.17158967256546,
+          "median_ms": 8.194812573492527,
+          "p95_ms": 8.687749970704317
+        },
+        "session_rollback": {
+          "n": 20,
+          "mean_ms": 0.10642085690051317,
+          "median_ms": 0.1129999291151762,
+          "p95_ms": 0.12062489986419678
+        },
+        "worker_origin": {
+          "n": 20,
+          "mean_ms": 0.05291455890983343,
+          "median_ms": 0.05235453136265278,
+          "p95_ms": 0.06637535989284515
+        },
+        "source_selects_per_task": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "candidate": {
+        "total_seconds": {
+          "n": 20,
+          "mean_ms": 10.627420898526907,
+          "median_ms": 10.415312368422747,
+          "p95_ms": 12.605958618223667
+        },
+        "source_fetch_to_handler_seconds": {
+          "n": 20,
+          "mean_ms": 0.3916751826182008,
+          "median_ms": 0.3884162288159132,
+          "p95_ms": 0.4337090067565441
+        },
+        "prestart_seconds": {
+          "n": 20,
+          "mean_ms": 0.1855832990258932,
+          "median_ms": 0.18835416994988918,
+          "p95_ms": 0.2043750137090683
+        },
+        "completion_and_observer_remainder_seconds": {
+          "n": 20,
+          "mean_ms": 1.538024633191526,
+          "median_ms": 1.5225207898765802,
+          "p95_ms": 1.7091669142246246
+        },
+        "close_old_connections": {
+          "n": 20,
+          "mean_ms": 0.051772757433354855,
+          "median_ms": 0.05122902803122997,
+          "p95_ms": 0.061499886214733124
+        },
+        "initialize": {
+          "n": 20,
+          "mean_ms": 0.0014897435903549194,
+          "median_ms": 0.0014998950064182281,
+          "p95_ms": 0.001834239810705185
+        },
+        "native_notification_body": {
+          "n": 20,
+          "mean_ms": 8.512137783691287,
+          "median_ms": 8.339521009474993,
+          "p95_ms": 10.516167152673006
+        },
+        "worker_origin": {
+          "n": 20,
+          "mean_ms": 0.051331217400729656,
+          "median_ms": 0.051583629101514816,
+          "p95_ms": 0.055958982557058334
+        },
+        "source_selects_per_task": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    "delivery": {
+      "baseline": {
+        "total_seconds": {
+          "n": 20,
+          "mean_ms": 13.039954216219485,
+          "median_ms": 13.549916679039598,
+          "p95_ms": 14.23741690814495
+        },
+        "source_fetch_to_handler_seconds": {
+          "n": 20,
+          "mean_ms": 0.4153895890340209,
+          "median_ms": 0.41589606553316116,
+          "p95_ms": 0.47954171895980835
+        },
+        "prestart_seconds": {
+          "n": 20,
+          "mean_ms": 0.24229371920228004,
+          "median_ms": 0.24145864881575108,
+          "p95_ms": 0.2770829014480114
+        },
+        "completion_and_observer_remainder_seconds": {
+          "n": 20,
+          "mean_ms": 1.2457751436159015,
+          "median_ms": 1.2453538365662098,
+          "p95_ms": 1.361166127026081
+        },
+        "close_old_connections": {
+          "n": 20,
+          "mean_ms": 0.030377134680747986,
+          "median_ms": 0.028603943064808846,
+          "p95_ms": 0.04158401861786842
+        },
+        "initialize": {
+          "n": 20,
+          "mean_ms": 0.0010978663340210915,
+          "median_ms": 0.0010833609849214554,
+          "p95_ms": 0.0012498348951339722
+        },
+        "native_delivery_body": {
+          "n": 20,
+          "mean_ms": 11.136495764367282,
+          "median_ms": 11.518666986376047,
+          "p95_ms": 12.334874831140041
+        },
+        "session_rollback": {
+          "n": 20,
+          "mean_ms": 0.09901667945086956,
+          "median_ms": 0.10160449892282486,
+          "p95_ms": 0.12320792302489281
+        },
+        "worker_origin": {
+          "n": 20,
+          "mean_ms": 0.04634170327335596,
+          "median_ms": 0.04562549293041229,
+          "p95_ms": 0.053042080253362656
+        },
+        "source_selects_per_task": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "candidate": {
+        "total_seconds": {
+          "n": 20,
+          "mean_ms": 12.743883393704891,
+          "median_ms": 13.116271002218127,
+          "p95_ms": 13.544917106628418
+        },
+        "source_fetch_to_handler_seconds": {
+          "n": 20,
+          "mean_ms": 0.38944596890360117,
+          "median_ms": 0.39014616049826145,
+          "p95_ms": 0.45954203233122826
+        },
+        "prestart_seconds": {
+          "n": 20,
+          "mean_ms": 0.22816041018813848,
+          "median_ms": 0.23462506942451,
+          "p95_ms": 0.2589169889688492
+        },
+        "completion_and_observer_remainder_seconds": {
+          "n": 20,
+          "mean_ms": 1.113970810547471,
+          "median_ms": 1.0960216168314219,
+          "p95_ms": 1.451082993298769
+        },
+        "close_old_connections": {
+          "n": 20,
+          "mean_ms": 0.034124916419386864,
+          "median_ms": 0.033312710002064705,
+          "p95_ms": 0.04620896652340889
+        },
+        "initialize": {
+          "n": 20,
+          "mean_ms": 0.0011750496923923492,
+          "median_ms": 0.001187436282634735,
+          "p95_ms": 0.0014170072972774506
+        },
+        "native_delivery_body": {
+          "n": 20,
+          "mean_ms": 11.01230620406568,
+          "median_ms": 11.394916102290154,
+          "p95_ms": 11.782875284552574
+        },
+        "worker_origin": {
+          "n": 20,
+          "mean_ms": 0.04616046790033579,
+          "median_ms": 0.04637567326426506,
+          "p95_ms": 0.05120784044265747
+        },
+        "source_selects_per_task": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      }
+    }
+  },
+  "prepared_cache": {
+    "baseline": {
+      "default_threshold": 5,
+      "counts_in_final_owned_TX_including_warmup": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "observation": "One same-connection cursor query per ledger completion, inside existing transaction; no added transaction/rollback. The observation SELECT itself may become prepared."
+    },
+    "candidate": {
+      "default_threshold": 5,
+      "counts_in_final_owned_TX_including_warmup": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        5,
+        5,
+        5,
+        5,
+        5,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6
+      ],
+      "observation": "One same-connection cursor query per ledger completion, inside existing transaction; no added transaction/rollback. The observation SELECT itself may become prepared."
+    },
+    "caveat": "Counts include the diagnostic observation SELECT; they are not production statement counts."
+  },
+  "protocol_checks": {
+    "postgresql": {
+      "passed": true,
+      "parity_passed": true,
+      "cases_per_variant": {
+        "baseline": 6,
+        "guarded": 6,
+        "baseline_rr": 6,
+        "guarded_rr": 6
+      }
+    },
+    "sqlite": {
+      "scope": "Offline real SQLite concurrency/ownership; native business seams mocked",
+      "cases": [
+        {
+          "modern_transaction_control": false,
+          "journal_mode": "DELETE",
+          "variant": "baseline",
+          "stale_owner": false,
+          "passed": true
+        },
+        {
+          "modern_transaction_control": false,
+          "journal_mode": "DELETE",
+          "variant": "baseline",
+          "stale_owner": true,
+          "passed": true
+        },
+        {
+          "modern_transaction_control": false,
+          "journal_mode": "DELETE",
+          "variant": "guarded",
+          "stale_owner": false,
+          "passed": true
+        },
+        {
+          "modern_transaction_control": false,
+          "journal_mode": "DELETE",
+          "variant": "guarded",
+          "stale_owner": true,
+          "passed": true
+        },
+        {
+          "modern_transaction_control": false,
+          "journal_mode": "WAL",
+          "variant": "baseline",
+          "stale_owner": false,
+          "passed": true
+        },
+        {
+          "modern_transaction_control": false,
+          "journal_mode": "WAL",
+          "variant": "baseline",
+          "stale_owner": true,
+          "passed": true
+        },
+        {
+          "modern_transaction_control": false,
+          "journal_mode": "WAL",
+          "variant": "guarded",
+          "stale_owner": false,
+          "passed": true
+        },
+        {
+          "modern_transaction_control": false,
+          "journal_mode": "WAL",
+          "variant": "guarded",
+          "stale_owner": true,
+          "passed": true
+        },
+        {
+          "modern_transaction_control": true,
+          "journal_mode": "DELETE",
+          "variant": "baseline",
+          "stale_owner": false,
+          "passed": true
+        },
+        {
+          "modern_transaction_control": true,
+          "journal_mode": "DELETE",
+          "variant": "baseline",
+          "stale_owner": true,
+          "passed": true
+        },
+        {
+          "modern_transaction_control": true,
+          "journal_mode": "DELETE",
+          "variant": "guarded",
+          "stale_owner": false,
+          "passed": true
+        },
+        {
+          "modern_transaction_control": true,
+          "journal_mode": "DELETE",
+          "variant": "guarded",
+          "stale_owner": true,
+          "passed": true
+        },
+        {
+          "modern_transaction_control": true,
+          "journal_mode": "WAL",
+          "variant": "baseline",
+          "stale_owner": false,
+          "passed": true
+        },
+        {
+          "modern_transaction_control": true,
+          "journal_mode": "WAL",
+          "variant": "baseline",
+          "stale_owner": true,
+          "passed": true
+        },
+        {
+          "modern_transaction_control": true,
+          "journal_mode": "WAL",
+          "variant": "guarded",
+          "stale_owner": false,
+          "passed": true
+        },
+        {
+          "modern_transaction_control": true,
+          "journal_mode": "WAL",
+          "variant": "guarded",
+          "stale_owner": true,
+          "passed": true
+        }
+      ],
+      "passed": true
+    }
+  },
+  "independent_review": {
+    "scope": "Read-only separated-engine single-process native phase comparison; no rerun or services started",
+    "effective_runtime_sha256": "2b8d974a3bf22d7cd9c60f56dcafedf2b272bd8655f58a510cdbfbd5661008c2",
+    "baseline_core_observer_producer_exact_commit": "bf3d6267f6adf11c33c01dd521eb99e521dd129c",
+    "both_runs": {
+      "native_api_operations": 22,
+      "native_task_executions": 44,
+      "measured_apis": 20,
+      "measured_task_records": 40,
+      "observed_worker_processes": 1,
+      "fullsmtp_messages": 22,
+      "parent_and_handler_engines_separate": true,
+      "phase_summaries_recomputed": true
+    },
+    "correctness_assessment": "Guard checks actual PostgreSQL isolation and actual driver autocommit. For current psycopg driver, READ COMMITTED retention preserves later command fresh snapshots, source/child atomic completion and claim-token CAS; fallback rollback preserves other tested dialect/isolation paths.",
+    "caveats": [
+      "The earlier PostgreSQL/SQLite protocol receipts cover cached guard, not this exact effective guard; exact version should reuse meaningful protocol tests before production promotion.",
+      "Driver autocommit property is present on current psycopg/psycopg2; defaultFalse for unknown PostgreSQL drivers should not imply universal compatibility.",
+      "One extra get_isolation_level SQL roundtrip per task is included in prestart and may offset transaction/cache savings under real load.",
+      "Longer connection checkout and idle read transaction/table locks during Django/SMTP increase connection footprint and susceptibility to idle-in-transaction timeout/DDL waits."
+    ],
+    "measured_comparison": {
+      "notification": {
+        "total_seconds": {
+          "baseline_mean_ms": 10.480560339055955,
+          "effective_mean_ms": 10.627420898526907,
+          "change_percent": 1.4012662941662812
+        },
+        "source_fetch_to_handler_seconds": {
+          "baseline_mean_ms": 0.4384999396279454,
+          "effective_mean_ms": 0.3916751826182008,
+          "change_percent": -10.67839531505389
+        },
+        "prestart_seconds": {
+          "baseline_mean_ms": 0.2038145437836647,
+          "effective_mean_ms": 0.1855832990258932,
+          "change_percent": -8.945016591712275
+        },
+        "completion_and_observer_remainder_seconds": {
+          "baseline_mean_ms": 1.666656183078885,
+          "effective_mean_ms": 1.538024633191526,
+          "change_percent": -7.717941540272122
+        }
+      },
+      "delivery": {
+        "total_seconds": {
+          "baseline_mean_ms": 13.039954216219485,
+          "effective_mean_ms": 12.743883393704891,
+          "change_percent": -2.2704897394987156
+        },
+        "source_fetch_to_handler_seconds": {
+          "baseline_mean_ms": 0.4153895890340209,
+          "effective_mean_ms": 0.38944596890360117,
+          "change_percent": -6.245611545236618
+        },
+        "prestart_seconds": {
+          "baseline_mean_ms": 0.24229371920228004,
+          "effective_mean_ms": 0.22816041018813848,
+          "change_percent": -5.8331305741946675
+        },
+        "completion_and_observer_remainder_seconds": {
+          "baseline_mean_ms": 1.2457751436159015,
+          "effective_mean_ms": 1.113970810547471,
+          "change_percent": -10.580106188815442
+        }
+      }
+    },
+    "combined_two_stage_mean_total_ms": {
+      "baseline": 23.52051455527544,
+      "effective": 23.371304292231798,
+      "change_percent": -0.634383498256319
+    },
+    "prepared_counts": {
+      "baseline_final": 0,
+      "effective_final": 6,
+      "interpretation": "Confirms retained connection prepared-cache activity in this environment; count includes observation SELECT, not proof every native business statement is prepared."
+    },
+    "recommendation": "Correctness direction is sound for controlled adapter; local mechanism shows cache preservation but only a tiny/noisy overall timing difference. Do not infer native eight-worker backlog/P95 improvement or achieved goal from this probe.",
+    "official_goal_evidence": false
+  },
+  "conclusion": "Combined two-stage mean changed by only -0.63 percent in a small sequential probe. This does not justify retaining a connection/read transaction across business execution or adding isolation checks. No peak-backlog or queue-wait P95 improvement has been established. Candidate remains outside repository source.",
+  "goal_achieved": false
+}

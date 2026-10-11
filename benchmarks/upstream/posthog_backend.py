@@ -175,6 +175,7 @@ def main():
         engine = create_engine(url)
         sessions = sessionmaker(engine)
         runtime = coordinator(url, concurrency=8) if args.backend == "dbworker" else None
+        os.environ.pop("DBWORKER_HANDOFF_TRACE_PATH", None)
         if args.backend == "celery":
             launch([sys.executable, "-m", "celery", "-A", "posthog.celery:app", "worker",
                     "--include", "benchmarks.common.native_observer", "--queues", "email",
@@ -182,6 +183,8 @@ def main():
             wait_for(lambda: app.control.ping(timeout=1))
         else:
             ready_file = directory / "worker-ready.json"
+            if os.environ.get("POSTHOG_HANDOFF_DIAGNOSTIC") == "1":
+                os.environ["DBWORKER_HANDOFF_TRACE_PATH"] = str(directory / "handoff.jsonl")
             dbworker_service = launch(
                 [sys.executable, "-m", "examples.posthog_dbworker.worker",
                  "--concurrency", "8", "--ready-file", str(ready_file)],
@@ -352,6 +355,19 @@ def main():
         row["configuration"]["contention_observation"] = "Concurrent API submission latency, lateness and task backlog; database lock wait duration unavailable"
         row["configuration"]["scheduler_placement"] = "Separate worker service process; eight handler processes"
         row["configuration"]["smtp_receiver_placement"] = "Separate owned process; exact envelopes exported after measurement"
+        if os.environ.get("POSTHOG_HANDOFF_DIAGNOSTIC") == "1":
+            handoff_trace = directory / "handoff.jsonl"
+            markers = sorted(path.name for path in directory.glob("handoff.jsonl.invalid-*"))
+            worker_log = directory / "worker.log"
+            logging_failed = (worker_log.is_file() and
+                "DBWORKER_HANDOFF_DIAGNOSTIC_INVALID" in worker_log.read_text(errors="replace"))
+            row["configuration"]["handoff_diagnostic"] = {
+                "instrumented": args.backend == "dbworker", "eligible_for_goal_evidence": False,
+                "sample_period": 32, "invalid_markers": markers,
+                "logging_failed": logging_failed,
+                "trace_path": str(handoff_trace.relative_to(Path(config["output_directory"]).resolve()))
+                    if args.backend == "dbworker" else None,
+                "scope": "Sampled mechanism diagnostics; final paired scores require instrumentation disabled"}
         write_json(directory / "sample.json", row)
     except Exception as exc:
         write_json(directory / "admission.json", {"schema_version": 1, "suite_id": "posthog",

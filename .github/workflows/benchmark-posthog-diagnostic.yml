@@ -9,6 +9,8 @@ on:
       - examples/posthog_dbworker/runtime.py
       - benchmarks/upstream/posthog_backend.py
       - benchmarks/common/native_observer.py
+      - benchmarks/common/handoff_probe.py
+      - benchmarks/diagnostics/analyze_handoff.py
       - benchmarks/common/smtp_receiver.py
       - benchmarks/common/business_evidence.py
       - benchmarks/common/performance_admission.py
@@ -19,6 +21,10 @@ on:
     inputs:
       run_baseline:
         description: "Compare the immutable baseline with original two-operation warmup on both sources"
+        type: boolean
+        default: false
+      handoff_probe:
+        description: "Record sampled handoff phases; diagnostic timing is excluded from final goal evidence"
         type: boolean
         default: false
 
@@ -86,6 +92,7 @@ jobs:
           docker run --rm --init \
             --user "$(id -u):$(id -g)" \
             --env HOME=/tmp --env BENCHMARK_RUNNER_CLASS=github-hosted-docker \
+            --env POSTHOG_HANDOFF_DIAGNOSTIC=${{ inputs.handoff_probe && '1' || '0' }} \
             --env PYTHONPATH=/workspace:/workspace/src \
             --volume "$GITHUB_WORKSPACE/candidate:/workspace" \
             dbworker-posthog-diagnostic benchmarks/run_all.py \
@@ -99,6 +106,24 @@ jobs:
             --source candidate/benchmarks/results/posthog-diagnostic \
             --output candidate-artifact --suite posthog
           cp "candidate/$REGISTRY_PATH" candidate-artifact/registry.json
+      - name: Analyze sampled handoff phases after services stop
+        if: ${{ always() && inputs.handoff_probe }}
+        run: |
+          status=0
+          found=0
+          for trace in candidate-artifact/posthog-*-dbworker/handoff.jsonl; do
+            if [ ! -f "$trace" ]; then continue; fi
+            found=1
+            directory="$(dirname "$trace")"
+            python3 candidate/benchmarks/diagnostics/analyze_handoff.py \
+              --trace "$trace" --workflow "$directory/workflow.jsonl" \
+              --output "$directory/handoff-analysis.json" || status=1
+          done
+          if [ "$found" -eq 0 ]; then
+            echo "No handoff trace was produced; diagnostic evidence is unavailable"
+            exit 1
+          fi
+          exit "$status"
       - name: Upload baseline evidence and diagnostics
         if: ${{ always() && inputs.run_baseline }}
         uses: actions/upload-artifact@v4

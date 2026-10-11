@@ -172,14 +172,16 @@ class MatrixResultsTests(unittest.TestCase):
             root = Path(directory)
             source = root / "source"
             for name in ["index.json", "first.json", "first.log", "first.config.json",
-                         "private/sample.json", "private/smtp-evidence.json", "private/output-evidence.json", "private/request.db", "private/document.pdf"]:
+                         "private/sample.json", "private/smtp-evidence.json", "private/output-evidence.json",
+                         "private/handoff.jsonl.invalid-123", "private/request.db", "private/document.pdf"]:
                 path = source / name
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text("{}")
             output = root / "artifact"
             package(source, output, "first")
             self.assertEqual({str(p.relative_to(output)) for p in output.rglob("*") if p.is_file()},
-                             {"index.json", "first.json", "first.log", "private/sample.json", "private/smtp-evidence.json", "private/output-evidence.json"})
+                             {"index.json", "first.json", "first.log", "private/sample.json", "private/smtp-evidence.json",
+                              "private/output-evidence.json", "private/handoff.jsonl.invalid-123"})
 
 
 if __name__ == "__main__":

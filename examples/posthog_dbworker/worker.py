@@ -38,6 +38,9 @@ def main():
         signal.signal(signum, lambda number, frame: stopping.set())
     runtime = coordinator(args.database_url, concurrency=args.concurrency)
     try:
+        if os.environ.get("DBWORKER_HANDOFF_TRACE_PATH"):
+            from benchmarks.common.handoff_probe import install
+            install(runtime)
         runtime.start()
         receipt = {"pid": os.getpid(), "concurrency": args.concurrency,
                    "timestamp_ns": time.time_ns(),
