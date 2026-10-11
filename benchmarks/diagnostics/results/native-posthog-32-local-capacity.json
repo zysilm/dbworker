@@ -1,0 +1,145 @@
+{
+  "status": "invalid",
+  "scope": "Local native PostHog PostgreSQL 32-worker paired comparison",
+  "repository_head": "edb488a847f68b3df13ba392188f9c6e8423b3dd",
+  "workload": {
+    "api_requests": 5000,
+    "logical_tasks": 10000,
+    "producer_concurrency": 8,
+    "worker_concurrency": 32,
+    "planned_arrival_seconds": 60,
+    "warmup_requests": 32,
+    "planned_pairs": 3
+  },
+  "completed_samples": [],
+  "performance_metrics": null,
+  "warm_pid_coverage": "unavailable; worker readiness was not reached",
+  "attempts": [
+    {
+      "platform": "macOS arm64",
+      "status": "invalid",
+      "reason": "Native Celery prefork children received SIGSEGV before workload measurement",
+      "artifact_directory": "/tmp/dbworker-posthog-32-local-results",
+      "cleanup": "Owned process tree terminated; no surviving owned PIDs",
+      "cpu_count": 8,
+      "memory_limit_bytes": 8589934592
+    },
+    {
+      "platform": "Local Docker Linux aarch64",
+      "status": "invalid",
+      "reason": "Native Celery startup exceeded local container memory capacity; backend received SIGKILL and Docker recorded OOMKilled=true",
+      "docker_state": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": true,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 1,
+        "Error": "",
+        "StartedAt": "2026-10-11T17:16:00.661318176Z",
+        "FinishedAt": "2026-10-11T17:17:53.459174356Z"
+      },
+      "cpu_count": 4,
+      "memory_limit_bytes": 8307101696,
+      "observed_memory_usage_gib": 6.362,
+      "observed_memory_limit_gib": 7.737,
+      "memory_observation_scope": "One pre-exit docker stats observation, not the peak",
+      "native_pool": "32 (prefork)",
+      "backend_started": "celery",
+      "dbworker_started": false,
+      "measured_sample_exists": false,
+      "workflow_trace_exists": false,
+      "artifact_directory": "/tmp/dbworker-posthog-32-local-linux-results",
+      "cleanup": "Owned stopped container removed after verified host artifact/config/source backup; unused prepared diagnostic image removed. Original baseline container and original base image preserved."
+    },
+    {
+      "platform": "Local Docker Linux aarch64",
+      "scope": "Exactly one standalone dbworker capacity diagnostic; not a paired score",
+      "backend": "dbworker",
+      "status": "invalid",
+      "reason": "Backend received SIGKILL during native worker initialization; Docker recorded OOMKilled=true",
+      "returncode": -9,
+      "docker_state": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": true,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 0,
+        "Error": "",
+        "StartedAt": "2026-10-11T17:22:24.532296608Z",
+        "FinishedAt": "2026-10-11T17:24:59.800671152Z"
+      },
+      "owned_container": "dbworker-posthog-32-local-dbworker",
+      "cpu_count": 4,
+      "memory_limit_bytes": 8307101696,
+      "maximum_observed_memory_gib": 7.381,
+      "memory_observation_scope": "Maximum of five-second docker stats observations, not a guaranteed peak",
+      "worker_ready_receipt": {
+        "pid": 80,
+        "concurrency": 32,
+        "timestamp_ns": 1791739396364239006,
+        "readiness_scope": "coordinator started; application warmup is separate"
+      },
+      "warmup_submitted_events": 32,
+      "warmup_started_events": 0,
+      "warmup_succeeded_events": 0,
+      "measured_events": 0,
+      "measured_sample_exists": false,
+      "artifact_directory": "/tmp/dbworker-posthog-32-local-linux-dbworker-results",
+      "resource_ledger_sha256": "805b84f43a122ebb255b5bef5ddf1b579a66738bed04637ae553562b45bfd90d",
+      "cleanup": "Owned stopped container removed after verified host artifact/config/source backup; unused prepared diagnostic image removed. Original baseline container and original base image preserved.",
+      "standalone_launcher_sha256": {
+        "run-standalone32.py": "64e3810279e83c38963715bec64845edd02a2c4ea5e2371a99ee8b4bdf786faa",
+        "standalone32-config.json": "23954cca1fd75c5039ef30953e6236351d5c7707b0e33231cb7af3a91a93f468"
+      }
+    }
+  ],
+  "interpretation": "Celery accepts concurrency 32. Both native backends were attempted with identical 32-worker PostgreSQL workload settings on the local Linux machine and exceeded its available memory during startup. No admitted samples or comparative scores exist. This does not reproduce the separate SQLite 64-worker issue.",
+  "provenance": {
+    "upstream_repository": "https://github.com/PostHog/posthog",
+    "upstream_commit": "526d64dd82340b1bf4293d6d9baea7e965997048",
+    "linux_environment_image_id": "sha256:5472a8a2cac2a0e83e8982889576807206af917730ed6e5dd766be860f3d57c8",
+    "python_version": "3.14.7",
+    "celery_version": "5.6.3",
+    "sqlalchemy_version": "2.0.54",
+    "linux_source_manifest_path": "/tmp/dbworker-posthog-32-local-linux-results/source-manifest.json",
+    "linux_source_manifest_sha256": "4c06b6a3921ecad16aeaca5e34a66411851d87c6b0f384019ebe315b3b589ece",
+    "mac_source_manifest_path": "/tmp/dbworker-posthog-32-local-preparation/posthog-1-celery-manifest.json",
+    "effective_source_sha256": {
+      "benchmarks/requirements.txt": "ce972e5602f1badf47b56ce597ebf4a3cbc516ca6c8979c95ee75c067d275840",
+      "src/dbworker.py": "e9f3648e3905938dc965502222c8f8e80510becfb065cd94c5a6208b61277689",
+      "benchmarks/common/business_evidence.py": "1bf6485f2fa5fa91ad561478dbbf55a513fe035c8d45d0793c6b0d8f98364b4c",
+      "benchmarks/common/performance_admission.py": "0672821b6c7dffc41e6aab391b1b47b994071740a25f0d5966fd78c7aaec51b3",
+      "benchmarks/diagnostics/posthog-32-registry.json": "8b3d744b2a5493ccae1c4735c72c2042e86ab37a62aaaaa18122492ca2fbae92",
+      "benchmarks/upstream/posthog_backend.py": "ea7cf16d8ecaa317ba493d7ad4205d7bdcd3ea58953764923fd041ea3fc6ad67"
+    }
+  },
+  "validation": {
+    "targeted_unit_tests": {
+      "passed": 42,
+      "command": "python3 -m unittest benchmarks.tests.test_posthog_worker_profile benchmarks.tests.test_business_evidence benchmarks.tests.test_performance_admission benchmarks.tests.test_native_admission -q"
+    },
+    "native_celery_ast_check": "passed: python3 -m benchmarks.check_native --suite posthog",
+    "official_worker_concurrency": 8,
+    "public_api_changed": false,
+    "business_workload_reduced": false,
+    "execution_pool_changed": false,
+    "core_changed_for_diagnostic": false,
+    "native_startup_evidence": "Worker log reports concurrency: 32 (prefork); driver command uses original posthog.celery:app with --concurrency 32",
+    "measured_or_warm_events": "Celery Linux produced no workflow trace. Standalone dbworker recorded 32 warmup submissions but zero task starts, successes, or measured events; no warm PID coverage or admitted score exists.",
+    "dbworker_executed": true,
+    "capacity_scope": "Local machine capacity/startup diagnostic only; excluded from README performance comparisons"
+  },
+  "cleanup_evidence": {
+    "owned_container_inspect_path": "/tmp/dbworker-posthog-32-local-linux-results/owned-container-inspect.json",
+    "prepared_image_inspect_path": "/tmp/dbworker-posthog-32-local-linux-results/prepared-image-inspect.json",
+    "preserved_original_container": "dbworker-posthog-local-diagnostic",
+    "host_evidence_and_source_snapshots_preserved": true,
+    "executed_dbworker_backend_and_config_hashes_verified": true
+  }
+}

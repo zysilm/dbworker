@@ -18,7 +18,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, TypeAlias, TypeVar, cast
 from multiprocessing.util import Finalize
 
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, String, Table, Text, and_, create_engine, event, exists, inspect, insert, or_, select, update
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, String, Table, Text, and_, create_engine, event, exists, inspect, insert, or_, select, tuple_, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine import CursorResult, RowMapping, URL, make_url
 from sqlalchemy.orm import DeclarativeBase, Mapper, Session, sessionmaker
@@ -368,6 +368,39 @@ class Coordinator:
             return self._claim_with_db_lock(worker)
         return self._claim_with_conditional_update(worker)
 
+    def _claim_many(self, worker: _Worker, limit: int) -> list[Claim]:
+        """Commit ownership for free execution slots before dispatching work."""
+        if limit == 1:
+            claim = self.claim(worker)
+            return [] if claim is None else [claim]
+        supports_skip_locked = self._supports_skip_locked
+        timestamp = now()
+        with self.session_factory.begin() as session:
+            connection = session.connection()
+            if (connection.dialect.name == "sqlite"
+                    and not connection.connection.driver_connection.in_transaction):
+                # Legacy sqlite3 transaction control does not begin on SELECT.
+                # Without an outer transaction, releasing the first insertion
+                # savepoint would commit it even if a later claim fails.
+                connection.exec_driver_sql("BEGIN IMMEDIATE")
+            query = self._candidate(worker, timestamp).limit(limit)
+            if supports_skip_locked:
+                query = query.with_for_update(skip_locked=True, of=worker.source_table)
+            # Custom eligibility joins may return the same source more than once.
+            source_ids = dict.fromkeys(session.scalars(query))
+            claims = [claim for source_id in source_ids
+                      if (claim := self._record_claim(session, worker, source_id, timestamp)) is not None]
+            if claims:
+                # Earlier records must not enter the queue with leases aged by
+                # the rest of this batch. Refresh while ownership is still locked.
+                table = worker.table
+                session.execute(update(table).where(
+                    table.c.execution_status == ExecutionStatus.WORKING,
+                    tuple_(table.c.source_id, table.c.claim_token).in_(
+                        [(claim.source_id, claim.token) for claim in claims]),
+                ).values(lease_expires_at=now() + timedelta(seconds=self.lease_seconds)))
+            return claims
+
     def renew(self, worker: _Worker, claims: Iterable[Claim]) -> None:
         table = worker.table
         with self.session_factory.begin() as session:
@@ -400,8 +433,11 @@ class Coordinator:
             for future in list(active):
                 if future.done():
                     claim = active.pop(future)
+                    # Completion can publish eligible children after an empty query.
+                    next_claim_at = 0.0
                     try:
                         future.result()
+                        delay = self.poll_seconds
                     except LostClaim:
                         logger.info("Discarded stale result for %s:%s", worker.name, claim.source_id)
                     except Exception as exc:
@@ -413,16 +449,17 @@ class Coordinator:
                 next_renewal = time.monotonic() + self.lease_seconds / 3
             if not self._stop.is_set() and time.monotonic() >= next_claim_at:
                 while len(active) < worker.concurrency and not self._stop.is_set():
-                    next_claim = self.claim(worker)
-                    if next_claim is None:
+                    claims = self._claim_many(worker, worker.concurrency - len(active))
+                    if not claims:
                         next_claim_at = time.monotonic() + delay
                         delay = min(delay * 2, self.max_poll_seconds)
                         break
                     delay = self.poll_seconds
                     next_claim_at = 0.0
-                    future = handlers.submit(_execute_in_process, next_claim)
-                    active[future] = next_claim
-                    future.add_done_callback(lambda completed: wakeup.set())
+                    for claim in claims:
+                        future = handlers.submit(_execute_in_process, claim)
+                        active[future] = claim
+                        future.add_done_callback(lambda completed: wakeup.set())
             deadlines: list[float] = []
             if active:
                 deadlines.append(next_renewal)

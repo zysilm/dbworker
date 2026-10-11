@@ -9,6 +9,7 @@ import json
 import os
 import platform
 import shutil
+import signal
 import socket
 import subprocess
 import sys
@@ -27,7 +28,7 @@ from sqlalchemy.orm import sessionmaker
 from dbworker import ExecutionStatus
 
 from benchmarks.common.reporting import write_json
-from benchmarks.common.business_evidence import validate_posthog_delivery_records
+from benchmarks.common.business_evidence import validate_posthog_delivery_records, trusted_warmup_requests, trusted_posthog_worker_concurrency
 from benchmarks.common.load import run_load
 from benchmarks.common.load_evidence import task_load_metrics
 from examples.posthog_dbworker.runtime import Job, STAGES, coordinator, enqueue
@@ -35,6 +36,7 @@ from benchmarks.common.native_observer import operation
 from benchmarks.common.native_admission import check_original_tasks
 from benchmarks.common.workflow_graph import read_trace, validate_graph
 from benchmarks.common.timing_evidence import begin_window, end_window, elapsed_seconds, validate_timing_window
+from benchmarks.common.smtp_receiver import SMTPReceiver
 from examples.posthog_dbworker import producer
 
 
@@ -72,15 +74,19 @@ def main():
     args = parser.parse_args()
     config = json.loads(args.config.read_text())
     profile = config["suite"]["profiles"][config["profile"]]
+    warmup_count = trusted_warmup_requests("posthog", profile)
+    workers = trusted_posthog_worker_concurrency(profile)
     directory = Path(config["output_directory"]).resolve() / f"posthog-{args.repetition}-{args.backend}"
     directory.mkdir()
     children, streams = [], []
-    runtime = engine = smtp = None
+    runtime = engine = smtp = dbworker_service = None
+    worker_service_readiness = None
 
-    def launch(command, name):
+    def launch(command, name, *, new_session=False):
         stream = (directory / name).open("wb")
         streams.append(stream)
-        child = subprocess.Popen(command, stdout=stream, stderr=subprocess.STDOUT)
+        child = subprocess.Popen(command, stdout=stream, stderr=subprocess.STDOUT,
+                                 start_new_session=new_session)
         children.append(child)
         return child
 
@@ -113,17 +119,8 @@ def main():
         os.environ.update(DBWORKER_DATABASE_URL=url, POSTHOG_BENCHMARK_DATABASE="notification",
                           POSTHOG_BENCHMARK_PG_PORT=str(pg_port), POSTHOG_BENCHMARK_PG_USER="benchmark",
                           PYTHONPATH=str(ROOT) + os.pathsep + str(ROOT / "src"))
-        from aiosmtpd.controller import Controller
-        class Sink:
-            def __init__(self):
-                self.messages = []
-            async def handle_DATA(self, server, session, envelope):
-                self.messages.append({"mail_from": envelope.mail_from, "rcpt_tos": envelope.rcpt_tos,
-                                      "content": bytes(envelope.original_content)})
-                return "250 Message accepted"
-        sink = Sink()
         smtp_port = port()
-        smtp = Controller(sink, hostname="127.0.0.1", port=smtp_port)
+        sink = smtp = SMTPReceiver(smtp_port)
         smtp.start()
         os.environ.update(EMAIL_HOST="127.0.0.1", EMAIL_PORT=str(smtp_port),
                           EMAIL_DEFAULT_FROM="sender@benchmark.invalid", EMAIL_REPLY_TO="reply@benchmark.invalid",
@@ -162,10 +159,10 @@ def main():
                     "OTEL_SDK_DISABLED": True, "OPT_OUT_CAPTURE": True, "TEST": False},
                 "autoretry": "original Exception max3 with backoff/jitter",
                 "worker_prefetch_multiplier": app.conf.worker_prefetch_multiplier,
-                "worker_total_concurrency": 8, "dbworker_shared_stage_pool": 8,
+                "worker_total_concurrency": workers, "dbworker_shared_stage_pool": workers,
                 "task_acks_late": app.conf.task_acks_late})
         users, expected, fixtures = [], {}, []
-        for index in range(profile["requests"] + 2):
+        for index in range(profile["requests"] + warmup_count):
             recipient = f"recipient-{index:04d}@benchmark.invalid"
             user = User.objects.create_user(email=recipient, password=None,
                 first_name=f"Benchmark User {index:04d}", distinct_id=f"benchmark-user-{index:04d}")
@@ -178,16 +175,36 @@ def main():
                           PYTHONPATH=os.pathsep.join((str(ROOT), str(ROOT / "src"), str(ROOT / "examples/posthog"))))
         engine = create_engine(url)
         sessions = sessionmaker(engine)
-        runtime = coordinator(url, concurrency=8) if args.backend == "dbworker" else None
+        runtime = coordinator(url, concurrency=workers) if args.backend == "dbworker" else None
+        os.environ.pop("DBWORKER_HANDOFF_TRACE_PATH", None)
         if args.backend == "celery":
             launch([sys.executable, "-m", "celery", "-A", "posthog.celery:app", "worker",
                     "--include", "benchmarks.common.native_observer", "--queues", "email",
-                    "--concurrency", "8", "--loglevel", "WARNING", "--hostname", f"posthog-{redis_port}@localhost"], "worker.log")
+                    "--concurrency", str(workers), "--loglevel", "WARNING", "--hostname", f"posthog-{redis_port}@localhost"], "worker.log")
             wait_for(lambda: app.control.ping(timeout=1))
         else:
-            runtime.start()
+            ready_file = directory / "worker-ready.json"
+            if os.environ.get("POSTHOG_HANDOFF_DIAGNOSTIC") == "1":
+                os.environ["DBWORKER_HANDOFF_TRACE_PATH"] = str(directory / "handoff.jsonl")
+            dbworker_service = launch(
+                [sys.executable, "-m", "examples.posthog_dbworker.worker",
+                 "--concurrency", str(workers), "--ready-file", str(ready_file)],
+                "worker.log", new_session=True)
 
-        warmup_operations = [f"warmup:notification-{i:04d}" for i in range(2)]
+            def dbworker_ready():
+                if dbworker_service.poll() is not None:
+                    raise RuntimeError("The PostHog dbworker service exited before readiness")
+                if not ready_file.exists():
+                    return False
+                receipt = json.loads(ready_file.read_text())
+                if receipt["pid"] != dbworker_service.pid or receipt["concurrency"] != workers:
+                    raise RuntimeError("The PostHog dbworker service readiness identity differs")
+                return True
+
+            wait_for(dbworker_ready)
+            worker_service_readiness = json.loads(ready_file.read_text())
+
+        warmup_operations = [f"warmup:notification-{i:04d}" for i in range(warmup_count)]
         producer_identities, api_outcomes = [], []
 
         def execute_batch(values, fixture_values, warmup=False):
@@ -214,7 +231,7 @@ def main():
                 finally:
                     connections.close_all()
             load = run_load(list(zip(ops, values, fixture_values, strict=True)), submit,
-                producers=1 if warmup else profile.get("producers", 8),
+                producers=profile.get("producers", 8),
                 duration_seconds=0 if warmup else profile.get("submission_window_seconds", 60))
             for result in load.pop("results"):
                 producer_identities.append(result["identity"])
@@ -225,8 +242,7 @@ def main():
                 nonlocal latest_graph_error
                 if any(child.poll() is not None for child in children):
                     raise RuntimeError("A native PostHog service exited")
-                accepted = [row for row in sink.messages if row["rcpt_tos"][0] in recipients]
-                if len(accepted) != len(values):
+                if sink.accepted_count(recipients) != len(values):
                     return False
                 try:
                     graph = validate_graph(read_trace(trace), ops,
@@ -243,16 +259,17 @@ def main():
             try:
                 graph = wait_for(complete, timeout=max(180, len(values) * 10))
             except TimeoutError as error:
-                accepted = sum(row['rcpt_tos'][0] in recipients for row in sink.messages)
+                accepted = sink.accepted_count(recipients)
                 raise TimeoutError(f'{error}; accepted SMTP messages: {accepted}/{len(values)}; '
                                    f'latest workflow admission error: {latest_graph_error}') from error
             window = end_window(started)
             seconds = elapsed_seconds(window)
             validate_timing_window(window, seconds, read_trace(trace), ops)
             return seconds, graph, window, load
-        execute_batch(users[:2], fixtures[:2], warmup=True)
-        seconds, graph, measurement_window, load_metrics = execute_batch(users[2:], fixtures[2:])
-        expected_recipients = sorted(user.email for user in users[2:])
+        execute_batch(users[:2] + users[profile["requests"] + 2:],
+                      fixtures[:2] + fixtures[profile["requests"] + 2:], warmup=True)
+        seconds, graph, measurement_window, load_metrics = execute_batch(users[2:profile["requests"] + 2], fixtures[2:profile["requests"] + 2])
+        expected_recipients = sorted(user.email for user in users[2:profile["requests"] + 2])
         normalized, ids = [], set()
         for envelope in sink.messages:
             if len(envelope["rcpt_tos"]) != 1:
@@ -297,10 +314,10 @@ def main():
                "unavailable_metrics": {"cpu_seconds": "Not collected by this suite",
                                        "peak_rss_bytes": "Not collected by this suite"},
                "validation": {"passed": True, "output_digest": hashlib.sha256(json.dumps(normalized, sort_keys=True).encode()).hexdigest(),
-                              "messages": len(normalized), "warmup_messages": 2, "duplicate_acceptance": 0},
+                              "messages": len(normalized), "warmup_messages": warmup_count, "duplicate_acceptance": 0},
                "environment": {"python": platform.python_version(), "interpreter": sys.executable, "packages": packages,
                                "upstream_files": source_files},
-               "configuration": {"concurrency": 8, "database": "postgresql", "transport": "real_local_smtp",
+               "configuration": {"concurrency": workers, "database": "postgresql", "transport": "real_local_smtp",
                                  "rendering_timed": True, "rendering_validated": True,
                                  "application_scope": "original authenticated two_factor_validate DRF handler plus notification and delivery",
                                  "producer_api": "posthog.api.user.UserViewSet.two_factor_validate",
@@ -308,12 +325,14 @@ def main():
                                  "producer_api_timed": True, "producer_api_effects_validated": True,
                                  "celery_publication": "original API .delay and native nested delivery publication",
                                  "fault_recovery": "untested"},
-               "dataset": {"template": "2fa_enabled", "requests": profile["requests"], "warmup_requests": 2,
+               "dataset": {"template": "2fa_enabled", "requests": profile["requests"], "warmup_requests": warmup_count,
                            "content": "real users and original 2FA notification content"},
                "capabilities": {"verified": ["upstream_template_rendering", "css_inlining", "smtp_acceptance", "messaging_records", "two_stage_workflow", "native_task_origin", "two_factor_validation_api",
                                              "totp_device", "session_verification", "setup_cache_cleanup", "other_session_revocation"],
                                 "untested": ["whole_http_middleware_stack", "clickhouse_queries", "delivery_retries", "ambiguous_acceptance_recovery",
                                              "campaign_deduplication", "salt_rotation", "rejection_and_error_capture"]}}
+        if worker_service_readiness is not None:
+            row["configuration"]["worker_service_readiness"] = worker_service_readiness
         row["measurement_window"] = measurement_window
         row["warmup_operations"] = warmup_operations
         row["producer_identities"] = producer_identities
@@ -321,7 +340,7 @@ def main():
         row["producer_execution"] = {
             "passed": True, "api": "posthog.api.user.UserViewSet.two_factor_validate",
             "source_file": "posthog/api/user.py", "sha256": source_files["api/user.py"],
-            "measured_calls": profile["requests"], "warmup_calls": 2,
+            "measured_calls": profile["requests"], "warmup_calls": warmup_count,
             "effects": ["verified_totp_device", "persistent_session_flags", "setup_cache_cleanup", "other_session_revocation"],
             "root_jobs_per_call": 1, "delivery_jobs_per_call": 1}
         row["native_execution"] = native_execution
@@ -331,9 +350,25 @@ def main():
                                  "sha256": hashlib.sha256(trace.read_bytes()).hexdigest()}
         row["metrics"]["task_load"] = task_load_metrics(read_trace(trace), [f"notification-{i:04d}" for i in range(profile["requests"])])
         row["configuration"]["producer_concurrency"] = profile.get("producers", 8)
+        row["configuration"]["warmup_producer_concurrency"] = profile.get("producers", 8)
         row["configuration"]["submission_window_seconds"] = profile.get("submission_window_seconds", 60)
         row["configuration"]["load_profile"] = "One fixed open-loop schedule; no concurrency or rate sweep"
         row["configuration"]["contention_observation"] = "Concurrent API submission latency, lateness and task backlog; database lock wait duration unavailable"
+        row["configuration"]["scheduler_placement"] = "Separate worker service process; eight handler processes"
+        row["configuration"]["smtp_receiver_placement"] = "Separate owned process; exact envelopes exported after measurement"
+        if os.environ.get("POSTHOG_HANDOFF_DIAGNOSTIC") == "1":
+            handoff_trace = directory / "handoff.jsonl"
+            markers = sorted(path.name for path in directory.glob("handoff.jsonl.invalid-*"))
+            worker_log = directory / "worker.log"
+            logging_failed = (worker_log.is_file() and
+                "DBWORKER_HANDOFF_DIAGNOSTIC_INVALID" in worker_log.read_text(errors="replace"))
+            row["configuration"]["handoff_diagnostic"] = {
+                "instrumented": args.backend == "dbworker", "eligible_for_goal_evidence": False,
+                "sample_period": 32, "invalid_markers": markers,
+                "logging_failed": logging_failed,
+                "trace_path": str(handoff_trace.relative_to(Path(config["output_directory"]).resolve()))
+                    if args.backend == "dbworker" else None,
+                "scope": "Sampled mechanism diagnostics; final paired scores require instrumentation disabled"}
         write_json(directory / "sample.json", row)
     except Exception as exc:
         write_json(directory / "admission.json", {"schema_version": 1, "suite_id": "posthog",
@@ -342,6 +377,20 @@ def main():
             "performance_sample_created": False})
         raise
     finally:
+        # Drain the worker while its database and SMTP dependencies are alive.
+        # Its own process group includes spawned handlers and the resource tracker.
+        if dbworker_service is not None:
+            if dbworker_service.poll() is None:
+                dbworker_service.terminate()
+            try:
+                dbworker_service.wait(timeout=60)
+            except subprocess.TimeoutExpired:
+                pass
+            try:
+                os.killpg(dbworker_service.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            dbworker_service.wait()
         if runtime is not None:
             runtime.stop()
             runtime.session_factory.kw["bind"].dispose()

@@ -1,0 +1,147 @@
+name: PostHog optimization diagnostic
+
+# A native API failure invalidates the full three-pair acceptance run.
+# Repeat the complete workload without retrying or discarding failed API calls.
+
+on:
+  push:
+    branches: [feature/worker-handoff-profiling]
+    paths:
+      - src/dbworker.py
+      - examples/posthog_dbworker/worker.py
+      - examples/posthog_dbworker/runtime.py
+      - benchmarks/upstream/posthog_backend.py
+      - benchmarks/common/native_observer.py
+      - benchmarks/common/handoff_probe.py
+      - benchmarks/diagnostics/analyze_handoff.py
+      - benchmarks/common/smtp_receiver.py
+      - benchmarks/common/business_evidence.py
+      - benchmarks/common/performance_admission.py
+      - benchmarks/run_all.py
+      - benchmarks/diagnostics/posthog-fullwarm-registry.json
+      - .github/workflows/benchmark-posthog-diagnostic.yml
+  workflow_dispatch:
+    inputs:
+      run_baseline:
+        description: "Compare the immutable baseline with original two-operation warmup on both sources"
+        type: boolean
+        default: false
+      handoff_probe:
+        description: "Record sampled handoff phases; diagnostic timing is excluded from final goal evidence"
+        type: boolean
+        default: false
+
+concurrency:
+  group: posthog-optimization-diagnostic-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  paired-sources:
+    name: "2FA - 5,000 APIs, 10,000 tasks, 8 slots, three paired repetitions"
+    if: startsWith(github.ref, 'refs/heads/feature/')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      # The immutable baseline cannot admit the newer full-pool warmup profile.
+      REGISTRY_PATH: ${{ inputs.run_baseline && 'benchmarks/registry.json' || 'benchmarks/diagnostics/posthog-fullwarm-registry.json' }}
+      # An explicit commit marker also permits diagnostics through the existing push trigger.
+      HANDOFF_PROBE: ${{ inputs.handoff_probe || (github.event_name == 'push' && contains(github.event.head_commit.message, '[handoff probe]')) }}
+    steps:
+      - name: Check out the optimization candidate
+        uses: actions/checkout@v5
+        with:
+          path: candidate
+      - name: Check out the immutable baseline
+        if: inputs.run_baseline
+        uses: actions/checkout@v5
+        with:
+          ref: 69d9fbd8442c714f361a5e9196bd314aed75f099
+          path: baseline
+      - name: Initialize and admit the same original PostHog source
+        run: |
+          for source in candidate baseline; do
+            if [ ! -d "$source" ]; then continue; fi
+            git -C "$source" submodule update --init --depth 1 -- examples/posthog
+            (cd "$source" && python3 -m benchmarks.check_native --suite posthog)
+          done
+      - name: Build the existing isolated benchmark image
+        run: docker build --pull --tag dbworker-posthog-diagnostic --file candidate/benchmarks/Dockerfile candidate/benchmarks
+      - name: Run the immutable baseline first
+        if: inputs.run_baseline
+        env:
+          RUN_ID: github-${{ github.run_id }}-${{ github.run_attempt }}-baseline
+        run: |
+          docker run --rm --init \
+            --user "$(id -u):$(id -g)" \
+            --env HOME=/tmp --env BENCHMARK_RUNNER_CLASS=github-hosted-docker \
+            --env PYTHONPATH=/workspace:/workspace/src \
+            --volume "$GITHUB_WORKSPACE/baseline:/workspace" \
+            dbworker-posthog-diagnostic benchmarks/run_all.py \
+            --suite posthog --profile full --provision --run-id "$RUN_ID" \
+            --registry "$REGISTRY_PATH" \
+            --timeout-seconds 4800 --output-dir benchmarks/results/posthog-diagnostic
+      - name: Package baseline evidence
+        if: ${{ always() && inputs.run_baseline }}
+        run: |
+          python3 baseline/benchmarks/ci_results.py package \
+            --source baseline/benchmarks/results/posthog-diagnostic \
+            --output baseline-artifact --suite posthog
+      - name: Run the candidate after baseline shutdown
+        if: ${{ !cancelled() }}
+        env:
+          RUN_ID: github-${{ github.run_id }}-${{ github.run_attempt }}-candidate
+        run: |
+          docker run --rm --init \
+            --user "$(id -u):$(id -g)" \
+            --env HOME=/tmp --env BENCHMARK_RUNNER_CLASS=github-hosted-docker \
+            --env POSTHOG_HANDOFF_DIAGNOSTIC=${{ env.HANDOFF_PROBE == 'true' && '1' || '0' }} \
+            --env PYTHONPATH=/workspace:/workspace/src \
+            --volume "$GITHUB_WORKSPACE/candidate:/workspace" \
+            dbworker-posthog-diagnostic benchmarks/run_all.py \
+            --suite posthog --profile full --provision --run-id "$RUN_ID" \
+            --registry "$REGISTRY_PATH" \
+            --timeout-seconds 4800 --output-dir benchmarks/results/posthog-diagnostic
+      - name: Package candidate evidence
+        if: always()
+        run: |
+          python3 candidate/benchmarks/ci_results.py package \
+            --source candidate/benchmarks/results/posthog-diagnostic \
+            --output candidate-artifact --suite posthog
+          cp "candidate/$REGISTRY_PATH" candidate-artifact/registry.json
+      - name: Analyze sampled handoff phases after services stop
+        if: ${{ always() && env.HANDOFF_PROBE == 'true' }}
+        run: |
+          status=0
+          found=0
+          for trace in candidate-artifact/posthog-*-dbworker/handoff.jsonl; do
+            if [ ! -f "$trace" ]; then continue; fi
+            found=1
+            directory="$(dirname "$trace")"
+            python3 candidate/benchmarks/diagnostics/analyze_handoff.py \
+              --trace "$trace" --workflow "$directory/workflow.jsonl" \
+              --output "$directory/handoff-analysis.json" || status=1
+          done
+          if [ "$found" -eq 0 ]; then
+            echo "No handoff trace was produced; diagnostic evidence is unavailable"
+            exit 1
+          fi
+          exit "$status"
+      - name: Upload baseline evidence and diagnostics
+        if: ${{ always() && inputs.run_baseline }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: posthog-diagnostic-baseline
+          path: baseline-artifact/
+          retention-days: 2
+          if-no-files-found: warn
+      - name: Upload candidate evidence and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: posthog-diagnostic-candidate
+          path: candidate-artifact/
+          retention-days: 2
+          if-no-files-found: warn

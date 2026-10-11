@@ -1,0 +1,228 @@
+{
+  "schema_version": 1,
+  "scope": "GitHub Linux native PostHog full profile: three sequential paired repetitions, batch claims with commit-time lease refresh, original in-process dbworker scheduler and two-operation warmup.",
+  "ci": {
+    "run_id": 38017132312,
+    "url": "https://github.com/zysilm/dbworker/actions/runs/38017132312",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "source": {
+    "commit": "526d64dd82340b1bf4293d6d9baea7e965997048",
+    "comparison_contract": "native-business-workflow-v1",
+    "dirty": false,
+    "expected_commit": "526d64dd82340b1bf4293d6d9baea7e965997048",
+    "historical": false,
+    "implementation_sha256": {
+      "benchmarks/Dockerfile": "a658717d5a7dc6dfbaaf120c538d2af5fe7fdf8512e76381a315222ced800fce",
+      "benchmarks/common/__init__.py": "bb0609faf6962672e71a7f7c3a2fc365a274e9cd8eaf92ec8a548b88b4c7a2ec",
+      "benchmarks/common/argument_evidence.py": "427cfd39420208c5e903dc675ee88733713fb9436ce09b83baef6451f37cc3ae",
+      "benchmarks/common/business_evidence.py": "1d38050ab40c9d4825945d3d4aa8ad693abe9c6430367b81359e74978c58f44a",
+      "benchmarks/common/business_input.py": "55264bff288f42de6e26092865b3a350436dde00249af9fd425dd6fa2bfd8b90",
+      "benchmarks/common/load.py": "c97225cd53b4c7840979a3d459881e3c6da505fb7524152b5cf687a4cb003aa8",
+      "benchmarks/common/load_evidence.py": "7821c5a2510ef8292dbb2a84e489a4ee0758158e0a8db4fa02501835196d88ad",
+      "benchmarks/common/native_admission.py": "8af4cafb3d8770f39f6757938e02efaf61d26ca71a1dd2e02b8662271592a98a",
+      "benchmarks/common/native_binding.py": "e11fb7e4a2390e1ebdeeb075734ad77428332e369ec5dc239da049221957824e",
+      "benchmarks/common/native_observer.py": "598aebaace9d4f61c4893df9934acc1e4c8b1cf6e4295eb66ec28a657e68eb4a",
+      "benchmarks/common/performance_admission.py": "ea5fb3dfe6cfb4375d6151066e3c1136ddc31fad42b1c9dd127939c59ac88691",
+      "benchmarks/common/processes.py": "9c5cd3b0c68de327dcdac9087afed540af34a98d721af0297a162221e1928986",
+      "benchmarks/common/reporting.py": "4f29c7df823f4aa8bcfca4b776d91a5a09480086c4cd0898078644de6b1ad437",
+      "benchmarks/common/smtp_evidence.py": "0f65704808b43d1b8c029d33249122dc3ab71eb530740b0023676396a7898dfd",
+      "benchmarks/common/superset_output.py": "984e9b57a03a88c8541410792df123acb0c83eda8302f63e84fe2d74fcafe0d6",
+      "benchmarks/common/timing_evidence.py": "3ec9de7aa509f36808fa172878edc33d5b5a477bdb4afee302bb1fcd48ae10b0",
+      "benchmarks/common/workflow_graph.py": "a3b2847d838d232f7f0a43f29d5f801946af8a60923030109460c2436ef903ff",
+      "benchmarks/provision.py": "f94ab8fa20fdf7f18af4d29abaa7046a872eb8f3e73cb86830887700c560531d",
+      "benchmarks/registry.json": "c33b2cc4847b57b59f41d1253ed6bd7eda3166132364c695d9feef0e653cc236",
+      "benchmarks/requirements.txt": "ce972e5602f1badf47b56ce597ebf4a3cbc516ca6c8979c95ee75c067d275840",
+      "benchmarks/run_all.py": "cc4c4a45429f601a0155395f121e3a4a8ef047d5248d651790c7588eb29edb9c",
+      "benchmarks/upstream/__init__.py": "7c7d8a2dfdd9ec5e8abdce344b92e304feb675736a0423397975b3f8d7f18926",
+      "benchmarks/upstream/paperless_ngx_backend.py": "fd2bc927b08c75c15eb0ec83496bf2fb7867b161b833fbdaa030df00b14ee707",
+      "benchmarks/upstream/paperless_ngx_metrics.py": "8a39403b87385843eb4f47707ad73ca730065677ef53711d12e03e9759eeff80",
+      "benchmarks/upstream/posthog_backend.py": "c0812b4501dbe41105a2a8d84e518bf27507dbebcbe76f7b87892e724d069353",
+      "benchmarks/upstream/posthog_setup.py": "ea3217ebe2b5fc62a8abe57d2f7ade87b34f1c799c33ced7c3b01e93acb5897a",
+      "benchmarks/upstream/saleor_backend.py": "c06e596b4a7c8d7e1e469752d1c93c73a1e1a158f6eb4f03149e694018c96c80",
+      "benchmarks/upstream/sentry_backend.py": "89ef468147230f660773fd99a5c0e7e3d7475c24c84dc5829fbf24e870d73e2d",
+      "benchmarks/upstream/sentry_provision.py": "1472bf850f9fef82fc3c391eb5a67c0d205eb1a3ea7b3c09c5efd60c9bda8b68",
+      "benchmarks/upstream/suite.py": "aa37afa809f048666b7ef66193113a4de51d62e11fb61d4e8d971ca7017a1b33",
+      "benchmarks/upstream/superset_backend.py": "b23f8efeeabf03b8a5d513686b9bba289b2dd3e284f2ecc8987d4861e62fbb89",
+      "examples/dbworker_integration/__init__.py": "0ebfeefbbeea1f0514103c27d8514e230fd1a827c38ff1f14eeda119a6dfccb7",
+      "examples/dbworker_integration/runtime.py": "68a4017785b97be8276f9767e5458412f302eef87b75db6ac95dc2a18e96180e",
+      "examples/posthog_dbworker/__init__.py": "6bf7116c1960ed4b6f285b3fa2f1f3613d4a4c16406348eb9ab1026c2366522f",
+      "examples/posthog_dbworker/adapter.py": "87792051e1bef67fdb26753667070d2d1297650cc086612dbffca0f373fce5db",
+      "examples/posthog_dbworker/bootstrap.py": "a23c1cb0214027356e43742e5d0abd310d212dd001f5010728017b9a358ab1a4",
+      "examples/posthog_dbworker/producer.py": "861b11a3990f6728412297ae7111e0792a7d8240f49957662154d486c40d6422",
+      "examples/posthog_dbworker/runtime.py": "3e6345017ecd1e86bbcf37b67fba5ad52bfb541c76870a8f4cc788fc505db8b5",
+      "examples/posthog_dbworker/settings.py": "5b5059c3357029bf1bdf1344bb0ab78a1caca9b6c0094ad35192456dc2d99217",
+      "src/dbworker.py": "a8fb36be58797ce3ec7d5831d44dd96594a45b6e53cfe6d26ebfc66be921bd43"
+    },
+    "local_commit": "2d6bb505d458691b36032c68b138b252c10e73af",
+    "native_worker_admission": {
+      "check": "worker_command_ast",
+      "passed": true,
+      "worker_app": "posthog.celery:app"
+    },
+    "repository": "https://github.com/PostHog/posthog"
+  },
+  "profile": {
+    "backend_order": "alternating across repetitions",
+    "backends": {
+      "celery": {
+        "application_scope": "original authenticated two_factor_validate DRF handler plus notification and delivery",
+        "celery_publication": "original API .delay and native nested delivery publication",
+        "concurrency": 8,
+        "contention_observation": "Concurrent API submission latency, lateness and task backlog; database lock wait duration unavailable",
+        "database": "postgresql",
+        "fault_recovery": "untested",
+        "load_profile": "One fixed open-loop schedule; no concurrency or rate sweep",
+        "producer_api": "posthog.api.user.UserViewSet.two_factor_validate",
+        "producer_api_effects_validated": true,
+        "producer_api_timed": true,
+        "producer_concurrency": 8,
+        "rendering_timed": true,
+        "rendering_validated": true,
+        "request_transport": "DRF handler with native session authentication, CSRF, permissions and throttles; no full middleware/server",
+        "submission_window_seconds": 60,
+        "transport": "real_local_smtp"
+      },
+      "dbworker": {
+        "application_scope": "original authenticated two_factor_validate DRF handler plus notification and delivery",
+        "celery_publication": "original API .delay and native nested delivery publication",
+        "concurrency": 8,
+        "contention_observation": "Concurrent API submission latency, lateness and task backlog; database lock wait duration unavailable",
+        "database": "postgresql",
+        "fault_recovery": "untested",
+        "load_profile": "One fixed open-loop schedule; no concurrency or rate sweep",
+        "producer_api": "posthog.api.user.UserViewSet.two_factor_validate",
+        "producer_api_effects_validated": true,
+        "producer_api_timed": true,
+        "producer_concurrency": 8,
+        "rendering_timed": true,
+        "rendering_validated": true,
+        "request_transport": "DRF handler with native session authentication, CSRF, permissions and throttles; no full middleware/server",
+        "submission_window_seconds": 60,
+        "transport": "real_local_smtp"
+      }
+    },
+    "profile": {
+      "producers": 8,
+      "repetitions": 3,
+      "requests": 5000,
+      "submission_window_seconds": 60,
+      "worker_concurrency": 8
+    },
+    "sequential": true
+  },
+  "independent_admission": {
+    "passed": true,
+    "run_id": "github-38017132312-1-candidate",
+    "source_commit": "2d6bb505d458691b36032c68b138b252c10e73af",
+    "implementation_files_checked": 40,
+    "samples": 6,
+    "elapsed_seconds": 17.54888466699049
+  },
+  "measurements": {
+    "samples": [
+      {
+        "backend": "celery",
+        "rep": 1,
+        "wall": 236.487458285,
+        "submission_wall": 235.776561057,
+        "mean_execution_span": 5.91349584074707,
+        "mean_measurement": 5.893347718940747,
+        "peak": 8,
+        "backlog": 16,
+        "queue_p95": 0.119012988,
+        "digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15"
+      },
+      {
+        "backend": "dbworker",
+        "rep": 1,
+        "wall": 346.356075585,
+        "submission_wall": 237.547495997,
+        "mean_execution_span": 2.157051404116513,
+        "mean_measurement": 2.1471321857193573,
+        "peak": 8,
+        "backlog": 4230,
+        "queue_p95": 114.92404822,
+        "digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15"
+      },
+      {
+        "backend": "celery",
+        "rep": 2,
+        "wall": 227.793049811,
+        "submission_wall": 227.183736545,
+        "mean_execution_span": 6.199306778944966,
+        "mean_measurement": 6.179837549104283,
+        "peak": 8,
+        "backlog": 16,
+        "queue_p95": 0.117674107,
+        "digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15"
+      },
+      {
+        "backend": "dbworker",
+        "rep": 2,
+        "wall": 326.572881661,
+        "submission_wall": 224.031631392,
+        "mean_execution_span": 2.2057630104103465,
+        "mean_measurement": 2.1950729607583574,
+        "peak": 8,
+        "backlog": 4224,
+        "queue_p95": 120.294739298,
+        "digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15"
+      },
+      {
+        "backend": "celery",
+        "rep": 3,
+        "wall": 224.555382504,
+        "submission_wall": 223.860153701,
+        "mean_execution_span": 6.332112312791908,
+        "mean_measurement": 6.308935328124519,
+        "peak": 8,
+        "backlog": 18,
+        "queue_p95": 0.118854527,
+        "digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15"
+      },
+      {
+        "backend": "dbworker",
+        "rep": 3,
+        "wall": 312.53737004,
+        "submission_wall": 212.006089878,
+        "mean_execution_span": 2.2779849467779645,
+        "mean_measurement": 2.2674790541377527,
+        "peak": 8,
+        "backlog": 4135,
+        "queue_p95": 117.981641434,
+        "digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15"
+      }
+    ],
+    "medians": {
+      "celery": {
+        "wall": 227.793049811,
+        "mean_execution_span": 6.199306778944966,
+        "mean_measurement": 6.179837549104283,
+        "backlog": 16,
+        "queue_p95": 0.118854527
+      },
+      "dbworker": {
+        "wall": 326.572881661,
+        "mean_execution_span": 2.2057630104103465,
+        "mean_measurement": 2.1950729607583574,
+        "backlog": 4224,
+        "queue_p95": 117.981641434
+      }
+    }
+  },
+  "goal_evaluation": {
+    "achieved": false,
+    "median_wall_ratio": 1.4336384798919795,
+    "median_execution_concurrency_ratio": 0.3558080103249441,
+    "median_dbworker_peak_published_backlog": 4224,
+    "allowed_backlog": 32
+  },
+  "notes": [
+    "Execution concurrency integrates native started-to-succeeded intervals, not CPU usage.",
+    "Both backends execute 5000 original API calls and 10000 native workflow stages per repetition.",
+    "Deployment isolation is tested in a subsequent source; these results cover batching alone.",
+    "Every sample has identical output digest and zero dropped submissions."
+  ]
+}

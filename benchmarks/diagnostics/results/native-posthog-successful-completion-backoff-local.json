@@ -1,0 +1,150 @@
+{
+  "scope": "One sequential instrumented local native PostHog baseline/candidate diagnostic; not final Celery comparison or goal acceptance.",
+  "baseline_commit": "a1714339901f549e9ce029cce09cdb13e5ac19b2",
+  "change": "Reset adaptive empty-query delay after successful handler future completion; preserve failure and LostClaim behavior.",
+  "profile": {
+    "requests": 5000,
+    "repetitions": 3,
+    "producers": 8,
+    "submission_window_seconds": 60,
+    "worker_concurrency": 8,
+    "warmup_requests": 8
+  },
+  "samples": {
+    "baseline": {
+      "source_core_sha256": "96bc1912c15bc38d6948baa16fbcb2eeb405f9ac8b7ea12623f79baec498c228",
+      "native_business_admission": true,
+      "operations": 5000,
+      "business_tasks": 10000,
+      "output_digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15",
+      "wall_seconds": 78.67337125,
+      "actual_api_operations_per_second": 63.8573086128834,
+      "lifecycle": {
+        "mean_lifecycle_running_full_measurement": 2.888999862799436,
+        "mean_published_outstanding_full_measurement": 14.021820126527036,
+        "peak_running": 8,
+        "peak_published_outstanding": 49,
+        "time_weighted_p95_running": 8,
+        "time_weighted_p95_published_outstanding": 31,
+        "zero_handler_published_unfinished_intervals": 864,
+        "zero_handler_published_unfinished_seconds": 31.684591,
+        "zero_handler_intervals_at_least_200ms": 89,
+        "longest_zero_handler_intervals": [
+          5.660723,
+          0.276599,
+          0.269648,
+          0.268223,
+          0.267657,
+          0.267613,
+          0.267184,
+          0.266339,
+          0.266325,
+          0.266046,
+          0.265961,
+          0.265662,
+          0.265585,
+          0.265269,
+          0.265193,
+          0.265147,
+          0.264709,
+          0.264437,
+          0.264144,
+          0.264141
+        ],
+        "published_peak_within_latest_50": true,
+        "published_peak_within_previous_32": false
+      },
+      "measurement_swap": {
+        "measurement_sample_count": 73,
+        "scope": "Host-wide counters between first and last samples inside the measured window; setup, warmup and cleanup excluded. Sample endpoints cover a strict subset and cannot attribute swapping to the benchmark.",
+        "first_timestamp_ns": 1791720169149135000,
+        "last_timestamp_ns": 1791720246259209000,
+        "page_bytes": 16384,
+        "swapin_delta_pages": 82408,
+        "swapout_delta_pages": 88140,
+        "minimum_available_bytes": 1255342080
+      },
+      "queue_wait": {
+        "count": 10000,
+        "p50_seconds": 0.039778,
+        "p95_seconds": 0.282813,
+        "p99_seconds": 0.403042,
+        "max_seconds": 5.973451
+      },
+      "warm_workers": 8
+    },
+    "candidate": {
+      "source_core_sha256": "e9f3648e3905938dc965502222c8f8e80510becfb065cd94c5a6208b61277689",
+      "native_business_admission": true,
+      "operations": 5000,
+      "business_tasks": 10000,
+      "output_digest": "7685a10a32baff2a32219334675fcee3f76cda40d99c7a4a80ee26133cb22b15",
+      "wall_seconds": 78.473427167,
+      "actual_api_operations_per_second": 64.08363101853912,
+      "lifecycle": {
+        "mean_lifecycle_running_full_measurement": 2.9166227992503377,
+        "mean_published_outstanding_full_measurement": 6.018543463811461,
+        "peak_running": 8,
+        "peak_published_outstanding": 40,
+        "time_weighted_p95_running": 8,
+        "time_weighted_p95_published_outstanding": 12,
+        "zero_handler_published_unfinished_intervals": 1496,
+        "zero_handler_published_unfinished_seconds": 18.217345,
+        "zero_handler_intervals_at_least_200ms": 1,
+        "longest_zero_handler_intervals": [
+          0.303568,
+          0.079445,
+          0.076063,
+          0.074614,
+          0.073837,
+          0.071725,
+          0.071678,
+          0.07097,
+          0.070951,
+          0.07076,
+          0.070248,
+          0.070015,
+          0.069894,
+          0.069858,
+          0.069734,
+          0.069647,
+          0.069636,
+          0.069612,
+          0.069603,
+          0.069528
+        ],
+        "published_peak_within_latest_50": true,
+        "published_peak_within_previous_32": false
+      },
+      "measurement_swap": {
+        "measurement_sample_count": 73,
+        "scope": "Host-wide counters between first and last samples inside the measured window; setup, warmup and cleanup excluded. Sample endpoints cover a strict subset and cannot attribute swapping to the benchmark.",
+        "first_timestamp_ns": 1791720431139344000,
+        "last_timestamp_ns": 1791720508765083000,
+        "page_bytes": 16384,
+        "swapin_delta_pages": 99454,
+        "swapout_delta_pages": 110752,
+        "minimum_available_bytes": 1246822400
+      },
+      "queue_wait": {
+        "count": 10000,
+        "p50_seconds": 0.016372,
+        "p95_seconds": 0.063296,
+        "p99_seconds": 0.094589,
+        "max_seconds": 0.322601
+      },
+      "warm_workers": 8
+    }
+  },
+  "source_evidence_sha256": "039825f63759fa924b619bd5f831d6d49dc21b67cc3fb63ddb774e8de20a9834",
+  "core_tests_passed": 27,
+  "limitations": [
+    "One baseline-first pair cannot establish repeatability or isolate host effects.",
+    "Both arms contain sampled handoff instrumentation.",
+    "Host-wide swap counters differ and cannot be attributed solely to these processes.",
+    "Published unfinished tasks may be uncommitted or already claimed; lifecycle idle intervals do not prove missed eligible SQL rows.",
+    "The latest user acceptance threshold is a stable peak of at most 50; previous 32 threshold is retained in sample flags.",
+    "Final acceptance requires three complete uninstrumented native Celery/dbworker pairs and independent result review."
+  ],
+  "goal_achieved": false
+}

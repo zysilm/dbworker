@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "diagnostic_scope": "Same native 5000 API / 10000 task workload; eight untimed warmup operations for both backends. Excluded from official README publication.",
+  "suites": [
+    {
+      "suite_id": "posthog",
+      "repository": "https://github.com/PostHog/posthog",
+      "commit": "526d64dd82340b1bf4293d6d9baea7e965997048",
+      "source_path": "examples/posthog",
+      "entrypoint": "benchmarks/upstream/suite.py",
+      "historical": false,
+      "admission": "native_workflow_required",
+      "interpreters": {
+        "benchmark_python": "benchmarks/environments/posthog/benchmark/.venv/bin/python",
+        "celery_python": "benchmarks/environments/posthog/celery/.venv/bin/python",
+        "dbworker_python": "benchmarks/environments/posthog/dbworker/.venv/bin/python"
+      },
+      "profiles": {
+        "full": {
+          "requests": 5000,
+          "repetitions": 3,
+          "producers": 8,
+          "submission_window_seconds": 60,
+          "worker_concurrency": 8,
+          "warmup_requests": 8
+        }
+      },
+      "python_version": "3.14.7",
+      "comparison_contract": "native-business-workflow-v1"
+    }
+  ]
+}

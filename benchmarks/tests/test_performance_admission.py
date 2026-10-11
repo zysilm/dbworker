@@ -34,9 +34,10 @@ class PerformanceAdmissionTests(unittest.TestCase):
                 'task_names': [name], 'tasks': {name: {'source': source,
                     'function': function, 'source_sha256': SOURCE_SHA256[(suite, source)]}}}
 
-    def graph_fixture(self, directory, backend='celery'):
+    def graph_fixture(self, directory, backend='celery', warmup_count=2):
         events = []
-        for index, op in enumerate(('warmup:0', 'warmup:1', '0', '1')):
+        warmups = [f'warmup:{i}' for i in range(warmup_count)]
+        for index, op in enumerate(warmups + ['0', '1']):
             for task, stage in TASK_STAGES['posthog'].items():
                 parent = f'{backend}-{op}-notification' if stage == 'delivery' else None
                 for phase in ('submitted', 'started', 'succeeded'):
@@ -52,14 +53,34 @@ class PerformanceAdmissionTests(unittest.TestCase):
         path.write_text(''.join(json.dumps(event) + '\n' for event in events))
         return {'backend': backend, 'scenario': 'native_two_factor_notification', 'status': 'passed',
                 'repetition': 1, 'validation': {'passed': True},
-                'warmup_operations': ['warmup:0', 'warmup:1'],
+                'warmup_operations': warmups,
                 'measurement_window': {'schema_version': 1, 'clock_domain': 'unix_time_ns',
-                    'start': {'timestamp_ns': 1_000_000_200, 'monotonic_ns': 1_000_000_200, 'uncertainty_ns': 0},
-                    'end': {'timestamp_ns': 2_000_000_200, 'monotonic_ns': 2_000_000_200, 'uncertainty_ns': 0}},
+                    'start': {'timestamp_ns': 1_000_000_000 + warmup_count * 100, 'monotonic_ns': 1_000_000_000 + warmup_count * 100, 'uncertainty_ns': 0},
+                    'end': {'timestamp_ns': 2_000_000_000 + warmup_count * 100, 'monotonic_ns': 2_000_000_000 + warmup_count * 100, 'uncertainty_ns': 0}},
                 'metrics': {'wall_seconds': 1.0},
                 'workflow_trace': {'path': path.name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()},
                 'workflow_graph': validate_graph(events, ['0', '1'], {'notification': 1, 'delivery': 1},
-                                                 [('notification', 'delivery')])}
+                                                 [('notification', 'delivery')], warmup_operations=warmups)}
+
+    def test_diagnostic_graph_requires_trusted_eight_warmups(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            row = self.graph_fixture(temporary, warmup_count=8)
+            self.assertEqual(replay_graph(row, 'posthog', temporary, 2,
+                expected_profile={'warmup_requests': 8})['nodes'], 4)
+            with self.assertRaises(WorkflowMismatch):
+                replay_graph(row, 'posthog', temporary, 2)
+            changed = copy.deepcopy(row)
+            changed['warmup_operations'] = changed['warmup_operations'][:2]
+            with self.assertRaises(WorkflowMismatch):
+                replay_graph(changed, 'posthog', temporary, 2, expected_profile={'warmup_requests': 8})
+            events = [json.loads(line) for line in (Path(temporary) / 'celery.jsonl').read_text().splitlines()]
+            events = [event for event in events if not (event['operation_id'] == 'warmup:7'
+                      and event['stage'] == 'delivery' and event['event'] == 'succeeded')]
+            path = Path(temporary) / 'celery.jsonl'
+            path.write_text(''.join(json.dumps(event) + '\n' for event in events))
+            row['workflow_trace']['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
+            with self.assertRaises(WorkflowMismatch):
+                replay_graph(row, 'posthog', temporary, 2, expected_profile={'warmup_requests': 8})
 
     def test_real_artifact_replay_and_wrong_count_backend_or_checksum(self):
         with tempfile.TemporaryDirectory() as temporary:

@@ -1,0 +1,227 @@
+{
+  "schema_version": 1,
+  "scope": "Fresh sequential synthetic mechanism runs, not native Celery/dbworker goal benchmark. Check diagnostic integration and observation overhead only.",
+  "goal_achieved": false,
+  "baseline": {
+    "scope": "Synthetic PostgreSQL two-stage sleep workflow; not native PostHog or Celery performance.",
+    "core_file": "/private/tmp/dbworker-handoff-instrumentation-local/baseline/dbworker.py",
+    "core_sha256": "96bc1912c15bc38d6948baa16fbcb2eeb405f9ac8b7ea12623f79baec498c228",
+    "configuration": {
+      "roots": 1000,
+      "tasks": 2000,
+      "handlers": 8,
+      "producers": 8,
+      "body_sleep_seconds": 0.05,
+      "root_target_per_second": 100,
+      "stage_task_target_per_second": 200
+    },
+    "completed_tasks": 2000,
+    "observed_pids": 8,
+    "verified_warm_pids": 8,
+    "producer_wall_seconds": 9.93789045792073,
+    "wall_seconds": 16.67633799975738,
+    "mean_business_running": 6.660563855482895,
+    "peak_business_running": 8,
+    "peak_queued_backlog": 428,
+    "backlog_ge200_seconds": 9.904390791999987,
+    "mean_business_running_when_backlog_ge200": 6.840479634721579,
+    "phases": {
+      "source_fetch": {
+        "n": 2000,
+        "mean_ms": 0.733622061,
+        "median_ms": 0.7013335,
+        "p95_ms": 0.97875
+      },
+      "prestart": {
+        "n": 2000,
+        "mean_ms": 0.2142951,
+        "median_ms": 0.19756200000000002,
+        "p95_ms": 0.304667
+      },
+      "body": {
+        "n": 2000,
+        "mean_ms": 55.5369070615,
+        "median_ms": 55.368542,
+        "p95_ms": 60.181875000000005
+      },
+      "completion_after_body": {
+        "n": 2000,
+        "mean_ms": 1.8948820565,
+        "median_ms": 1.8326665,
+        "p95_ms": 2.702833
+      },
+      "pool_result_delivery": {
+        "n": 2000,
+        "mean_ms": 0.6128506745,
+        "median_ms": 0.3232085,
+        "p95_ms": 1.6523340000000002
+      },
+      "dispatch_to_process": {
+        "n": 2000,
+        "mean_ms": 0.457489151,
+        "median_ms": 0.358771,
+        "p95_ms": 0.958375
+      }
+    },
+    "per_pid_exit_to_next_start": {
+      "n": 1992,
+      "mean_ms": 7.684955181726907,
+      "median_ms": 7.359062499999999,
+      "p95_ms": 13.44175
+    },
+    "claim_batch": {
+      "n": 1127,
+      "mean_ms": 3.1466598802129546,
+      "median_ms": 2.538625,
+      "p95_ms": 5.942875
+    },
+    "claim_batch_sizes": {
+      "8": 1,
+      "1": 710,
+      "5": 27,
+      "2": 175,
+      "7": 8,
+      "3": 115,
+      "4": 75,
+      "6": 16
+    },
+    "ideal_sleep_only_wall_lower_bound_seconds": 12.5,
+    "load_capacity_limitation": "200 stage arrivals/s exceeds sleep-only ideal160/s, so backlog itself is expected; infer overhead from handoff gaps and business concurrency only."
+  },
+  "instrumented": {
+    "scope": "Synthetic PostgreSQL two-stage sleep workflow; not native PostHog or Celery performance.",
+    "core_file": "/private/tmp/dbworker-handoff-instrumentation-local/instrumented/dbworker.py",
+    "core_sha256": "96bc1912c15bc38d6948baa16fbcb2eeb405f9ac8b7ea12623f79baec498c228",
+    "configuration": {
+      "roots": 1000,
+      "tasks": 2000,
+      "handlers": 8,
+      "producers": 8,
+      "body_sleep_seconds": 0.05,
+      "root_target_per_second": 100,
+      "stage_task_target_per_second": 200
+    },
+    "completed_tasks": 2000,
+    "observed_pids": 8,
+    "verified_warm_pids": 8,
+    "producer_wall_seconds": 9.947278125211596,
+    "wall_seconds": 16.70940295793116,
+    "mean_business_running": 6.640977715025382,
+    "peak_business_running": 8,
+    "peak_queued_backlog": 415,
+    "backlog_ge200_seconds": 9.490717873999968,
+    "mean_business_running_when_backlog_ge200": 6.747380744130225,
+    "phases": {
+      "source_fetch": {
+        "n": 2000,
+        "mean_ms": 0.7589119125,
+        "median_ms": 0.7260205,
+        "p95_ms": 1.0691249999999999
+      },
+      "prestart": {
+        "n": 2000,
+        "mean_ms": 0.2182625825,
+        "median_ms": 0.2008545,
+        "p95_ms": 0.32129199999999997
+      },
+      "body": {
+        "n": 2000,
+        "mean_ms": 55.4833863375,
+        "median_ms": 55.261833499999995,
+        "p95_ms": 60.195791
+      },
+      "completion_after_body": {
+        "n": 2000,
+        "mean_ms": 1.9578252360000001,
+        "median_ms": 1.8919584999999999,
+        "p95_ms": 2.839875
+      },
+      "pool_result_delivery": {
+        "n": 2000,
+        "mean_ms": 0.7495028775,
+        "median_ms": 0.36074999999999996,
+        "p95_ms": 3.1157500000000002
+      },
+      "dispatch_to_process": {
+        "n": 2000,
+        "mean_ms": 0.473055138,
+        "median_ms": 0.3676665,
+        "p95_ms": 0.95425
+      }
+    },
+    "per_pid_exit_to_next_start": {
+      "n": 1992,
+      "mean_ms": 8.020567655120482,
+      "median_ms": 7.704333000000001,
+      "p95_ms": 14.350084
+    },
+    "claim_batch": {
+      "n": 1062,
+      "mean_ms": 3.224992395480226,
+      "median_ms": 2.78575,
+      "p95_ms": 6.020292
+    },
+    "claim_batch_sizes": {
+      "8": 1,
+      "1": 614,
+      "7": 8,
+      "4": 73,
+      "3": 130,
+      "2": 186,
+      "5": 32,
+      "6": 18
+    },
+    "ideal_sleep_only_wall_lower_bound_seconds": 12.5,
+    "load_capacity_limitation": "200 stage arrivals/s exceeds sleep-only ideal160/s, so backlog itself is expected; infer overhead from handoff gaps and business concurrency only."
+  },
+  "wall_ratio": 1.0019827469420601,
+  "diagnostic_rows": 537,
+  "invalid_markers": [],
+  "repository_file_sha256": {
+    "src/dbworker.py": "96bc1912c15bc38d6948baa16fbcb2eeb405f9ac8b7ea12623f79baec498c228",
+    "benchmarks/common/handoff_probe.py": "9972f2c823a1452e67672e169ade2ac35040c02b5fbf70c178b7a856d1e48c8f",
+    "benchmarks/diagnostics/analyze_handoff.py": "1bd85c8b4a47bb4e5f9a406d82f2a7f663efc9086af3a402340dfaef15e2ede5"
+  },
+  "limitations": [
+    "One fresh pair; timing differences may include host noise.",
+    "Synthetic two-stage sleep tasks do not exercise native Django, SMTP or Celery.",
+    "Handoff gap median increased from7.359ms to7.704ms; do not infer zero observation overhead from walltime.",
+    "Sampled batch metadata favors batches containing sampled IDs; no whole-run query-time extrapolation.",
+    "Future diagnostic callback precedes the coordinator wakeup callback; not an unperturbed scheduler-latency observation.",
+    "The synthetic trace includes warmup and measured tasks. Generic synthetic jobs lack native warmup operation IDs, so63sampled executions may include warmup; this is not a measured-native-only sample count."
+  ],
+  "independent_review": {
+    "scope": "Read-only final sampled diagnostic implementation/integration review; offline analysis only",
+    "approved_for_diagnostic_ci": true,
+    "files_sha256": {
+      "benchmarks/diagnostics/analyze_handoff.py": "b4e08f53f63bbab6fbda4e45bd25e9771471650a8baa3138bddd8c3730ccebe0",
+      "benchmarks/tests/test_handoff_analysis.py": "f85428132f42fab80225646e3ffcf847954cb10c87caa7aedc69cc0962701be5",
+      "benchmarks/common/handoff_probe.py": "9972f2c823a1452e67672e169ade2ac35040c02b5fbf70c178b7a856d1e48c8f",
+      "benchmarks/tests/test_handoff_probe.py": "bd02ba363607432a09d020b6d20f750dc641607a75b9aa3914de076f818a4ef9",
+      "benchmarks/upstream/posthog_backend.py": "2061b5105fc5b3b7d75d7554942603228722dcc2e1bbc4c5725e00813b674144",
+      "examples/posthog_dbworker/worker.py": "69b9ee6d3c2d858551490e86533886c44eb971eaa6674e65e6490ae7b11ce91b",
+      ".github/workflows/benchmark-posthog-diagnostic.yml": "0bf8ef5a6a3d81562bdb0feda60d5d778192ec7c5dd7d32027258c9893ea0660",
+      "benchmarks/ci_results.py": "f0dff78c5f9558ea692abbd2a83106ff446c384a78fac8940f396d8b4c338367"
+    },
+    "offline_tests": {
+      "passed": 20,
+      "analyzer_regressions": 13,
+      "probe_regressions": 7,
+      "elapsed_seconds": 0.177
+    },
+    "completeness_issue_fixed": "Every sampled claim identity recorded in a claim batch must have complete unique phase records, even if the entire phase cohort is absent.",
+    "integration_verified": [
+      "Both arms marked ineligible for finalgoal evidence when diagnosticflag enabled.",
+      "Inherited diagnostictrace environment cleared; optionalmodule otherwiseinactive.",
+      "Invalidmarkers packaged; analyzer rejects markersandstderr sentinel.",
+      "Workflow performs poststop stdlibanalysis and failsifno trace."
+    ],
+    "existing_local_synthetic_analysis": 63,
+    "limitations": [
+      "Syntheticgeneric operations lackwarmupIDs, so63trace samples needwholetrace label; nativePosthogwarm IDs permit explicitexclusion.",
+      "No independentbenchmarkrerun; reported0.20% syntheticoverhead is boundedrun-specific, not generalzerooverhead ornative scoreeffect.",
+      "Sampling/observercallback canperturb measuredphases; validanalysisdoesnotprove schedulerCPU causality or nativegoal success."
+    ],
+    "production_edits": false
+  }
+}

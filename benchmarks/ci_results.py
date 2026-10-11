@@ -66,6 +66,7 @@ def package(source: Path, output: Path, suite: str) -> None:
     paths += sorted(source.rglob("sql-results-evidence.json"))
     paths += sorted(source.rglob("*.log"))
     paths += sorted(source.rglob("*.jsonl"))
+    paths += sorted(source.rglob("handoff.jsonl.invalid-*"))
     paths += sorted(source.rglob("admission.json"))
     for path in paths:
         safe_evidence_path(source, path)
