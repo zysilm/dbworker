@@ -1,5 +1,8 @@
 name: PostHog optimization diagnostic
 
+# A native API failure invalidates the full three-pair acceptance run.
+# Repeat the complete workload without retrying or discarding failed API calls.
+
 on:
   push:
     branches: [feature/worker-handoff-profiling]
