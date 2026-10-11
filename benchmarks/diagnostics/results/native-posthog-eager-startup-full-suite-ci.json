@@ -1,0 +1,2195 @@
+{
+  "source_commit": "cbe18ea7449ba84d31fbe16e26f7f483f2a5a25c",
+  "status": "passed",
+  "summary": [
+    {
+      "suite": "imagededup",
+      "scenario": "build",
+      "backend": "celery",
+      "samples": 3,
+      "medians": {
+        "wall_seconds": 6.848406244
+      },
+      "individual_samples": [
+        {
+          "suite": "imagededup",
+          "scenario": "build",
+          "backend": "celery",
+          "repetition": 1,
+          "wall_seconds": 6.848406244
+        },
+        {
+          "suite": "imagededup",
+          "scenario": "build",
+          "backend": "celery",
+          "repetition": 2,
+          "wall_seconds": 6.783809174
+        },
+        {
+          "suite": "imagededup",
+          "scenario": "build",
+          "backend": "celery",
+          "repetition": 3,
+          "wall_seconds": 6.888547812
+        }
+      ]
+    },
+    {
+      "suite": "imagededup",
+      "scenario": "build",
+      "backend": "dbworker",
+      "samples": 3,
+      "medians": {
+        "wall_seconds": 6.298005265
+      },
+      "individual_samples": [
+        {
+          "suite": "imagededup",
+          "scenario": "build",
+          "backend": "dbworker",
+          "repetition": 1,
+          "wall_seconds": 6.295939574
+        },
+        {
+          "suite": "imagededup",
+          "scenario": "build",
+          "backend": "dbworker",
+          "repetition": 2,
+          "wall_seconds": 6.44234817
+        },
+        {
+          "suite": "imagededup",
+          "scenario": "build",
+          "backend": "dbworker",
+          "repetition": 3,
+          "wall_seconds": 6.298005265
+        }
+      ]
+    },
+    {
+      "suite": "imagededup",
+      "scenario": "comparison",
+      "backend": "celery",
+      "samples": 3,
+      "medians": {
+        "wall_seconds": 83.666129088
+      },
+      "individual_samples": [
+        {
+          "suite": "imagededup",
+          "scenario": "comparison",
+          "backend": "celery",
+          "repetition": 1,
+          "wall_seconds": 83.666129088
+        },
+        {
+          "suite": "imagededup",
+          "scenario": "comparison",
+          "backend": "celery",
+          "repetition": 2,
+          "wall_seconds": 82.543854222
+        },
+        {
+          "suite": "imagededup",
+          "scenario": "comparison",
+          "backend": "celery",
+          "repetition": 3,
+          "wall_seconds": 85.592809035
+        }
+      ]
+    },
+    {
+      "suite": "imagededup",
+      "scenario": "comparison",
+      "backend": "dbworker",
+      "samples": 3,
+      "medians": {
+        "wall_seconds": 76.847815224
+      },
+      "individual_samples": [
+        {
+          "suite": "imagededup",
+          "scenario": "comparison",
+          "backend": "dbworker",
+          "repetition": 1,
+          "wall_seconds": 75.133407871
+        },
+        {
+          "suite": "imagededup",
+          "scenario": "comparison",
+          "backend": "dbworker",
+          "repetition": 2,
+          "wall_seconds": 80.091856426
+        },
+        {
+          "suite": "imagededup",
+          "scenario": "comparison",
+          "backend": "dbworker",
+          "repetition": 3,
+          "wall_seconds": 76.847815224
+        }
+      ]
+    },
+    {
+      "suite": "imagededup",
+      "scenario": "mixed",
+      "backend": "celery",
+      "samples": 3,
+      "medians": {
+        "wall_seconds": 94.475177496
+      },
+      "individual_samples": [
+        {
+          "suite": "imagededup",
+          "scenario": "mixed",
+          "backend": "celery",
+          "repetition": 1,
+          "wall_seconds": 94.475177496
+        },
+        {
+          "suite": "imagededup",
+          "scenario": "mixed",
+          "backend": "celery",
+          "repetition": 2,
+          "wall_seconds": 92.573468262
+        },
+        {
+          "suite": "imagededup",
+          "scenario": "mixed",
+          "backend": "celery",
+          "repetition": 3,
+          "wall_seconds": 95.521234225
+        }
+      ]
+    },
+    {
+      "suite": "imagededup",
+      "scenario": "mixed",
+      "backend": "dbworker",
+      "samples": 3,
+      "medians": {
+        "wall_seconds": 93.501581589
+      },
+      "individual_samples": [
+        {
+          "suite": "imagededup",
+          "scenario": "mixed",
+          "backend": "dbworker",
+          "repetition": 1,
+          "wall_seconds": 88.521625643
+        },
+        {
+          "suite": "imagededup",
+          "scenario": "mixed",
+          "backend": "dbworker",
+          "repetition": 2,
+          "wall_seconds": 93.501581589
+        },
+        {
+          "suite": "imagededup",
+          "scenario": "mixed",
+          "backend": "dbworker",
+          "repetition": 3,
+          "wall_seconds": 93.797797054
+        }
+      ]
+    },
+    {
+      "suite": "paperless_ngx",
+      "scenario": "native_unsplit_scan_ingestion",
+      "backend": "celery",
+      "samples": 3,
+      "medians": {
+        "actual_api_operations_per_second": 3.3333284329516486,
+        "end_to_end_p95_seconds": 32.763313837,
+        "mean_execution_span": 4.537429250396545,
+        "mean_measurement": 4.50097630934475,
+        "mean_published_outstanding_measurement": 36.218741771095566,
+        "peak_published_outstanding": 72,
+        "peak_running": 8,
+        "queue_wait_p95_seconds": 30.51430859,
+        "wall_seconds": 94.12676937
+      },
+      "individual_samples": [
+        {
+          "suite": "paperless_ngx",
+          "scenario": "native_unsplit_scan_ingestion",
+          "backend": "celery",
+          "repetition": 1,
+          "wall_seconds": 95.192222678,
+          "queue_wait_p95_seconds": 31.150776249,
+          "end_to_end_p95_seconds": 33.465204608,
+          "peak_published_outstanding": 71,
+          "mean_execution_span": 4.558772631497241,
+          "mean_measurement": 4.516770181335087,
+          "mean_published_outstanding_measurement": 35.709310731302054,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 3.3333284329516486
+        },
+        {
+          "suite": "paperless_ngx",
+          "scenario": "native_unsplit_scan_ingestion",
+          "backend": "celery",
+          "repetition": 2,
+          "wall_seconds": 91.720343026,
+          "queue_wait_p95_seconds": 29.079874982,
+          "end_to_end_p95_seconds": 31.271787519,
+          "peak_published_outstanding": 72,
+          "mean_execution_span": 4.537429250396545,
+          "mean_measurement": 4.50097630934475,
+          "mean_published_outstanding_measurement": 36.218741771095566,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 3.333204956666583
+        },
+        {
+          "suite": "paperless_ngx",
+          "scenario": "native_unsplit_scan_ingestion",
+          "backend": "celery",
+          "repetition": 3,
+          "wall_seconds": 94.12676937,
+          "queue_wait_p95_seconds": 30.51430859,
+          "end_to_end_p95_seconds": 32.763313837,
+          "peak_published_outstanding": 74,
+          "mean_execution_span": 4.478822079034078,
+          "mean_measurement": 4.4438137890166916,
+          "mean_published_outstanding_measurement": 36.925340600213566,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 3.333328757228504
+        }
+      ]
+    },
+    {
+      "suite": "paperless_ngx",
+      "scenario": "native_unsplit_scan_ingestion",
+      "backend": "dbworker",
+      "samples": 3,
+      "medians": {
+        "actual_api_operations_per_second": 3.3333295026710688,
+        "end_to_end_p95_seconds": 4.706579012,
+        "mean_execution_span": 5.899880676624694,
+        "mean_measurement": 5.82373238265389,
+        "mean_published_outstanding_measurement": 7.085118218365906,
+        "peak_published_outstanding": 19,
+        "peak_running": 8,
+        "queue_wait_p95_seconds": 2.442526553,
+        "wall_seconds": 60.642854222
+      },
+      "individual_samples": [
+        {
+          "suite": "paperless_ngx",
+          "scenario": "native_unsplit_scan_ingestion",
+          "backend": "dbworker",
+          "repetition": 1,
+          "wall_seconds": 60.574180138,
+          "queue_wait_p95_seconds": 2.442526553,
+          "end_to_end_p95_seconds": 4.930207918,
+          "peak_published_outstanding": 19,
+          "mean_execution_span": 6.213411392433889,
+          "mean_measurement": 6.119200460683914,
+          "mean_published_outstanding_measurement": 7.367265229645988,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 3.3333287662284796
+        },
+        {
+          "suite": "paperless_ngx",
+          "scenario": "native_unsplit_scan_ingestion",
+          "backend": "dbworker",
+          "repetition": 2,
+          "wall_seconds": 60.71409285,
+          "queue_wait_p95_seconds": 2.069135418,
+          "end_to_end_p95_seconds": 4.578575164,
+          "peak_published_outstanding": 16,
+          "mean_execution_span": 5.899880676624694,
+          "mean_measurement": 5.82373238265389,
+          "mean_published_outstanding_measurement": 6.9363022240231,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 3.333329584226439
+        },
+        {
+          "suite": "paperless_ngx",
+          "scenario": "native_unsplit_scan_ingestion",
+          "backend": "dbworker",
+          "repetition": 3,
+          "wall_seconds": 60.642854222,
+          "queue_wait_p95_seconds": 2.589179269,
+          "end_to_end_p95_seconds": 4.706579012,
+          "peak_published_outstanding": 20,
+          "mean_execution_span": 5.847660631013362,
+          "mean_measurement": 5.7431232993425185,
+          "mean_published_outstanding_measurement": 7.085118218365906,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 3.3333295026710688
+        }
+      ]
+    },
+    {
+      "suite": "posthog",
+      "scenario": "native_two_factor_notification",
+      "backend": "celery",
+      "samples": 3,
+      "medians": {
+        "actual_api_operations_per_second": 38.90935126349902,
+        "end_to_end_p95_seconds": 0.123871403,
+        "mean_execution_span": 3.843732918461517,
+        "mean_measurement": 3.830644185859425,
+        "mean_published_outstanding_measurement": 6.141956736393723,
+        "peak_published_outstanding": 15,
+        "peak_running": 8,
+        "queue_wait_p95_seconds": 0.052686609,
+        "wall_seconds": 128.885140624
+      },
+      "individual_samples": [
+        {
+          "suite": "posthog",
+          "scenario": "native_two_factor_notification",
+          "backend": "celery",
+          "repetition": 1,
+          "wall_seconds": 133.304425957,
+          "queue_wait_p95_seconds": 0.056694047,
+          "end_to_end_p95_seconds": 0.125799344,
+          "peak_published_outstanding": 15,
+          "mean_execution_span": 3.713870127778735,
+          "mean_measurement": 3.70081121006541,
+          "mean_published_outstanding_measurement": 5.93917385266251,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 37.62414986798294
+        },
+        {
+          "suite": "posthog",
+          "scenario": "native_two_factor_notification",
+          "backend": "celery",
+          "repetition": 2,
+          "wall_seconds": 125.164774553,
+          "queue_wait_p95_seconds": 0.051694875,
+          "end_to_end_p95_seconds": 0.118714574,
+          "peak_published_outstanding": 15,
+          "mean_execution_span": 3.8506646096011488,
+          "mean_measurement": 3.8368757678754544,
+          "mean_published_outstanding_measurement": 6.141956736393723,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 40.06926432526108
+        },
+        {
+          "suite": "posthog",
+          "scenario": "native_two_factor_notification",
+          "backend": "celery",
+          "repetition": 3,
+          "wall_seconds": 128.885140624,
+          "queue_wait_p95_seconds": 0.052686609,
+          "end_to_end_p95_seconds": 0.123871403,
+          "peak_published_outstanding": 15,
+          "mean_execution_span": 3.843732918461517,
+          "mean_measurement": 3.830644185859425,
+          "mean_published_outstanding_measurement": 6.150308963758019,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 38.90935126349902
+        }
+      ]
+    },
+    {
+      "suite": "posthog",
+      "scenario": "native_two_factor_notification",
+      "backend": "dbworker",
+      "samples": 3,
+      "medians": {
+        "actual_api_operations_per_second": 44.34230976023089,
+        "end_to_end_p95_seconds": 2.100268382,
+        "mean_execution_span": 5.27007893005647,
+        "mean_measurement": 5.242410830367213,
+        "mean_published_outstanding_measurement": 97.42972993023123,
+        "peak_published_outstanding": 202,
+        "peak_running": 8,
+        "queue_wait_p95_seconds": 2.039639858,
+        "wall_seconds": 114.829103501
+      },
+      "individual_samples": [
+        {
+          "suite": "posthog",
+          "scenario": "native_two_factor_notification",
+          "backend": "dbworker",
+          "repetition": 1,
+          "wall_seconds": 123.520268695,
+          "queue_wait_p95_seconds": 3.104705742,
+          "end_to_end_p95_seconds": 3.171591389,
+          "peak_published_outstanding": 255,
+          "mean_execution_span": 5.171057688338827,
+          "mean_measurement": 5.14171471714673,
+          "mean_published_outstanding_measurement": 132.6441603910081,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 40.68004034512516
+        },
+        {
+          "suite": "posthog",
+          "scenario": "native_two_factor_notification",
+          "backend": "dbworker",
+          "repetition": 2,
+          "wall_seconds": 109.53353365,
+          "queue_wait_p95_seconds": 1.330455303,
+          "end_to_end_p95_seconds": 1.389283324,
+          "peak_published_outstanding": 137,
+          "mean_execution_span": 5.289998453633638,
+          "mean_measurement": 5.256803122374205,
+          "mean_published_outstanding_measurement": 57.96604750652998,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 45.94788521642858
+        },
+        {
+          "suite": "posthog",
+          "scenario": "native_two_factor_notification",
+          "backend": "dbworker",
+          "repetition": 3,
+          "wall_seconds": 114.829103501,
+          "queue_wait_p95_seconds": 2.039639858,
+          "end_to_end_p95_seconds": 2.100268382,
+          "peak_published_outstanding": 202,
+          "mean_execution_span": 5.27007893005647,
+          "mean_measurement": 5.242410830367213,
+          "mean_published_outstanding_measurement": 97.42972993023123,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 44.34230976023089
+        }
+      ]
+    },
+    {
+      "suite": "saleor",
+      "scenario": "product_csv_export",
+      "backend": "celery",
+      "samples": 3,
+      "medians": {
+        "actual_api_operations_per_second": 16.66664100142841,
+        "end_to_end_p95_seconds": 33.613488669,
+        "mean_execution_span": 7.847787021779852,
+        "mean_measurement": 7.732037716483322,
+        "mean_published_outstanding_measurement": 296.39410887323135,
+        "peak_published_outstanding": 584,
+        "peak_running": 8,
+        "queue_wait_p95_seconds": 32.949146039,
+        "wall_seconds": 126.649694367
+      },
+      "individual_samples": [
+        {
+          "suite": "saleor",
+          "scenario": "product_csv_export",
+          "backend": "celery",
+          "repetition": 1,
+          "wall_seconds": 125.289109296,
+          "queue_wait_p95_seconds": 32.552079635,
+          "end_to_end_p95_seconds": 33.095336432,
+          "peak_published_outstanding": 577,
+          "mean_execution_span": 7.856023777057379,
+          "mean_measurement": 7.740515049746324,
+          "mean_published_outstanding_measurement": 290.963841220634,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 16.66664100142841
+        },
+        {
+          "suite": "saleor",
+          "scenario": "product_csv_export",
+          "backend": "celery",
+          "repetition": 2,
+          "wall_seconds": 126.847438113,
+          "queue_wait_p95_seconds": 33.775301435,
+          "end_to_end_p95_seconds": 34.763056611,
+          "peak_published_outstanding": 584,
+          "mean_execution_span": 7.847787021779852,
+          "mean_measurement": 7.732037716483322,
+          "mean_published_outstanding_measurement": 296.39410887323135,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 16.66664167281526
+        },
+        {
+          "suite": "saleor",
+          "scenario": "product_csv_export",
+          "backend": "celery",
+          "repetition": 3,
+          "wall_seconds": 126.649694367,
+          "queue_wait_p95_seconds": 32.949146039,
+          "end_to_end_p95_seconds": 33.613488669,
+          "peak_published_outstanding": 588,
+          "mean_execution_span": 7.835856679220217,
+          "mean_measurement": 7.7264763428752,
+          "mean_published_outstanding_measurement": 296.9849762421733,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 16.666629608971284
+        }
+      ]
+    },
+    {
+      "suite": "saleor",
+      "scenario": "product_csv_export",
+      "backend": "dbworker",
+      "samples": 3,
+      "medians": {
+        "actual_api_operations_per_second": 16.631419377208204,
+        "end_to_end_p95_seconds": 45.026919802,
+        "mean_execution_span": 6.398736351701149,
+        "mean_measurement": 6.3177641537064195,
+        "mean_published_outstanding_measurement": 406.3051353465965,
+        "peak_published_outstanding": 775,
+        "peak_running": 8,
+        "queue_wait_p95_seconds": 44.130610785,
+        "wall_seconds": 153.025578435
+      },
+      "individual_samples": [
+        {
+          "suite": "saleor",
+          "scenario": "product_csv_export",
+          "backend": "dbworker",
+          "repetition": 1,
+          "wall_seconds": 153.025578435,
+          "queue_wait_p95_seconds": 44.038190723,
+          "end_to_end_p95_seconds": 44.923364098,
+          "peak_published_outstanding": 771,
+          "mean_execution_span": 6.3922546491134,
+          "mean_measurement": 6.28086289096601,
+          "mean_published_outstanding_measurement": 403.54184893804677,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 16.666642693645592
+        },
+        {
+          "suite": "saleor",
+          "scenario": "product_csv_export",
+          "backend": "dbworker",
+          "repetition": 2,
+          "wall_seconds": 153.846102897,
+          "queue_wait_p95_seconds": 44.130610785,
+          "end_to_end_p95_seconds": 45.080748319,
+          "peak_published_outstanding": 775,
+          "mean_execution_span": 6.450819788653508,
+          "mean_measurement": 6.342427798546643,
+          "mean_published_outstanding_measurement": 406.3051353465965,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 16.631419377208204
+        },
+        {
+          "suite": "saleor",
+          "scenario": "product_csv_export",
+          "backend": "dbworker",
+          "repetition": 3,
+          "wall_seconds": 152.771568359,
+          "queue_wait_p95_seconds": 44.224698971,
+          "end_to_end_p95_seconds": 45.026919802,
+          "peak_published_outstanding": 776,
+          "mean_execution_span": 6.398736351701149,
+          "mean_measurement": 6.3177641537064195,
+          "mean_published_outstanding_measurement": 407.4618977796325,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 16.51560087181522
+        }
+      ]
+    },
+    {
+      "suite": "sentry",
+      "scenario": "historical_native_email_fanout",
+      "backend": "celery",
+      "samples": 3,
+      "medians": {
+        "actual_api_operations_per_second": 33.333283578407595,
+        "end_to_end_p95_seconds": 0.053616294,
+        "mean_execution_span": 1.4803922952616915,
+        "mean_measurement": 1.472364877697207,
+        "mean_published_outstanding_measurement": 2.856469548142978,
+        "peak_published_outstanding": 16,
+        "peak_running": 8,
+        "queue_wait_p95_seconds": 0.037680527,
+        "wall_seconds": 60.302248568
+      },
+      "individual_samples": [
+        {
+          "suite": "sentry",
+          "scenario": "historical_native_email_fanout",
+          "backend": "celery",
+          "repetition": 1,
+          "wall_seconds": 60.154293847,
+          "queue_wait_p95_seconds": 0.037680527,
+          "end_to_end_p95_seconds": 0.053616294,
+          "peak_published_outstanding": 16,
+          "mean_execution_span": 1.4803922952616915,
+          "mean_measurement": 1.472364877697207,
+          "mean_published_outstanding_measurement": 2.856469548142978,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 33.333283578407595
+        },
+        {
+          "suite": "sentry",
+          "scenario": "historical_native_email_fanout",
+          "backend": "celery",
+          "repetition": 2,
+          "wall_seconds": 60.302248568,
+          "queue_wait_p95_seconds": 0.036855735,
+          "end_to_end_p95_seconds": 0.052745435,
+          "peak_published_outstanding": 16,
+          "mean_execution_span": 1.4746754404512357,
+          "mean_measurement": 1.4631611478053765,
+          "mean_published_outstanding_measurement": 2.820784010005642,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 33.3332871172863
+        },
+        {
+          "suite": "sentry",
+          "scenario": "historical_native_email_fanout",
+          "backend": "celery",
+          "repetition": 3,
+          "wall_seconds": 60.307605949,
+          "queue_wait_p95_seconds": 0.038473651,
+          "end_to_end_p95_seconds": 0.054293382,
+          "peak_published_outstanding": 16,
+          "mean_execution_span": 1.4963110701062041,
+          "mean_measurement": 1.4844853046514357,
+          "mean_published_outstanding_measurement": 2.8571649489239452,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 33.333279635086505
+        }
+      ]
+    },
+    {
+      "suite": "sentry",
+      "scenario": "historical_native_email_fanout",
+      "backend": "dbworker",
+      "samples": 3,
+      "medians": {
+        "actual_api_operations_per_second": 33.333294318934556,
+        "end_to_end_p95_seconds": 0.426589876,
+        "mean_execution_span": 1.86167657561379,
+        "mean_measurement": 1.849976103538499,
+        "mean_published_outstanding_measurement": 14.316380850427112,
+        "peak_published_outstanding": 148,
+        "peak_running": 8,
+        "queue_wait_p95_seconds": 0.368206978,
+        "wall_seconds": 60.317153061
+      },
+      "individual_samples": [
+        {
+          "suite": "sentry",
+          "scenario": "historical_native_email_fanout",
+          "backend": "dbworker",
+          "repetition": 1,
+          "wall_seconds": 60.317153061,
+          "queue_wait_p95_seconds": 0.310106082,
+          "end_to_end_p95_seconds": 0.378204487,
+          "peak_published_outstanding": 134,
+          "mean_execution_span": 1.933889648281843,
+          "mean_measurement": 1.918483873600143,
+          "mean_published_outstanding_measurement": 13.10311682175566,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 33.33329484948887
+        },
+        {
+          "suite": "sentry",
+          "scenario": "historical_native_email_fanout",
+          "backend": "dbworker",
+          "repetition": 2,
+          "wall_seconds": 60.378104513,
+          "queue_wait_p95_seconds": 0.394493146,
+          "end_to_end_p95_seconds": 0.484925097,
+          "peak_published_outstanding": 149,
+          "mean_execution_span": 1.86167657561379,
+          "mean_measurement": 1.849976103538499,
+          "mean_published_outstanding_measurement": 14.316380850427112,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 33.333291373941705
+        },
+        {
+          "suite": "sentry",
+          "scenario": "historical_native_email_fanout",
+          "backend": "dbworker",
+          "repetition": 3,
+          "wall_seconds": 60.306899272,
+          "queue_wait_p95_seconds": 0.368206978,
+          "end_to_end_p95_seconds": 0.426589876,
+          "peak_published_outstanding": 148,
+          "mean_execution_span": 1.8525262253898234,
+          "mean_measurement": 1.837038176698915,
+          "mean_published_outstanding_measurement": 15.00514358416275,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 33.333294318934556
+        }
+      ]
+    },
+    {
+      "suite": "superset",
+      "scenario": "sql_lab_group_by",
+      "backend": "celery",
+      "samples": 3,
+      "medians": {
+        "actual_api_operations_per_second": 33.70833434840645,
+        "end_to_end_p95_seconds": 42.261364708,
+        "mean_execution_span": 7.9555845610589815,
+        "mean_measurement": 6.380077374066681,
+        "mean_published_outstanding_measurement": 607.9172378668447,
+        "peak_published_outstanding": 1504,
+        "peak_running": 8,
+        "queue_wait_p95_seconds": 42.105626302,
+        "wall_seconds": 158.885124531
+      },
+      "individual_samples": [
+        {
+          "suite": "superset",
+          "scenario": "sql_lab_group_by",
+          "backend": "celery",
+          "repetition": 1,
+          "wall_seconds": 150.959260385,
+          "queue_wait_p95_seconds": 42.105626302,
+          "end_to_end_p95_seconds": 42.261364708,
+          "peak_published_outstanding": 1504,
+          "mean_execution_span": 7.9555845610589815,
+          "mean_measurement": 6.437840102484813,
+          "mean_published_outstanding_measurement": 607.9172378668447,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 34.70285062428254
+        },
+        {
+          "suite": "superset",
+          "scenario": "sql_lab_group_by",
+          "backend": "celery",
+          "repetition": 2,
+          "wall_seconds": 159.205228135,
+          "queue_wait_p95_seconds": 41.819083944,
+          "end_to_end_p95_seconds": 42.124366273,
+          "peak_published_outstanding": 1459,
+          "mean_execution_span": 7.95307261524083,
+          "mean_measurement": 6.375398445642258,
+          "mean_published_outstanding_measurement": 578.1262068772953,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 33.29997723527642
+        },
+        {
+          "suite": "superset",
+          "scenario": "sql_lab_group_by",
+          "backend": "celery",
+          "repetition": 3,
+          "wall_seconds": 158.885124531,
+          "queue_wait_p95_seconds": 44.679778059,
+          "end_to_end_p95_seconds": 44.963015154,
+          "peak_published_outstanding": 1562,
+          "mean_execution_span": 7.958085447737266,
+          "mean_measurement": 6.380077374066681,
+          "mean_published_outstanding_measurement": 653.1537331946341,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 33.70833434840645
+        }
+      ]
+    },
+    {
+      "suite": "superset",
+      "scenario": "sql_lab_group_by",
+      "backend": "dbworker",
+      "samples": 3,
+      "medians": {
+        "actual_api_operations_per_second": 30.39075878701508,
+        "end_to_end_p95_seconds": 50.084264028,
+        "mean_execution_span": 6.856820650192882,
+        "mean_measurement": 5.6656763941348744,
+        "mean_published_outstanding_measurement": 635.1220888743594,
+        "peak_published_outstanding": 1536,
+        "peak_running": 8,
+        "queue_wait_p95_seconds": 49.88332346,
+        "wall_seconds": 177.593519313
+      },
+      "individual_samples": [
+        {
+          "suite": "superset",
+          "scenario": "sql_lab_group_by",
+          "backend": "dbworker",
+          "repetition": 1,
+          "wall_seconds": 169.623859493,
+          "queue_wait_p95_seconds": 48.524087762,
+          "end_to_end_p95_seconds": 48.720087865,
+          "peak_published_outstanding": 1547,
+          "mean_execution_span": 6.816801687883075,
+          "mean_measurement": 5.595389514758493,
+          "mean_published_outstanding_measurement": 635.1220888743594,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 32.40673363445747
+        },
+        {
+          "suite": "superset",
+          "scenario": "sql_lab_group_by",
+          "backend": "dbworker",
+          "repetition": 2,
+          "wall_seconds": 177.593519313,
+          "queue_wait_p95_seconds": 49.88332346,
+          "end_to_end_p95_seconds": 50.084264028,
+          "peak_published_outstanding": 1536,
+          "mean_execution_span": 6.856820650192882,
+          "mean_measurement": 5.6656763941348744,
+          "mean_published_outstanding_measurement": 629.1048846585621,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 30.39075878701508
+        },
+        {
+          "suite": "superset",
+          "scenario": "sql_lab_group_by",
+          "backend": "dbworker",
+          "repetition": 3,
+          "wall_seconds": 181.635593382,
+          "queue_wait_p95_seconds": 50.999856748,
+          "end_to_end_p95_seconds": 51.18653542,
+          "peak_published_outstanding": 1518,
+          "mean_execution_span": 6.878561371878048,
+          "mean_measurement": 5.705086594633778,
+          "mean_published_outstanding_measurement": 660.1455380265552,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 29.366039328280717
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Separate GitHub runs may use different physical hosts; same-run Celery controls and task service durations must inform regression review.",
+    "Mean execution concurrency is occupied handler time, including I/O; lower values with shorter jobs and unchanged offered load do not by themselves establish reduced capacity.",
+    "The ordinary CI image process fixture required its internal initializer arguments to match the new startup barrier; the corrected seven process tests passed locally."
+  ],
+  "baseline_source_commit": "34cfc03fa2bb50273194e24b1195a43fb0a7bbc6",
+  "configuration_changes": {
+    "paperless_ngx": {
+      "backends": {
+        "baseline": {
+          "celery": {
+            "application_database": "sqlite",
+            "auxiliary_progress_redis_both": true,
+            "celery_pool": "native prefork with max_tasks_per_child=1",
+            "completion": "all native-equivalent tracked task states/results, search readiness and scheduler terminal events",
+            "concurrency": 8,
+            "contention_observation": "Concurrent API submission latency, lateness and task backlog; database lock wait duration unavailable",
+            "dbworker_job_database": "sqlite",
+            "dbworker_pool": "persistent spawn processes",
+            "lifecycle_limits": "DBWorker has no equivalent hard timeout, cancellation or child recycling; success contract only",
+            "load_profile": "One fixed open-loop schedule; no concurrency or rate sweep",
+            "native_application": "paperless.celery:app",
+            "native_settings": {
+              "result_backend": "redis://127.0.0.1:43213/0",
+              "result_serializer": "signed-pickle",
+              "task_acks_late": false,
+              "task_serializer": "signed-pickle",
+              "task_time_limit": 1800,
+              "task_track_started": true,
+              "worker_concurrency": 8,
+              "worker_max_tasks_per_child": 1,
+              "worker_prefetch_multiplier": 4
+            },
+            "overrides": [
+              "isolated paths/Redis/secret",
+              "English forced OCR",
+              "PDF output",
+              "no clean/deskew/rotate",
+              "8 worker slots, 1 OCR thread"
+            ],
+            "producer_concurrency": 8,
+            "profile": {
+              "producers": 8,
+              "repetitions": 3,
+              "requests": 200,
+              "submission_window_seconds": 60,
+              "worker_concurrency": 8
+            },
+            "redis_aof": "everysec",
+            "submission": "authenticated POST /api/documents/post_document/ via native APIClient routing",
+            "submission_window_seconds": 60,
+            "timing": "first authenticated API upload through final expected business and task completion; oracle hashing outside timer",
+            "warmup_documents": 2
+          },
+          "dbworker": {
+            "application_database": "sqlite",
+            "auxiliary_progress_redis_both": true,
+            "celery_pool": "native prefork with max_tasks_per_child=1",
+            "completion": "all native-equivalent tracked task states/results, search readiness and scheduler terminal events",
+            "concurrency": 8,
+            "contention_observation": "Concurrent API submission latency, lateness and task backlog; database lock wait duration unavailable",
+            "dbworker_job_database": "sqlite",
+            "dbworker_pool": "persistent spawn processes",
+            "lifecycle_limits": "DBWorker has no equivalent hard timeout, cancellation or child recycling; success contract only",
+            "load_profile": "One fixed open-loop schedule; no concurrency or rate sweep",
+            "native_application": "paperless.celery:app",
+            "native_settings": {
+              "result_backend": "redis://127.0.0.1:47879/0",
+              "result_serializer": "signed-pickle",
+              "task_acks_late": false,
+              "task_serializer": "signed-pickle",
+              "task_time_limit": 1800,
+              "task_track_started": true,
+              "worker_concurrency": 8,
+              "worker_max_tasks_per_child": 1,
+              "worker_prefetch_multiplier": 4
+            },
+            "overrides": [
+              "isolated paths/Redis/secret",
+              "English forced OCR",
+              "PDF output",
+              "no clean/deskew/rotate",
+              "8 worker slots, 1 OCR thread"
+            ],
+            "producer_concurrency": 8,
+            "profile": {
+              "producers": 8,
+              "repetitions": 3,
+              "requests": 200,
+              "submission_window_seconds": 60,
+              "worker_concurrency": 8
+            },
+            "redis_aof": "everysec",
+            "submission": "authenticated POST /api/documents/post_document/ via native APIClient routing",
+            "submission_window_seconds": 60,
+            "timing": "first authenticated API upload through final expected business and task completion; oracle hashing outside timer",
+            "warmup_documents": 2
+          }
+        },
+        "current": {
+          "celery": {
+            "application_database": "sqlite",
+            "auxiliary_progress_redis_both": true,
+            "celery_pool": "native prefork with max_tasks_per_child=1",
+            "completion": "all native-equivalent tracked task states/results, search readiness and scheduler terminal events",
+            "concurrency": 8,
+            "contention_observation": "Concurrent API submission latency, lateness and task backlog; database lock wait duration unavailable",
+            "dbworker_job_database": "sqlite",
+            "dbworker_pool": "persistent spawn processes",
+            "lifecycle_limits": "DBWorker has no equivalent hard timeout, cancellation or child recycling; success contract only",
+            "load_profile": "One fixed open-loop schedule; no concurrency or rate sweep",
+            "native_application": "paperless.celery:app",
+            "native_settings": {
+              "result_backend": "redis://127.0.0.1:54585/0",
+              "result_serializer": "signed-pickle",
+              "task_acks_late": false,
+              "task_serializer": "signed-pickle",
+              "task_time_limit": 1800,
+              "task_track_started": true,
+              "worker_concurrency": 8,
+              "worker_max_tasks_per_child": 1,
+              "worker_prefetch_multiplier": 4
+            },
+            "overrides": [
+              "isolated paths/Redis/secret",
+              "English forced OCR",
+              "PDF output",
+              "no clean/deskew/rotate",
+              "8 worker slots, 1 OCR thread"
+            ],
+            "producer_concurrency": 8,
+            "profile": {
+              "producers": 8,
+              "repetitions": 3,
+              "requests": 200,
+              "submission_window_seconds": 60,
+              "worker_concurrency": 8
+            },
+            "redis_aof": "everysec",
+            "submission": "authenticated POST /api/documents/post_document/ via native APIClient routing",
+            "submission_window_seconds": 60,
+            "timing": "first authenticated API upload through final expected business and task completion; oracle hashing outside timer",
+            "warmup_documents": 2
+          },
+          "dbworker": {
+            "application_database": "sqlite",
+            "auxiliary_progress_redis_both": true,
+            "celery_pool": "native prefork with max_tasks_per_child=1",
+            "completion": "all native-equivalent tracked task states/results, search readiness and scheduler terminal events",
+            "concurrency": 8,
+            "contention_observation": "Concurrent API submission latency, lateness and task backlog; database lock wait duration unavailable",
+            "dbworker_job_database": "sqlite",
+            "dbworker_pool": "persistent spawn processes",
+            "lifecycle_limits": "DBWorker has no equivalent hard timeout, cancellation or child recycling; success contract only",
+            "load_profile": "One fixed open-loop schedule; no concurrency or rate sweep",
+            "native_application": "paperless.celery:app",
+            "native_settings": {
+              "result_backend": "redis://127.0.0.1:42675/0",
+              "result_serializer": "signed-pickle",
+              "task_acks_late": false,
+              "task_serializer": "signed-pickle",
+              "task_time_limit": 1800,
+              "task_track_started": true,
+              "worker_concurrency": 8,
+              "worker_max_tasks_per_child": 1,
+              "worker_prefetch_multiplier": 4
+            },
+            "overrides": [
+              "isolated paths/Redis/secret",
+              "English forced OCR",
+              "PDF output",
+              "no clean/deskew/rotate",
+              "8 worker slots, 1 OCR thread"
+            ],
+            "producer_concurrency": 8,
+            "profile": {
+              "producers": 8,
+              "repetitions": 3,
+              "requests": 200,
+              "submission_window_seconds": 60,
+              "worker_concurrency": 8
+            },
+            "redis_aof": "everysec",
+            "submission": "authenticated POST /api/documents/post_document/ via native APIClient routing",
+            "submission_window_seconds": 60,
+            "timing": "first authenticated API upload through final expected business and task completion; oracle hashing outside timer",
+            "warmup_documents": 2
+          }
+        }
+      }
+    },
+    "saleor": {},
+    "superset": {},
+    "sentry": {},
+    "imagededup": {},
+    "posthog": {
+      "backends": {
+        "baseline": {
+          "celery": {
+            "application_scope": "original authenticated two_factor_validate DRF handler plus notification and delivery",
+            "celery_publication": "original API .delay and native nested delivery publication",
+            "concurrency": 8,
+            "contention_observation": "Concurrent API submission latency, lateness and task backlog; database lock wait duration unavailable",
+            "database": "postgresql",
+            "fault_recovery": "untested",
+            "load_profile": "One fixed open-loop schedule; no concurrency or rate sweep",
+            "producer_api": "posthog.api.user.UserViewSet.two_factor_validate",
+            "producer_api_effects_validated": true,
+            "producer_api_timed": true,
+            "producer_concurrency": 8,
+            "rendering_timed": true,
+            "rendering_validated": true,
+            "request_transport": "DRF handler with native session authentication, CSRF, permissions and throttles; no full middleware/server",
+            "scheduler_placement": "Separate worker service process; eight handler processes",
+            "smtp_receiver_placement": "Separate owned process; exact envelopes exported after measurement",
+            "submission_window_seconds": 60,
+            "transport": "real_local_smtp",
+            "warmup_producer_concurrency": 8
+          },
+          "dbworker": {
+            "application_scope": "original authenticated two_factor_validate DRF handler plus notification and delivery",
+            "celery_publication": "original API .delay and native nested delivery publication",
+            "concurrency": 8,
+            "contention_observation": "Concurrent API submission latency, lateness and task backlog; database lock wait duration unavailable",
+            "database": "postgresql",
+            "fault_recovery": "untested",
+            "load_profile": "One fixed open-loop schedule; no concurrency or rate sweep",
+            "producer_api": "posthog.api.user.UserViewSet.two_factor_validate",
+            "producer_api_effects_validated": true,
+            "producer_api_timed": true,
+            "producer_concurrency": 8,
+            "rendering_timed": true,
+            "rendering_validated": true,
+            "request_transport": "DRF handler with native session authentication, CSRF, permissions and throttles; no full middleware/server",
+            "scheduler_placement": "Separate worker service process; eight handler processes",
+            "smtp_receiver_placement": "Separate owned process; exact envelopes exported after measurement",
+            "submission_window_seconds": 60,
+            "transport": "real_local_smtp",
+            "warmup_producer_concurrency": 8,
+            "worker_service_readiness": {
+              "concurrency": 8,
+              "pid": 76231,
+              "readiness_scope": "coordinator started; application warmup is separate",
+              "timestamp_ns": 1791747024676128296
+            }
+          }
+        },
+        "current": {
+          "celery": {
+            "application_scope": "original authenticated two_factor_validate DRF handler plus notification and delivery",
+            "celery_publication": "original API .delay and native nested delivery publication",
+            "concurrency": 8,
+            "contention_observation": "Concurrent API submission latency, lateness and task backlog; database lock wait duration unavailable",
+            "database": "postgresql",
+            "fault_recovery": "untested",
+            "load_profile": "One fixed open-loop schedule; no concurrency or rate sweep",
+            "producer_api": "posthog.api.user.UserViewSet.two_factor_validate",
+            "producer_api_effects_validated": true,
+            "producer_api_timed": true,
+            "producer_concurrency": 8,
+            "rendering_timed": true,
+            "rendering_validated": true,
+            "request_transport": "DRF handler with native session authentication, CSRF, permissions and throttles; no full middleware/server",
+            "scheduler_placement": "Separate worker service process; eight handler processes",
+            "smtp_receiver_placement": "Separate owned process; exact envelopes exported after measurement",
+            "submission_window_seconds": 60,
+            "transport": "real_local_smtp",
+            "warmup_producer_concurrency": 8
+          },
+          "dbworker": {
+            "application_scope": "original authenticated two_factor_validate DRF handler plus notification and delivery",
+            "celery_publication": "original API .delay and native nested delivery publication",
+            "concurrency": 8,
+            "contention_observation": "Concurrent API submission latency, lateness and task backlog; database lock wait duration unavailable",
+            "database": "postgresql",
+            "fault_recovery": "untested",
+            "load_profile": "One fixed open-loop schedule; no concurrency or rate sweep",
+            "producer_api": "posthog.api.user.UserViewSet.two_factor_validate",
+            "producer_api_effects_validated": true,
+            "producer_api_timed": true,
+            "producer_concurrency": 8,
+            "rendering_timed": true,
+            "rendering_validated": true,
+            "request_transport": "DRF handler with native session authentication, CSRF, permissions and throttles; no full middleware/server",
+            "scheduler_placement": "Separate worker service process; eight handler processes",
+            "smtp_receiver_placement": "Separate owned process; exact envelopes exported after measurement",
+            "submission_window_seconds": 60,
+            "transport": "real_local_smtp",
+            "warmup_producer_concurrency": 8,
+            "worker_service_readiness": {
+              "concurrency": 8,
+              "pid": 76229,
+              "readiness_scope": "configured process pool initialized; application warmup is separate",
+              "startup_seconds": 46.84447475300021,
+              "timestamp_ns": 1791751661538036081
+            }
+          }
+        }
+      }
+    }
+  },
+  "baseline_summary": [
+    {
+      "suite": "imagededup",
+      "scenario": "build",
+      "backend": "celery",
+      "samples": 3,
+      "medians": {
+        "wall_seconds": 5.759694852
+      },
+      "individual_samples": [
+        {
+          "suite": "imagededup",
+          "scenario": "build",
+          "backend": "celery",
+          "repetition": 1,
+          "wall_seconds": 6.450436916
+        },
+        {
+          "suite": "imagededup",
+          "scenario": "build",
+          "backend": "celery",
+          "repetition": 2,
+          "wall_seconds": 5.759694852
+        },
+        {
+          "suite": "imagededup",
+          "scenario": "build",
+          "backend": "celery",
+          "repetition": 3,
+          "wall_seconds": 5.674877778
+        }
+      ]
+    },
+    {
+      "suite": "imagededup",
+      "scenario": "build",
+      "backend": "dbworker",
+      "samples": 3,
+      "medians": {
+        "wall_seconds": 7.067522686
+      },
+      "individual_samples": [
+        {
+          "suite": "imagededup",
+          "scenario": "build",
+          "backend": "dbworker",
+          "repetition": 1,
+          "wall_seconds": 5.794717729
+        },
+        {
+          "suite": "imagededup",
+          "scenario": "build",
+          "backend": "dbworker",
+          "repetition": 2,
+          "wall_seconds": 7.067522686
+        },
+        {
+          "suite": "imagededup",
+          "scenario": "build",
+          "backend": "dbworker",
+          "repetition": 3,
+          "wall_seconds": 7.340634213
+        }
+      ]
+    },
+    {
+      "suite": "imagededup",
+      "scenario": "comparison",
+      "backend": "celery",
+      "samples": 3,
+      "medians": {
+        "wall_seconds": 79.743839567
+      },
+      "individual_samples": [
+        {
+          "suite": "imagededup",
+          "scenario": "comparison",
+          "backend": "celery",
+          "repetition": 1,
+          "wall_seconds": 78.404688646
+        },
+        {
+          "suite": "imagededup",
+          "scenario": "comparison",
+          "backend": "celery",
+          "repetition": 2,
+          "wall_seconds": 79.743839567
+        },
+        {
+          "suite": "imagededup",
+          "scenario": "comparison",
+          "backend": "celery",
+          "repetition": 3,
+          "wall_seconds": 82.251773084
+        }
+      ]
+    },
+    {
+      "suite": "imagededup",
+      "scenario": "comparison",
+      "backend": "dbworker",
+      "samples": 3,
+      "medians": {
+        "wall_seconds": 75.986757739
+      },
+      "individual_samples": [
+        {
+          "suite": "imagededup",
+          "scenario": "comparison",
+          "backend": "dbworker",
+          "repetition": 1,
+          "wall_seconds": 73.144715611
+        },
+        {
+          "suite": "imagededup",
+          "scenario": "comparison",
+          "backend": "dbworker",
+          "repetition": 2,
+          "wall_seconds": 75.986757739
+        },
+        {
+          "suite": "imagededup",
+          "scenario": "comparison",
+          "backend": "dbworker",
+          "repetition": 3,
+          "wall_seconds": 76.8618587
+        }
+      ]
+    },
+    {
+      "suite": "imagededup",
+      "scenario": "mixed",
+      "backend": "celery",
+      "samples": 3,
+      "medians": {
+        "wall_seconds": 90.392059077
+      },
+      "individual_samples": [
+        {
+          "suite": "imagededup",
+          "scenario": "mixed",
+          "backend": "celery",
+          "repetition": 1,
+          "wall_seconds": 88.295829227
+        },
+        {
+          "suite": "imagededup",
+          "scenario": "mixed",
+          "backend": "celery",
+          "repetition": 2,
+          "wall_seconds": 90.392059077
+        },
+        {
+          "suite": "imagededup",
+          "scenario": "mixed",
+          "backend": "celery",
+          "repetition": 3,
+          "wall_seconds": 92.08035685
+        }
+      ]
+    },
+    {
+      "suite": "imagededup",
+      "scenario": "mixed",
+      "backend": "dbworker",
+      "samples": 3,
+      "medians": {
+        "wall_seconds": 90.100159525
+      },
+      "individual_samples": [
+        {
+          "suite": "imagededup",
+          "scenario": "mixed",
+          "backend": "dbworker",
+          "repetition": 1,
+          "wall_seconds": 85.186270724
+        },
+        {
+          "suite": "imagededup",
+          "scenario": "mixed",
+          "backend": "dbworker",
+          "repetition": 2,
+          "wall_seconds": 90.100159525
+        },
+        {
+          "suite": "imagededup",
+          "scenario": "mixed",
+          "backend": "dbworker",
+          "repetition": 3,
+          "wall_seconds": 93.348779801
+        }
+      ]
+    },
+    {
+      "suite": "paperless_ngx",
+      "scenario": "native_unsplit_scan_ingestion",
+      "backend": "celery",
+      "samples": 3,
+      "medians": {
+        "actual_api_operations_per_second": 3.333328654339901,
+        "end_to_end_p95_seconds": 63.548347889,
+        "mean_execution_span": 5.319716821482412,
+        "mean_measurement": 5.266135897387338,
+        "mean_published_outstanding_measurement": 54.26094164105185,
+        "peak_published_outstanding": 108,
+        "peak_running": 8,
+        "queue_wait_p95_seconds": 60.284494036,
+        "wall_seconds": 126.468900295
+      },
+      "individual_samples": [
+        {
+          "suite": "paperless_ngx",
+          "scenario": "native_unsplit_scan_ingestion",
+          "backend": "celery",
+          "repetition": 1,
+          "wall_seconds": 125.414620768,
+          "queue_wait_p95_seconds": 60.125661752,
+          "end_to_end_p95_seconds": 62.78781864,
+          "peak_published_outstanding": 106,
+          "mean_execution_span": 5.284257277220401,
+          "mean_measurement": 5.230790149304388,
+          "mean_published_outstanding_measurement": 52.885508554655985,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 3.3333287396729974
+        },
+        {
+          "suite": "paperless_ngx",
+          "scenario": "native_unsplit_scan_ingestion",
+          "backend": "celery",
+          "repetition": 2,
+          "wall_seconds": 126.468900295,
+          "queue_wait_p95_seconds": 60.284494036,
+          "end_to_end_p95_seconds": 63.548347889,
+          "peak_published_outstanding": 108,
+          "mean_execution_span": 5.342141764729487,
+          "mean_measurement": 5.296116688740438,
+          "mean_published_outstanding_measurement": 54.26094164105185,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 3.333285074643125
+        },
+        {
+          "suite": "paperless_ngx",
+          "scenario": "native_unsplit_scan_ingestion",
+          "backend": "celery",
+          "repetition": 3,
+          "wall_seconds": 127.244512001,
+          "queue_wait_p95_seconds": 60.656985362,
+          "end_to_end_p95_seconds": 64.464679612,
+          "peak_published_outstanding": 109,
+          "mean_execution_span": 5.319716821482412,
+          "mean_measurement": 5.266135897387338,
+          "mean_published_outstanding_measurement": 54.5189409459913,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 3.333328654339901
+        }
+      ]
+    },
+    {
+      "suite": "paperless_ngx",
+      "scenario": "native_unsplit_scan_ingestion",
+      "backend": "dbworker",
+      "samples": 3,
+      "medians": {
+        "actual_api_operations_per_second": 3.3333284786737374,
+        "end_to_end_p95_seconds": 44.892766623,
+        "mean_execution_span": 7.142774726968225,
+        "mean_measurement": 7.037902822636312,
+        "mean_published_outstanding_measurement": 27.09777192185685,
+        "peak_published_outstanding": 41,
+        "peak_running": 8,
+        "queue_wait_p95_seconds": 43.145651623,
+        "wall_seconds": 71.818980538
+      },
+      "individual_samples": [
+        {
+          "suite": "paperless_ngx",
+          "scenario": "native_unsplit_scan_ingestion",
+          "backend": "dbworker",
+          "repetition": 1,
+          "wall_seconds": 71.610797173,
+          "queue_wait_p95_seconds": 44.452640231,
+          "end_to_end_p95_seconds": 47.547803899,
+          "peak_published_outstanding": 41,
+          "mean_execution_span": 7.125632800134519,
+          "mean_measurement": 7.006054876779999,
+          "mean_published_outstanding_measurement": 27.218055571903164,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 3.3333284786737374
+        },
+        {
+          "suite": "paperless_ngx",
+          "scenario": "native_unsplit_scan_ingestion",
+          "backend": "dbworker",
+          "repetition": 2,
+          "wall_seconds": 71.818980538,
+          "queue_wait_p95_seconds": 37.681809376,
+          "end_to_end_p95_seconds": 39.125683497,
+          "peak_published_outstanding": 42,
+          "mean_execution_span": 7.159140582584134,
+          "mean_measurement": 7.041152885196361,
+          "mean_published_outstanding_measurement": 27.09777192185685,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 3.3333292105050996
+        },
+        {
+          "suite": "paperless_ngx",
+          "scenario": "native_unsplit_scan_ingestion",
+          "backend": "dbworker",
+          "repetition": 3,
+          "wall_seconds": 71.838199443,
+          "queue_wait_p95_seconds": 43.145651623,
+          "end_to_end_p95_seconds": 44.892766623,
+          "peak_published_outstanding": 41,
+          "mean_execution_span": 7.142774726968225,
+          "mean_measurement": 7.037902822636312,
+          "mean_published_outstanding_measurement": 26.7302531514814,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 3.333220568037155
+        }
+      ]
+    },
+    {
+      "suite": "posthog",
+      "scenario": "native_two_factor_notification",
+      "backend": "celery",
+      "samples": 3,
+      "medians": {
+        "actual_api_operations_per_second": 42.48018400788619,
+        "end_to_end_p95_seconds": 0.113145784,
+        "mean_execution_span": 3.701633931623345,
+        "mean_measurement": 3.686281729386056,
+        "mean_published_outstanding_measurement": 6.0601193514768825,
+        "peak_published_outstanding": 15,
+        "peak_running": 8,
+        "queue_wait_p95_seconds": 0.049444568,
+        "wall_seconds": 118.120501505
+      },
+      "individual_samples": [
+        {
+          "suite": "posthog",
+          "scenario": "native_two_factor_notification",
+          "backend": "celery",
+          "repetition": 1,
+          "wall_seconds": 124.641549217,
+          "queue_wait_p95_seconds": 0.051762394,
+          "end_to_end_p95_seconds": 0.116178573,
+          "peak_published_outstanding": 15,
+          "mean_execution_span": 3.701633931623345,
+          "mean_measurement": 3.686281729386056,
+          "mean_published_outstanding_measurement": 6.0601193514768825,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 40.260385337264836
+        },
+        {
+          "suite": "posthog",
+          "scenario": "native_two_factor_notification",
+          "backend": "celery",
+          "repetition": 2,
+          "wall_seconds": 118.120501505,
+          "queue_wait_p95_seconds": 0.049444568,
+          "end_to_end_p95_seconds": 0.113145784,
+          "peak_published_outstanding": 15,
+          "mean_execution_span": 3.820582829582403,
+          "mean_measurement": 3.80509051003288,
+          "mean_published_outstanding_measurement": 6.102860556458827,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 42.48018400788619
+        },
+        {
+          "suite": "posthog",
+          "scenario": "native_two_factor_notification",
+          "backend": "celery",
+          "repetition": 3,
+          "wall_seconds": 115.040600361,
+          "queue_wait_p95_seconds": 0.048910228,
+          "end_to_end_p95_seconds": 0.107762797,
+          "peak_published_outstanding": 15,
+          "mean_execution_span": 3.681594735880058,
+          "mean_measurement": 3.6669305487909316,
+          "mean_published_outstanding_measurement": 5.930944599471221,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 43.614392521673125
+        }
+      ]
+    },
+    {
+      "suite": "posthog",
+      "scenario": "native_two_factor_notification",
+      "backend": "dbworker",
+      "samples": 3,
+      "medians": {
+        "actual_api_operations_per_second": 40.77624517456877,
+        "end_to_end_p95_seconds": 36.036049393,
+        "mean_execution_span": 3.401618921011054,
+        "mean_measurement": 3.3878064954383262,
+        "mean_published_outstanding_measurement": 1370.6950541802462,
+        "peak_published_outstanding": 2268,
+        "peak_running": 8,
+        "queue_wait_p95_seconds": 35.986575357,
+        "wall_seconds": 147.443952953
+      },
+      "individual_samples": [
+        {
+          "suite": "posthog",
+          "scenario": "native_two_factor_notification",
+          "backend": "dbworker",
+          "repetition": 1,
+          "wall_seconds": 152.40049638,
+          "queue_wait_p95_seconds": 35.986575357,
+          "end_to_end_p95_seconds": 36.036049393,
+          "peak_published_outstanding": 2282,
+          "mean_execution_span": 3.3244984006301332,
+          "mean_measurement": 3.3121533614325096,
+          "mean_published_outstanding_measurement": 1451.1272898835816,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 40.77624517456877
+        },
+        {
+          "suite": "posthog",
+          "scenario": "native_two_factor_notification",
+          "backend": "dbworker",
+          "repetition": 2,
+          "wall_seconds": 147.443952953,
+          "queue_wait_p95_seconds": 31.857834489,
+          "end_to_end_p95_seconds": 31.91728804,
+          "peak_published_outstanding": 2268,
+          "mean_execution_span": 3.4061580421661244,
+          "mean_measurement": 3.394527972703925,
+          "mean_published_outstanding_measurement": 1370.6950541802462,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 41.12903632431986
+        },
+        {
+          "suite": "posthog",
+          "scenario": "native_two_factor_notification",
+          "backend": "dbworker",
+          "repetition": 3,
+          "wall_seconds": 147.203889343,
+          "queue_wait_p95_seconds": 47.245530504,
+          "end_to_end_p95_seconds": 47.301758616,
+          "peak_published_outstanding": 2174,
+          "mean_execution_span": 3.401618921011054,
+          "mean_measurement": 3.3878064954383262,
+          "mean_published_outstanding_measurement": 1344.2615936354662,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 40.62004830846807
+        }
+      ]
+    },
+    {
+      "suite": "saleor",
+      "scenario": "product_csv_export",
+      "backend": "celery",
+      "samples": 3,
+      "medians": {
+        "actual_api_operations_per_second": 16.66664153587123,
+        "end_to_end_p95_seconds": 36.03075694,
+        "mean_execution_span": 7.841654033216782,
+        "mean_measurement": 7.704571885196352,
+        "mean_published_outstanding_measurement": 305.40137860674747,
+        "peak_published_outstanding": 604,
+        "peak_running": 8,
+        "queue_wait_p95_seconds": 35.272395346,
+        "wall_seconds": 130.201599501
+      },
+      "individual_samples": [
+        {
+          "suite": "saleor",
+          "scenario": "product_csv_export",
+          "backend": "celery",
+          "repetition": 1,
+          "wall_seconds": 129.769424189,
+          "queue_wait_p95_seconds": 35.213120209,
+          "end_to_end_p95_seconds": 35.823974463,
+          "peak_published_outstanding": 598,
+          "mean_execution_span": 7.841654033216782,
+          "mean_measurement": 7.720763806732899,
+          "mean_published_outstanding_measurement": 303.07992467194657,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 16.666640189208728
+        },
+        {
+          "suite": "saleor",
+          "scenario": "product_csv_export",
+          "backend": "celery",
+          "repetition": 2,
+          "wall_seconds": 130.201599501,
+          "queue_wait_p95_seconds": 35.560574932,
+          "end_to_end_p95_seconds": 36.365862601,
+          "peak_published_outstanding": 604,
+          "mean_execution_span": 7.8387757720969775,
+          "mean_measurement": 7.704571885196352,
+          "mean_published_outstanding_measurement": 305.40137860674747,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 16.66664157003779
+        },
+        {
+          "suite": "saleor",
+          "scenario": "product_csv_export",
+          "backend": "celery",
+          "repetition": 3,
+          "wall_seconds": 132.017700612,
+          "queue_wait_p95_seconds": 35.272395346,
+          "end_to_end_p95_seconds": 36.03075694,
+          "peak_published_outstanding": 615,
+          "mean_execution_span": 7.844400624808067,
+          "mean_measurement": 7.702975448820719,
+          "mean_published_outstanding_measurement": 308.40995712991594,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 16.66664153587123
+        }
+      ]
+    },
+    {
+      "suite": "saleor",
+      "scenario": "product_csv_export",
+      "backend": "dbworker",
+      "samples": 3,
+      "medians": {
+        "actual_api_operations_per_second": 16.66664066726278,
+        "end_to_end_p95_seconds": 56.66597174,
+        "mean_execution_span": 5.988422894740213,
+        "mean_measurement": 5.915393867284873,
+        "mean_published_outstanding_measurement": 458.003866038765,
+        "peak_published_outstanding": 885,
+        "peak_running": 8,
+        "queue_wait_p95_seconds": 56.069206704,
+        "wall_seconds": 165.888850582
+      },
+      "individual_samples": [
+        {
+          "suite": "saleor",
+          "scenario": "product_csv_export",
+          "backend": "dbworker",
+          "repetition": 1,
+          "wall_seconds": 167.723385204,
+          "queue_wait_p95_seconds": 56.069206704,
+          "end_to_end_p95_seconds": 56.66597174,
+          "peak_published_outstanding": 885,
+          "mean_execution_span": 6.002803106002855,
+          "mean_measurement": 5.915393867284873,
+          "mean_published_outstanding_measurement": 458.003866038765,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 16.666639880598606
+        },
+        {
+          "suite": "saleor",
+          "scenario": "product_csv_export",
+          "backend": "dbworker",
+          "repetition": 2,
+          "wall_seconds": 165.888850582,
+          "queue_wait_p95_seconds": 56.228336952,
+          "end_to_end_p95_seconds": 56.829763996,
+          "peak_published_outstanding": 892,
+          "mean_execution_span": 5.981033113750888,
+          "mean_measurement": 5.904818051938969,
+          "mean_published_outstanding_measurement": 460.0176245569714,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 16.666641232261036
+        },
+        {
+          "suite": "saleor",
+          "scenario": "product_csv_export",
+          "backend": "dbworker",
+          "repetition": 3,
+          "wall_seconds": 165.098037956,
+          "queue_wait_p95_seconds": 55.150672229,
+          "end_to_end_p95_seconds": 55.819911107,
+          "peak_published_outstanding": 884,
+          "mean_execution_span": 5.988422894740213,
+          "mean_measurement": 5.932649443042059,
+          "mean_published_outstanding_measurement": 457.3459004817563,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 16.66664066726278
+        }
+      ]
+    },
+    {
+      "suite": "sentry",
+      "scenario": "historical_native_email_fanout",
+      "backend": "celery",
+      "samples": 3,
+      "medians": {
+        "actual_api_operations_per_second": 33.33328578951226,
+        "end_to_end_p95_seconds": 0.051809885,
+        "mean_execution_span": 1.4117067296467016,
+        "mean_measurement": 1.4043501815053132,
+        "mean_published_outstanding_measurement": 2.748697519547074,
+        "peak_published_outstanding": 16,
+        "peak_running": 8,
+        "queue_wait_p95_seconds": 0.036631475,
+        "wall_seconds": 60.306235747
+      },
+      "individual_samples": [
+        {
+          "suite": "sentry",
+          "scenario": "historical_native_email_fanout",
+          "backend": "celery",
+          "repetition": 1,
+          "wall_seconds": 60.140482157,
+          "queue_wait_p95_seconds": 0.035700923,
+          "end_to_end_p95_seconds": 0.05082252,
+          "peak_published_outstanding": 22,
+          "mean_execution_span": 1.4117067296467016,
+          "mean_measurement": 1.4043501815053132,
+          "mean_published_outstanding_measurement": 2.7301736471843165,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 33.33328578951226
+        },
+        {
+          "suite": "sentry",
+          "scenario": "historical_native_email_fanout",
+          "backend": "celery",
+          "repetition": 2,
+          "wall_seconds": 60.306235747,
+          "queue_wait_p95_seconds": 0.036631475,
+          "end_to_end_p95_seconds": 0.051809885,
+          "peak_published_outstanding": 16,
+          "mean_execution_span": 1.409780018318971,
+          "mean_measurement": 1.3985075687997244,
+          "mean_published_outstanding_measurement": 2.748697519547074,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 33.33328694617566
+        },
+        {
+          "suite": "sentry",
+          "scenario": "historical_native_email_fanout",
+          "backend": "celery",
+          "repetition": 3,
+          "wall_seconds": 60.326120663,
+          "queue_wait_p95_seconds": 0.037436328,
+          "end_to_end_p95_seconds": 0.053672644,
+          "peak_published_outstanding": 16,
+          "mean_execution_span": 1.4752742271398107,
+          "mean_measurement": 1.4632068898661779,
+          "mean_published_outstanding_measurement": 2.832864102345901,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 33.33326732346406
+        }
+      ]
+    },
+    {
+      "suite": "sentry",
+      "scenario": "historical_native_email_fanout",
+      "backend": "dbworker",
+      "samples": 3,
+      "medians": {
+        "actual_api_operations_per_second": 33.31308901522189,
+        "end_to_end_p95_seconds": 0.516816898,
+        "mean_execution_span": 2.173404621556888,
+        "mean_measurement": 2.1559159759769417,
+        "mean_published_outstanding_measurement": 16.903308192717144,
+        "peak_published_outstanding": 161,
+        "peak_running": 8,
+        "queue_wait_p95_seconds": 0.453111901,
+        "wall_seconds": 60.418076084
+      },
+      "individual_samples": [
+        {
+          "suite": "sentry",
+          "scenario": "historical_native_email_fanout",
+          "backend": "dbworker",
+          "repetition": 1,
+          "wall_seconds": 60.420114821,
+          "queue_wait_p95_seconds": 0.453111901,
+          "end_to_end_p95_seconds": 0.516816898,
+          "peak_published_outstanding": 134,
+          "mean_execution_span": 2.285546171168752,
+          "mean_measurement": 2.2709356799552185,
+          "mean_published_outstanding_measurement": 16.01631587222104,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 33.31308901522189
+        },
+        {
+          "suite": "sentry",
+          "scenario": "historical_native_email_fanout",
+          "backend": "dbworker",
+          "repetition": 2,
+          "wall_seconds": 60.418076084,
+          "queue_wait_p95_seconds": 0.503828763,
+          "end_to_end_p95_seconds": 0.598206424,
+          "peak_published_outstanding": 170,
+          "mean_execution_span": 2.1442256023830226,
+          "mean_measurement": 2.136194773027192,
+          "mean_published_outstanding_measurement": 17.477071507853477,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 33.312325919913775
+        },
+        {
+          "suite": "sentry",
+          "scenario": "historical_native_email_fanout",
+          "backend": "dbworker",
+          "repetition": 3,
+          "wall_seconds": 60.400472761,
+          "queue_wait_p95_seconds": 0.407266114,
+          "end_to_end_p95_seconds": 0.504569021,
+          "peak_published_outstanding": 161,
+          "mean_execution_span": 2.173404621556888,
+          "mean_measurement": 2.1559159759769417,
+          "mean_published_outstanding_measurement": 16.903308192717144,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 33.333291556719026
+        }
+      ]
+    },
+    {
+      "suite": "superset",
+      "scenario": "sql_lab_group_by",
+      "backend": "celery",
+      "samples": 3,
+      "medians": {
+        "actual_api_operations_per_second": 35.61764101069667,
+        "end_to_end_p95_seconds": 41.23984078,
+        "mean_execution_span": 7.95119793268785,
+        "mean_measurement": 6.411697407382681,
+        "mean_published_outstanding_measurement": 635.213558291154,
+        "peak_published_outstanding": 1510,
+        "peak_running": 8,
+        "queue_wait_p95_seconds": 41.024851774,
+        "wall_seconds": 146.495284018
+      },
+      "individual_samples": [
+        {
+          "suite": "superset",
+          "scenario": "sql_lab_group_by",
+          "backend": "celery",
+          "repetition": 1,
+          "wall_seconds": 146.495284018,
+          "queue_wait_p95_seconds": 41.024851774,
+          "end_to_end_p95_seconds": 41.23984078,
+          "peak_published_outstanding": 1544,
+          "mean_execution_span": 7.949609346447075,
+          "mean_measurement": 6.411697407382681,
+          "mean_published_outstanding_measurement": 635.213558291154,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 35.89585487052145
+        },
+        {
+          "suite": "superset",
+          "scenario": "sql_lab_group_by",
+          "backend": "celery",
+          "repetition": 2,
+          "wall_seconds": 144.888562388,
+          "queue_wait_p95_seconds": 39.264744494,
+          "end_to_end_p95_seconds": 39.510727972,
+          "peak_published_outstanding": 1396,
+          "mean_execution_span": 7.953676809336031,
+          "mean_measurement": 6.396485243618911,
+          "mean_published_outstanding_measurement": 607.6619979498115,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 34.9105378459245
+        },
+        {
+          "suite": "superset",
+          "scenario": "sql_lab_group_by",
+          "backend": "celery",
+          "repetition": 3,
+          "wall_seconds": 148.945686349,
+          "queue_wait_p95_seconds": 41.825585006,
+          "end_to_end_p95_seconds": 41.995569314,
+          "peak_published_outstanding": 1510,
+          "mean_execution_span": 7.95119793268785,
+          "mean_measurement": 6.432569948229538,
+          "mean_published_outstanding_measurement": 643.1387798583476,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 35.61764101069667
+        }
+      ]
+    },
+    {
+      "suite": "superset",
+      "scenario": "sql_lab_group_by",
+      "backend": "dbworker",
+      "samples": 3,
+      "medians": {
+        "actual_api_operations_per_second": 31.476114296684422,
+        "end_to_end_p95_seconds": 47.638013294,
+        "mean_execution_span": 6.802292352557493,
+        "mean_measurement": 5.646893491706979,
+        "mean_published_outstanding_measurement": 636.1082971631994,
+        "peak_published_outstanding": 1477,
+        "peak_running": 8,
+        "queue_wait_p95_seconds": 47.46007647,
+        "wall_seconds": 166.948203649
+      },
+      "individual_samples": [
+        {
+          "suite": "superset",
+          "scenario": "sql_lab_group_by",
+          "backend": "dbworker",
+          "repetition": 1,
+          "wall_seconds": 166.948203649,
+          "queue_wait_p95_seconds": 47.46007647,
+          "end_to_end_p95_seconds": 47.638013294,
+          "peak_published_outstanding": 1560,
+          "mean_execution_span": 6.800459608155753,
+          "mean_measurement": 5.601097452824262,
+          "mean_published_outstanding_measurement": 641.7755789807132,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 32.308233870734696
+        },
+        {
+          "suite": "superset",
+          "scenario": "sql_lab_group_by",
+          "backend": "dbworker",
+          "repetition": 2,
+          "wall_seconds": 166.317818496,
+          "queue_wait_p95_seconds": 43.794549075,
+          "end_to_end_p95_seconds": 43.987904672,
+          "peak_published_outstanding": 1417,
+          "mean_execution_span": 6.850699278488845,
+          "mean_measurement": 5.6487868936339805,
+          "mean_published_outstanding_measurement": 597.0102236436082,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 31.476114296684422
+        },
+        {
+          "suite": "superset",
+          "scenario": "sql_lab_group_by",
+          "backend": "dbworker",
+          "repetition": 3,
+          "wall_seconds": 170.568352977,
+          "queue_wait_p95_seconds": 47.950443448,
+          "end_to_end_p95_seconds": 48.153117063,
+          "peak_published_outstanding": 1477,
+          "mean_execution_span": 6.802292352557493,
+          "mean_measurement": 5.646893491706979,
+          "mean_published_outstanding_measurement": 636.1082971631994,
+          "peak_running": 8,
+          "actual_api_operations_per_second": 31.264012170392963
+        }
+      ]
+    }
+  ],
+  "before_after": [
+    {
+      "suite": "imagededup",
+      "scenario": "build",
+      "backend": "celery",
+      "current_over_baseline": {
+        "wall_seconds": 1.189022408300321
+      }
+    },
+    {
+      "suite": "imagededup",
+      "scenario": "build",
+      "backend": "dbworker",
+      "current_over_baseline": {
+        "wall_seconds": 0.8911192145835864
+      }
+    },
+    {
+      "suite": "imagededup",
+      "scenario": "comparison",
+      "backend": "celery",
+      "current_over_baseline": {
+        "wall_seconds": 1.0491861132132287
+      }
+    },
+    {
+      "suite": "imagededup",
+      "scenario": "comparison",
+      "backend": "dbworker",
+      "current_over_baseline": {
+        "wall_seconds": 1.0113316781847381
+      }
+    },
+    {
+      "suite": "imagededup",
+      "scenario": "mixed",
+      "backend": "celery",
+      "current_over_baseline": {
+        "wall_seconds": 1.0451712070805006
+      }
+    },
+    {
+      "suite": "imagededup",
+      "scenario": "mixed",
+      "backend": "dbworker",
+      "current_over_baseline": {
+        "wall_seconds": 1.037751565390472
+      }
+    },
+    {
+      "suite": "paperless_ngx",
+      "scenario": "native_unsplit_scan_ingestion",
+      "backend": "celery",
+      "current_over_baseline": {
+        "actual_api_operations_per_second": 0.999999933583431,
+        "end_to_end_p95_seconds": 0.515565155119811,
+        "mean_execution_span": 0.8529456365183227,
+        "mean_measurement": 0.8547018909211587,
+        "mean_published_outstanding_measurement": 0.6674919504842095,
+        "peak_published_outstanding": 0.6666666666666666,
+        "peak_running": 1.0,
+        "queue_wait_p95_seconds": 0.5061717623735519,
+        "wall_seconds": 0.7442681097917426
+      }
+    },
+    {
+      "suite": "paperless_ngx",
+      "scenario": "native_unsplit_scan_ingestion",
+      "backend": "dbworker",
+      "current_over_baseline": {
+        "actual_api_operations_per_second": 1.0000003071996468,
+        "end_to_end_p95_seconds": 0.10484047578365707,
+        "mean_execution_span": 0.8259928252180673,
+        "mean_measurement": 0.8274812155579595,
+        "mean_published_outstanding_measurement": 0.261464973533529,
+        "peak_published_outstanding": 0.4634146341463415,
+        "peak_running": 1.0,
+        "queue_wait_p95_seconds": 0.0566111870170004,
+        "wall_seconds": 0.8443847819576521
+      }
+    },
+    {
+      "suite": "posthog",
+      "scenario": "native_two_factor_notification",
+      "backend": "celery",
+      "current_over_baseline": {
+        "actual_api_operations_per_second": 0.9159412128788269,
+        "end_to_end_p95_seconds": 1.094794685412229,
+        "mean_execution_span": 1.0383881792373388,
+        "mean_measurement": 1.0391620790463598,
+        "mean_published_outstanding_measurement": 1.0135042529974094,
+        "peak_published_outstanding": 1.0,
+        "peak_running": 1.0,
+        "queue_wait_p95_seconds": 1.0655692046899874,
+        "wall_seconds": 1.091132690615476
+      }
+    },
+    {
+      "suite": "posthog",
+      "scenario": "native_two_factor_notification",
+      "backend": "dbworker",
+      "current_over_baseline": {
+        "actual_api_operations_per_second": 1.0874544620377697,
+        "end_to_end_p95_seconds": 0.05828242599778368,
+        "mean_execution_span": 1.549285517405947,
+        "mean_measurement": 1.5474351434847613,
+        "mean_published_outstanding_measurement": 0.07108052927826443,
+        "peak_published_outstanding": 0.0890652557319224,
+        "peak_running": 1.0,
+        "queue_wait_p95_seconds": 0.056677798255766944,
+        "wall_seconds": 0.7787983243884103
+      }
+    },
+    {
+      "suite": "saleor",
+      "scenario": "product_csv_export",
+      "backend": "celery",
+      "current_over_baseline": {
+        "actual_api_operations_per_second": 0.9999999679333825,
+        "end_to_end_p95_seconds": 0.9329109772790689,
+        "mean_execution_span": 1.000782103946067,
+        "mean_measurement": 1.003564874427318,
+        "mean_published_outstanding_measurement": 0.9705067810282729,
+        "peak_published_outstanding": 0.9668874172185431,
+        "peak_running": 1.0,
+        "queue_wait_p95_seconds": 0.9341340647775579,
+        "wall_seconds": 0.9727199577607898
+      }
+    },
+    {
+      "suite": "saleor",
+      "scenario": "product_csv_export",
+      "backend": "dbworker",
+      "current_over_baseline": {
+        "actual_api_operations_per_second": 0.9978867193000831,
+        "end_to_end_p95_seconds": 0.7946024469252312,
+        "mean_execution_span": 1.0685177824233696,
+        "mean_measurement": 1.0680208783132528,
+        "mean_published_outstanding_measurement": 0.887121628165923,
+        "peak_published_outstanding": 0.8757062146892656,
+        "peak_running": 1.0,
+        "queue_wait_p95_seconds": 0.7870739284394352,
+        "wall_seconds": 0.9224584889106722
+      }
+    },
+    {
+      "suite": "sentry",
+      "scenario": "historical_native_email_fanout",
+      "backend": "celery",
+      "current_over_baseline": {
+        "actual_api_operations_per_second": 0.9999999336667654,
+        "end_to_end_p95_seconds": 1.0348661071145016,
+        "mean_execution_span": 1.0486542737046944,
+        "mean_measurement": 1.048431436181387,
+        "mean_published_outstanding_measurement": 1.0392083988250778,
+        "peak_published_outstanding": 1.0,
+        "peak_running": 1.0,
+        "queue_wait_p95_seconds": 1.028637995057529,
+        "wall_seconds": 0.9999338844656674
+      }
+    },
+    {
+      "suite": "sentry",
+      "scenario": "historical_native_email_fanout",
+      "backend": "dbworker",
+      "current_over_baseline": {
+        "actual_api_operations_per_second": 1.0006065274734335,
+        "end_to_end_p95_seconds": 0.8254178175110676,
+        "mean_execution_span": 0.8565715546699281,
+        "mean_measurement": 0.8580928589761909,
+        "mean_published_outstanding_measurement": 0.8469573344580784,
+        "peak_published_outstanding": 0.9192546583850931,
+        "peak_running": 1.0,
+        "queue_wait_p95_seconds": 0.8126182013480154,
+        "wall_seconds": 0.9983295889319665
+      }
+    },
+    {
+      "suite": "superset",
+      "scenario": "sql_lab_group_by",
+      "backend": "celery",
+      "current_over_baseline": {
+        "actual_api_operations_per_second": 0.946394353805834,
+        "end_to_end_p95_seconds": 1.0247703169721112,
+        "mean_execution_span": 1.000551694022494,
+        "mean_measurement": 0.9950683834081765,
+        "mean_published_outstanding_measurement": 0.9570281205934245,
+        "peak_published_outstanding": 0.9960264900662251,
+        "peak_running": 1.0,
+        "queue_wait_p95_seconds": 1.026344385933527,
+        "wall_seconds": 1.0845750127456502
+      }
+    },
+    {
+      "suite": "superset",
+      "scenario": "sql_lab_group_by",
+      "backend": "dbworker",
+      "current_over_baseline": {
+        "actual_api_operations_per_second": 0.9655181227441512,
+        "end_to_end_p95_seconds": 1.0513508134544332,
+        "mean_execution_span": 1.008016164964578,
+        "mean_measurement": 1.0033262363555255,
+        "mean_published_outstanding_measurement": 0.9984496220325405,
+        "peak_published_outstanding": 1.039945836154367,
+        "peak_running": 1.0,
+        "queue_wait_p95_seconds": 1.0510586406562528,
+        "wall_seconds": 1.0637641821314905
+      }
+    }
+  ],
+  "scope": "Official six-suite before/after comparison of eager process startup; three paired repetitions, original workload and warmup.",
+  "run_url": "https://github.com/zysilm/dbworker/actions/runs/38171163894",
+  "goal_achieved": false,
+  "posthog_goal": {
+    "peak_published_outstanding_limit": 50,
+    "observed_dbworker_peaks": [
+      255,
+      137,
+      202
+    ],
+    "reason": "Startup readiness improved, but sustained-load backlog remains above the acceptance bound."
+  }
+}
