@@ -28,7 +28,7 @@ from sqlalchemy.orm import sessionmaker
 from dbworker import ExecutionStatus
 
 from benchmarks.common.reporting import write_json
-from benchmarks.common.business_evidence import validate_posthog_delivery_records, trusted_warmup_requests
+from benchmarks.common.business_evidence import validate_posthog_delivery_records, trusted_warmup_requests, trusted_posthog_worker_concurrency
 from benchmarks.common.load import run_load
 from benchmarks.common.load_evidence import task_load_metrics
 from examples.posthog_dbworker.runtime import Job, STAGES, coordinator, enqueue
@@ -75,6 +75,7 @@ def main():
     config = json.loads(args.config.read_text())
     profile = config["suite"]["profiles"][config["profile"]]
     warmup_count = trusted_warmup_requests("posthog", profile)
+    workers = trusted_posthog_worker_concurrency(profile)
     directory = Path(config["output_directory"]).resolve() / f"posthog-{args.repetition}-{args.backend}"
     directory.mkdir()
     children, streams = [], []
@@ -158,7 +159,7 @@ def main():
                     "OTEL_SDK_DISABLED": True, "OPT_OUT_CAPTURE": True, "TEST": False},
                 "autoretry": "original Exception max3 with backoff/jitter",
                 "worker_prefetch_multiplier": app.conf.worker_prefetch_multiplier,
-                "worker_total_concurrency": 8, "dbworker_shared_stage_pool": 8,
+                "worker_total_concurrency": workers, "dbworker_shared_stage_pool": workers,
                 "task_acks_late": app.conf.task_acks_late})
         users, expected, fixtures = [], {}, []
         for index in range(profile["requests"] + warmup_count):
@@ -174,12 +175,12 @@ def main():
                           PYTHONPATH=os.pathsep.join((str(ROOT), str(ROOT / "src"), str(ROOT / "examples/posthog"))))
         engine = create_engine(url)
         sessions = sessionmaker(engine)
-        runtime = coordinator(url, concurrency=8) if args.backend == "dbworker" else None
+        runtime = coordinator(url, concurrency=workers) if args.backend == "dbworker" else None
         os.environ.pop("DBWORKER_HANDOFF_TRACE_PATH", None)
         if args.backend == "celery":
             launch([sys.executable, "-m", "celery", "-A", "posthog.celery:app", "worker",
                     "--include", "benchmarks.common.native_observer", "--queues", "email",
-                    "--concurrency", "8", "--loglevel", "WARNING", "--hostname", f"posthog-{redis_port}@localhost"], "worker.log")
+                    "--concurrency", str(workers), "--loglevel", "WARNING", "--hostname", f"posthog-{redis_port}@localhost"], "worker.log")
             wait_for(lambda: app.control.ping(timeout=1))
         else:
             ready_file = directory / "worker-ready.json"
@@ -187,7 +188,7 @@ def main():
                 os.environ["DBWORKER_HANDOFF_TRACE_PATH"] = str(directory / "handoff.jsonl")
             dbworker_service = launch(
                 [sys.executable, "-m", "examples.posthog_dbworker.worker",
-                 "--concurrency", "8", "--ready-file", str(ready_file)],
+                 "--concurrency", str(workers), "--ready-file", str(ready_file)],
                 "worker.log", new_session=True)
 
             def dbworker_ready():
@@ -196,7 +197,7 @@ def main():
                 if not ready_file.exists():
                     return False
                 receipt = json.loads(ready_file.read_text())
-                if receipt["pid"] != dbworker_service.pid or receipt["concurrency"] != 8:
+                if receipt["pid"] != dbworker_service.pid or receipt["concurrency"] != workers:
                     raise RuntimeError("The PostHog dbworker service readiness identity differs")
                 return True
 
@@ -316,7 +317,7 @@ def main():
                               "messages": len(normalized), "warmup_messages": warmup_count, "duplicate_acceptance": 0},
                "environment": {"python": platform.python_version(), "interpreter": sys.executable, "packages": packages,
                                "upstream_files": source_files},
-               "configuration": {"concurrency": 8, "database": "postgresql", "transport": "real_local_smtp",
+               "configuration": {"concurrency": workers, "database": "postgresql", "transport": "real_local_smtp",
                                  "rendering_timed": True, "rendering_validated": True,
                                  "application_scope": "original authenticated two_factor_validate DRF handler plus notification and delivery",
                                  "producer_api": "posthog.api.user.UserViewSet.two_factor_validate",

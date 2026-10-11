@@ -2,7 +2,7 @@ name: Full application benchmarks
 
 on:
   push:
-    branches: [main, feature/worker-handoff-profiling]
+    branches: [main]
     paths-ignore:
       - README.md
       - 'doc/**'

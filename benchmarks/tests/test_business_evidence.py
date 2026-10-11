@@ -23,9 +23,9 @@ def sha(value):
 
 
 class BusinessEvidenceTests(unittest.TestCase):
-    def warm_eight_fixture(self):
-        row, events = self.fixture('posthog', count=8)
-        renamed = {f'notification-{i:04d}': f'warmup:notification-{i:04d}' for i in range(2, 8)}
+    def warm_eight_fixture(self, warmup_count=8):
+        row, events = self.fixture('posthog', count=warmup_count)
+        renamed = {f'notification-{i:04d}': f'warmup:notification-{i:04d}' for i in range(2, warmup_count)}
         for event in events:
             event['operation_id'] = renamed.get(event['operation_id'], event['operation_id'])
         for key in ('producer_identities', 'producer_api_outcomes'):
@@ -34,11 +34,24 @@ class BusinessEvidenceTests(unittest.TestCase):
                 if key == 'producer_identities':
                     identity = {k: value[k] for k in ('operation_id', 'user_id', 'recipient_sha256')}
                     value['sha256'] = sha(json.dumps(identity, sort_keys=True))
-        row['warmup_operations'] = [f'warmup:notification-{i:04d}' for i in range(8)]
-        row['producer_execution'].update(measured_calls=2, warmup_calls=8)
-        row.setdefault('validation', {})['warmup_messages'] = 8
-        row.setdefault('dataset', {})['warmup_requests'] = 8
+        row['warmup_operations'] = [f'warmup:notification-{i:04d}' for i in range(warmup_count)]
+        row['producer_execution'].update(measured_calls=2, warmup_calls=warmup_count)
+        row.setdefault('validation', {})['warmup_messages'] = warmup_count
+        row.setdefault('dataset', {})['warmup_requests'] = warmup_count
         return row, events
+
+    def test_32_warmups_preserve_native_fixture_binding(self):
+        row, events = self.warm_eight_fixture(32)
+        profile = {'requests': 2, 'warmup_requests': 32, 'worker_concurrency': 32}
+        validate_business_binding(row, 'posthog', events, 2, expected_profile=profile)
+        for field, section in (('warmup_messages', 'validation'), ('warmup_requests', 'dataset')):
+            changed = copy.deepcopy(row)
+            changed[section][field] = 8
+            with self.subTest(field=field), self.assertRaises(WorkflowMismatch):
+                validate_business_binding(changed, 'posthog', events, 2, expected_profile=profile)
+        with self.assertRaises(WorkflowMismatch):
+            validate_business_binding(row, 'posthog', events, 2,
+                expected_profile={'requests': 2, 'warmup_requests': 8, 'worker_concurrency': 8})
 
     def test_trusted_warmup_defaults_and_diagnostic_scope(self):
         self.assertEqual(trusted_warmup_requests('posthog'), 2)

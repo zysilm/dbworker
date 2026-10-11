@@ -12,7 +12,7 @@ from benchmarks.common.load_evidence import task_load_metrics, validate_fixed_lo
 from benchmarks.common.native_admission import APPLICATIONS, NativeAdmissionError
 from benchmarks.common.native_binding import validate_task_binding
 from benchmarks.common.business_evidence import (validate_business_binding as _validate_business_binding,
-                                                trusted_warmup_requests)
+                                                trusted_warmup_requests, trusted_posthog_worker_concurrency)
 from benchmarks.common.smtp_evidence import validate_smtp_evidence
 from benchmarks.common.superset_output import validate_superset_output
 from benchmarks.common.timing_evidence import elapsed_seconds, validate_timing_window
@@ -110,6 +110,18 @@ def _validate_worker_and_arguments(events, suite):
 
 def replay_graph(row, suite, directory, expected_requests, *, expected_profile=None):
     contract_stages, contract_edges = CONTRACTS[suite]
+    if suite == 'posthog' and expected_profile and 'worker_concurrency' in expected_profile:
+        workers = trusted_posthog_worker_concurrency(expected_profile)
+        configuration = row.get('configuration', {})
+        native = row.get('native_execution', {}).get('configuration', {})
+        for settings, field in ((configuration, 'concurrency'), (native, 'worker_total_concurrency'),
+                                (native, 'dbworker_shared_stage_pool')):
+            if type(settings.get(field)) is not int or settings[field] != workers:
+                raise WorkflowMismatch('PostHog worker configuration differs from trusted profile: ' + field)
+        readiness = configuration.get('worker_service_readiness')
+        if row.get('backend') == 'dbworker' and (not isinstance(readiness, dict)
+                or type(readiness.get('concurrency')) is not int or readiness['concurrency'] != workers):
+            raise WorkflowMismatch('PostHog worker service readiness differs from trusted concurrency')
     trace = row.get('workflow_trace', {})
     path = _safe_relative(directory, trace.get('path'))
     if hashlib.sha256(path.read_bytes()).hexdigest() != trace.get('sha256'):

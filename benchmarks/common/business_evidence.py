@@ -35,9 +35,24 @@ def _positive(value):
 def trusted_warmup_requests(suite, expected_profile=None):
     """Accept diagnostic warmup only from the caller's trusted profile."""
     count = (expected_profile or {}).get('warmup_requests', 2)
-    _require(type(count) is int and count in (2, 8), 'invalid trusted warmup count')
+    _require(type(count) is int and count in (2, 8, 32), 'invalid trusted warmup count')
     _require(suite == 'posthog' or count == 2, 'diagnostic warmup is PostHog only')
+    if count == 32:
+        _require((expected_profile or {}).get('worker_concurrency') == 32
+                 and type(expected_profile['worker_concurrency']) is int,
+                 '32 warmups require the trusted 32-worker profile')
     return count
+
+
+def trusted_posthog_worker_concurrency(profile):
+    """Keep the official eight-worker default and admit the separate 32-worker experiment."""
+    workers = profile.get('worker_concurrency', 8)
+    _require(type(workers) is int and workers in (8, 32), 'invalid PostHog worker concurrency')
+    if profile.get('warmup_requests') == 32:
+        trusted_warmup_requests('posthog', profile)
+    if workers == 32:
+        _require(trusted_warmup_requests('posthog', profile) == 32, '32 workers require 32 trusted warmups')
+    return workers
 
 
 def expected_operations(suite, count, *, expected_profile=None):
@@ -214,10 +229,10 @@ def validate_business_binding(row, suite, events, expected_requests, *, expected
     _require(configuration.get('producer_api') == 'posthog.api.user.UserViewSet.two_factor_validate'
              and configuration.get('producer_api_timed') is True and configuration.get('producer_api_effects_validated') is True,
              'PostHog API shortcut or untimed producer')
-    if len(warmups) == 8:
-        _require(row.get('validation', {}).get('warmup_messages') == 8
+    if len(warmups) in (8, 32):
+        _require(row.get('validation', {}).get('warmup_messages') == len(warmups)
                  and type(row.get('validation', {}).get('warmup_messages')) is int
-                 and row.get('dataset', {}).get('warmup_requests') == 8
+                 and row.get('dataset', {}).get('warmup_requests') == len(warmups)
                  and type(row.get('dataset', {}).get('warmup_requests')) is int,
                  'diagnostic warmup result counts differ')
     execution = row.get('producer_execution')
