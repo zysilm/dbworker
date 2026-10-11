@@ -44,6 +44,8 @@ jobs:
     env:
       # The immutable baseline cannot admit the newer full-pool warmup profile.
       REGISTRY_PATH: ${{ inputs.run_baseline && 'benchmarks/registry.json' || 'benchmarks/diagnostics/posthog-fullwarm-registry.json' }}
+      # An explicit commit marker also permits diagnostics through the existing push trigger.
+      HANDOFF_PROBE: ${{ inputs.handoff_probe || (github.event_name == 'push' && contains(github.event.head_commit.message, '[handoff probe]')) }}
     steps:
       - name: Check out the optimization candidate
         uses: actions/checkout@v5
@@ -92,7 +94,7 @@ jobs:
           docker run --rm --init \
             --user "$(id -u):$(id -g)" \
             --env HOME=/tmp --env BENCHMARK_RUNNER_CLASS=github-hosted-docker \
-            --env POSTHOG_HANDOFF_DIAGNOSTIC=${{ inputs.handoff_probe && '1' || '0' }} \
+            --env POSTHOG_HANDOFF_DIAGNOSTIC=${{ env.HANDOFF_PROBE == 'true' && '1' || '0' }} \
             --env PYTHONPATH=/workspace:/workspace/src \
             --volume "$GITHUB_WORKSPACE/candidate:/workspace" \
             dbworker-posthog-diagnostic benchmarks/run_all.py \
@@ -107,7 +109,7 @@ jobs:
             --output candidate-artifact --suite posthog
           cp "candidate/$REGISTRY_PATH" candidate-artifact/registry.json
       - name: Analyze sampled handoff phases after services stop
-        if: ${{ always() && inputs.handoff_probe }}
+        if: ${{ always() && env.HANDOFF_PROBE == 'true' }}
         run: |
           status=0
           found=0
