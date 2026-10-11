@@ -140,17 +140,27 @@ def _initialize_process(
     engine_options: dict[str, Any],
     definitions: tuple[_WorkerDefinition, ...],
     worker_name: str,
+    ready: Any,
 ) -> None:
     global _process_worker, _process_session_factory
-    engine = create_engine(database_url, **engine_options)
-    _process_session_factory = sessionmaker(engine, expire_on_commit=False)
-    Finalize(None, engine.dispose, exitpriority=10)
-    # Rebuild registered work-table metadata locally, including dependencies used
-    # by application queries. Eligibility callbacks stay in the parent process.
-    for definition in definitions:
-        worker = _Worker(name=definition.name, source=definition.source, handler=definition.handler)
-        if definition.name == worker_name:
-            _process_worker = worker
+    try:
+        engine = create_engine(database_url, **engine_options)
+        _process_session_factory = sessionmaker(engine, expire_on_commit=False)
+        Finalize(None, engine.dispose, exitpriority=10)
+        # Rebuild registered work-table metadata locally, including dependencies used
+        # by application queries. Eligibility callbacks stay in the parent process.
+        for definition in definitions:
+            worker = _Worker(name=definition.name, source=definition.source, handler=definition.handler)
+            if definition.name == worker_name:
+                _process_worker = worker
+        ready.wait(timeout=180)
+    except BaseException:
+        ready.abort()
+        raise
+
+
+def _process_ready() -> None:
+    """Start the executor without claiming or executing an application job."""
 
 
 def _execute_in_process(claim: Claim) -> Outcome:
@@ -482,11 +492,26 @@ class Coordinator:
             raise ValueError("Handlers and models must be importable; bound handler arguments and engine options must be serializable") from exc
         self._stop.clear()
         for worker in self.workers.values():
+            context = multiprocessing.get_context("spawn")
+            ready = context.Barrier(worker.concurrency + 1)
             handlers = ProcessPoolExecutor(
-                max_workers=worker.concurrency, mp_context=multiprocessing.get_context("spawn"),
+                max_workers=worker.concurrency, mp_context=context,
                 initializer=_initialize_process,
-                initargs=(self.database_url, self.engine_options, definitions, worker.name),
+                initargs=(self.database_url, self.engine_options, definitions, worker.name, ready),
             )
+            try:
+                # Initializers hold the startup barrier, so every configured
+                # process must start before any probe can finish. These probes
+                # create no source rows, claims, or execution-ledger entries.
+                probes = [handlers.submit(_process_ready) for _ in range(worker.concurrency)]
+                ready.wait(timeout=180)
+                for probe in probes:
+                    probe.result()
+            except BaseException:
+                ready.abort()
+                handlers.shutdown(wait=True, cancel_futures=True)
+                self.stop()
+                raise
             wakeup = threading.Event()
             self._wakeups[worker.name] = wakeup
             thread = threading.Thread(target=self._run, args=(worker, handlers, wakeup), name=worker.name, daemon=True)

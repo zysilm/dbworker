@@ -31,7 +31,10 @@ worker.main()
 """
             command = [sys.executable, "-c", script, *arguments]
         else:
-            command = [sys.executable, "-m", "examples.posthog_dbworker.worker", *arguments]
+            # This offline lifecycle test starts a lightweight service entrypoint;
+            # native application startup is covered by the paired benchmark.
+            command = [sys.executable, "-c",
+                       "from examples.posthog_dbworker.worker import main; main()", *arguments]
         environment = dict(os.environ, PYTHONPATH=os.pathsep.join((str(ROOT), str(ROOT / "src"))))
         child = subprocess.Popen(command, cwd=ROOT, env=environment,
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
