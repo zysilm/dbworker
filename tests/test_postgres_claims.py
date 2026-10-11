@@ -9,7 +9,9 @@ from datetime import timedelta
 from sqlalchemy import String, create_engine, event, func, select, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
-from dbworker import Coordinator, ExecutionStatus, Finished, now
+from dbworker import (
+    Claim, Coordinator, ExecutionStatus, Finished, LostClaim, _execute_claim, now,
+)
 
 
 class Base(DeclarativeBase):
@@ -19,6 +21,7 @@ class Base(DeclarativeBase):
 class Source(Base):
     __tablename__ = "postgres_claim_source"
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    processed: Mapped[bool] = mapped_column(default=False)
 
 
 class Gate(Base):
@@ -28,6 +31,12 @@ class Gate(Base):
 
 
 def handle(source, session):
+    return Finished()
+
+
+def flushing_handler(source, session):
+    source.processed = True
+    session.flush()
     return Finished()
 
 
@@ -141,3 +150,24 @@ class PostgresClaimTests(unittest.TestCase):
         self.worker.eligible = lambda: select(Source).join_from(
             Source, Gate, Gate.priority == 0).order_by(Source.id, Gate.id)
         self.assertEqual([c.source_id for c in self.runtime._claim_many(self.worker, 6)], ["a", "b"])
+
+    def test_reclaimed_batch_rolls_back_stale_handler_writes(self):
+        self.sources(["a"])
+        self.worker.handler = flushing_handler
+        with self.sessions.begin() as session:
+            session.execute(self.worker.table.insert().values(
+                source_id="a", execution_status=ExecutionStatus.WORKING,
+                claim_token="expired-owner", lease_expires_at=now() - timedelta(seconds=60)))
+        claims = self.runtime._claim_many(self.worker, 2)
+        self.assertEqual(len(claims), 1)
+        fresh = claims[0]
+        with self.assertRaises(LostClaim):
+            _execute_claim(self.worker, Claim("a", "expired-owner"), self.sessions)
+        with self.sessions() as session:
+            self.assertFalse(session.get(Source, "a").processed)
+            self.assertEqual(self.worker.state(session, "a")["claim_token"], fresh.token)
+        self.assertIsInstance(_execute_claim(self.worker, fresh, self.sessions), Finished)
+        with self.sessions() as session:
+            self.assertTrue(session.get(Source, "a").processed)
+            self.assertEqual(self.worker.state(session, "a")["execution_status"], ExecutionStatus.FINISHED)
+            self.assertIsNone(self.worker.state(session, "a")["claim_token"])
