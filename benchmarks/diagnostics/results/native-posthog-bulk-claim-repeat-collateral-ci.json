@@ -1,0 +1,703 @@
+{
+  "run_id": 38180868115,
+  "benchmark_source_commit": "cc24d6cddff44ac6629c498afbbf7028496e8f63",
+  "status": "five_collateral_suites_independently_admitted_posthog_pending",
+  "baseline": "38171163894/cbe18ea7449ba84d31fbe16e26f7f483f2a5a25c",
+  "reviews": [
+    {
+      "suite": "paperless_ngx",
+      "independent_business_admission_passed": true,
+      "review_receipt_sha256": "f723dd9990dae33929af36848ae39fda54ba0e016f690b13f70dbfda3caae21d",
+      "measurements": [
+        {
+          "backend": "celery",
+          "baseline_medians": {
+            "wall_seconds": 94.12676937,
+            "queue_p95_seconds": 30.51430859,
+            "peak_outstanding": 72,
+            "mean_execution_span": 4.537429250396544,
+            "mean_task_seconds": 2.0914091782099997
+          },
+          "candidate_medians": {
+            "wall_seconds": 103.88683975,
+            "queue_p95_seconds": 39.71505543,
+            "peak_outstanding": 88,
+            "mean_execution_span": 5.322470088037546,
+            "mean_task_seconds": 2.728568899055
+          },
+          "candidate_over_baseline": {
+            "wall_seconds": 1.1036906976126466,
+            "queue_p95_seconds": 1.3015223763914883,
+            "peak_outstanding": 1.2222222222222223,
+            "mean_execution_span": 1.1730144525278041,
+            "mean_task_seconds": 1.3046556969738146
+          },
+          "candidate_samples": [
+            {
+              "repetition": 1,
+              "wall_seconds": 102.586123592,
+              "queue_p95_seconds": 38.650057876,
+              "peak_outstanding": 83,
+              "mean_execution_span": 5.375733932617621,
+              "mean_task_seconds": 2.728568899055
+            },
+            {
+              "repetition": 2,
+              "wall_seconds": 103.88683975,
+              "queue_p95_seconds": 39.71505543,
+              "peak_outstanding": 88,
+              "mean_execution_span": 5.253866787711972,
+              "mean_task_seconds": 2.7002514754600004
+            },
+            {
+              "repetition": 3,
+              "wall_seconds": 105.326906089,
+              "queue_p95_seconds": 41.232362919,
+              "peak_outstanding": 91,
+              "mean_execution_span": 5.322470088037546,
+              "mean_task_seconds": 2.7740593979750003
+            }
+          ]
+        },
+        {
+          "backend": "dbworker",
+          "baseline_medians": {
+            "wall_seconds": 60.642854222,
+            "queue_p95_seconds": 2.442526553,
+            "peak_outstanding": 19,
+            "mean_execution_span": 5.899880676624694,
+            "mean_task_seconds": 1.76791314307
+          },
+          "candidate_medians": {
+            "wall_seconds": 60.905347675,
+            "queue_p95_seconds": 2.907730187,
+            "peak_outstanding": 20,
+            "mean_execution_span": 6.958247954971609,
+            "mean_task_seconds": 2.08781812735
+          },
+          "candidate_over_baseline": {
+            "wall_seconds": 1.004328514156657,
+            "queue_p95_seconds": 1.1904600109376988,
+            "peak_outstanding": 1.0526315789473684,
+            "mean_execution_span": 1.1793879124606983,
+            "mean_task_seconds": 1.180950622791616
+          },
+          "candidate_samples": [
+            {
+              "repetition": 1,
+              "wall_seconds": 60.905347675,
+              "queue_p95_seconds": 3.242620859,
+              "peak_outstanding": 20,
+              "mean_execution_span": 6.934049694153252,
+              "mean_task_seconds": 2.07650767346
+            },
+            {
+              "repetition": 2,
+              "wall_seconds": 60.942734527,
+              "queue_p95_seconds": 2.907730187,
+              "peak_outstanding": 20,
+              "mean_execution_span": 6.958247954971609,
+              "mean_task_seconds": 2.08781812735
+            },
+            {
+              "repetition": 3,
+              "wall_seconds": 60.814729698,
+              "queue_p95_seconds": 2.676684321,
+              "peak_outstanding": 20,
+              "mean_execution_span": 7.0269157503822175,
+              "mean_task_seconds": 2.1077201441
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "suite": "sentry",
+      "independent_business_admission_passed": true,
+      "review_receipt_sha256": "0b523e8dcdc4a98bac7e10754b4f6caaacefc830a974856b4d271de2156b6732",
+      "measurements": [
+        {
+          "backend": "celery",
+          "baseline_medians": {
+            "wall_seconds": 60.302248568,
+            "queue_p95_seconds": 0.037680527,
+            "peak_outstanding": 16,
+            "mean_execution_span": 1.4803922952616915,
+            "mean_task_seconds": 0.022142267375749997
+          },
+          "candidate_medians": {
+            "wall_seconds": 60.323707544,
+            "queue_p95_seconds": 0.026882977,
+            "peak_outstanding": 22,
+            "mean_execution_span": 1.001702089974716,
+            "mean_task_seconds": 0.01497804445825
+          },
+          "candidate_over_baseline": {
+            "wall_seconds": 1.0003558569789617,
+            "queue_p95_seconds": 0.7134448252276302,
+            "peak_outstanding": 1.375,
+            "mean_execution_span": 0.6766463816252458,
+            "mean_task_seconds": 0.6764458311371406
+          },
+          "candidate_samples": [
+            {
+              "repetition": 1,
+              "wall_seconds": 60.101328899,
+              "queue_p95_seconds": 0.024467516,
+              "peak_outstanding": 22,
+              "mean_execution_span": 0.9245569818201811,
+              "mean_task_seconds": 0.01382351339425
+            },
+            {
+              "repetition": 2,
+              "wall_seconds": 60.325794717,
+              "queue_p95_seconds": 0.026882977,
+              "peak_outstanding": 22,
+              "mean_execution_span": 1.001702089974716,
+              "mean_task_seconds": 0.01497804445825
+            },
+            {
+              "repetition": 3,
+              "wall_seconds": 60.323707544,
+              "queue_p95_seconds": 0.028716178,
+              "peak_outstanding": 24,
+              "mean_execution_span": 1.0572809806576198,
+              "mean_task_seconds": 0.0158093564385
+            }
+          ]
+        },
+        {
+          "backend": "dbworker",
+          "baseline_medians": {
+            "wall_seconds": 60.317153061,
+            "queue_p95_seconds": 0.368206978,
+            "peak_outstanding": 148,
+            "mean_execution_span": 1.86167657561379,
+            "mean_task_seconds": 0.0279245126315
+          },
+          "candidate_medians": {
+            "wall_seconds": 60.343539676,
+            "queue_p95_seconds": 0.138657289,
+            "peak_outstanding": 28,
+            "mean_execution_span": 1.47562501752229,
+            "mean_task_seconds": 0.022092020191
+          },
+          "candidate_over_baseline": {
+            "wall_seconds": 1.0004374645297551,
+            "queue_p95_seconds": 0.3765743108757705,
+            "peak_outstanding": 0.1891891891891892,
+            "mean_execution_span": 0.7926323169403258,
+            "mean_task_seconds": 0.7911335994483676
+          },
+          "candidate_samples": [
+            {
+              "repetition": 1,
+              "wall_seconds": 60.111311229,
+              "queue_p95_seconds": 0.145971788,
+              "peak_outstanding": 33,
+              "mean_execution_span": 1.4775478209463935,
+              "mean_task_seconds": 0.022104475842500002
+            },
+            {
+              "repetition": 2,
+              "wall_seconds": 60.344081376,
+              "queue_p95_seconds": 0.138657289,
+              "peak_outstanding": 25,
+              "mean_execution_span": 1.47562501752229,
+              "mean_task_seconds": 0.022092020191
+            },
+            {
+              "repetition": 3,
+              "wall_seconds": 60.343539676,
+              "queue_p95_seconds": 0.131831283,
+              "peak_outstanding": 28,
+              "mean_execution_span": 1.4738630522869915,
+              "mean_task_seconds": 0.022058251262999998
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "suite": "superset",
+      "independent_business_admission_passed": true,
+      "review_receipt_sha256": "02e7b1ff5a2504c8706ddbd238e5c992fb55a3bad40fe405fb43b77d016e2e25",
+      "measurements": [
+        {
+          "backend": "celery",
+          "baseline_medians": {
+            "wall_seconds": 158.885124531,
+            "queue_p95_seconds": 42.105626302,
+            "peak_outstanding": 1504,
+            "mean_execution_span": 7.955584561058982,
+            "mean_task_seconds": 0.337899796032
+          },
+          "candidate_medians": {
+            "wall_seconds": 164.73171669,
+            "queue_p95_seconds": 46.042562242,
+            "peak_outstanding": 1497,
+            "mean_execution_span": 7.961750241496503,
+            "mean_task_seconds": 0.3583171586153333
+          },
+          "candidate_over_baseline": {
+            "wall_seconds": 1.0367976056679824,
+            "queue_p95_seconds": 1.0935014221558557,
+            "peak_outstanding": 0.995345744680851,
+            "mean_execution_span": 1.000775012871801,
+            "mean_task_seconds": 1.0604243116542151
+          },
+          "candidate_samples": [
+            {
+              "repetition": 1,
+              "wall_seconds": 164.73171669,
+              "queue_p95_seconds": 45.734750666,
+              "peak_outstanding": 1438,
+              "mean_execution_span": 7.961876793806018,
+              "mean_task_seconds": 0.3583171586153333
+            },
+            {
+              "repetition": 2,
+              "wall_seconds": 164.53635538,
+              "queue_p95_seconds": 46.042562242,
+              "peak_outstanding": 1497,
+              "mean_execution_span": 7.957706564142393,
+              "mean_task_seconds": 0.3580931972563333
+            },
+            {
+              "repetition": 3,
+              "wall_seconds": 168.234674582,
+              "queue_p95_seconds": 47.090199373,
+              "peak_outstanding": 1500,
+              "mean_execution_span": 7.961750241496503,
+              "mean_task_seconds": 0.3655337926596667
+            }
+          ]
+        },
+        {
+          "backend": "dbworker",
+          "baseline_medians": {
+            "wall_seconds": 177.593519313,
+            "queue_p95_seconds": 49.88332346,
+            "peak_outstanding": 1536,
+            "mean_execution_span": 6.856820650192881,
+            "mean_task_seconds": 0.33539580337433333
+          },
+          "candidate_medians": {
+            "wall_seconds": 181.136640394,
+            "queue_p95_seconds": 48.569474812,
+            "peak_outstanding": 1408,
+            "mean_execution_span": 7.038310279692874,
+            "mean_task_seconds": 0.35398511612966665
+          },
+          "candidate_over_baseline": {
+            "wall_seconds": 1.019950734096076,
+            "queue_p95_seconds": 0.9736615654918516,
+            "peak_outstanding": 0.9166666666666666,
+            "mean_execution_span": 1.02646848135001,
+            "mean_task_seconds": 1.0554250010534147
+          },
+          "candidate_samples": [
+            {
+              "repetition": 1,
+              "wall_seconds": 181.136640394,
+              "queue_p95_seconds": 52.407923263,
+              "peak_outstanding": 1504,
+              "mean_execution_span": 7.001883867127129,
+              "mean_task_seconds": 0.353302913926
+            },
+            {
+              "repetition": 2,
+              "wall_seconds": 180.723859631,
+              "queue_p95_seconds": 47.612569679,
+              "peak_outstanding": 1363,
+              "mean_execution_span": 7.038310279692874,
+              "mean_task_seconds": 0.35398511612966665
+            },
+            {
+              "repetition": 3,
+              "wall_seconds": 181.312225098,
+              "queue_p95_seconds": 48.569474812,
+              "peak_outstanding": 1408,
+              "mean_execution_span": 7.041006063183864,
+              "mean_task_seconds": 0.3547824111386667
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "suite": "saleor",
+      "independent_business_admission_passed": true,
+      "review_receipt_sha256": "27af0842f75cabd50f904381db9b2dc292271abdcce8fa9e3cfc3247e89a4bc0",
+      "measurements": [
+        {
+          "backend": "celery",
+          "baseline_medians": {
+            "wall_seconds": 126.649694367,
+            "queue_p95_seconds": 32.949146039,
+            "peak_outstanding": 584,
+            "mean_execution_span": 7.847787021779852,
+            "mean_task_seconds": 0.4892779336795
+          },
+          "candidate_medians": {
+            "wall_seconds": 117.305288446,
+            "queue_p95_seconds": 29.98754006,
+            "peak_outstanding": 516,
+            "mean_execution_span": 7.858571756490746,
+            "mean_task_seconds": 0.456630636923
+          },
+          "candidate_over_baseline": {
+            "wall_seconds": 0.9262184881874079,
+            "queue_p95_seconds": 0.9101158501803198,
+            "peak_outstanding": 0.8835616438356164,
+            "mean_execution_span": 1.0013742389645595,
+            "mean_task_seconds": 0.933274536803686
+          },
+          "candidate_samples": [
+            {
+              "repetition": 1,
+              "wall_seconds": 109.80050692,
+              "queue_p95_seconds": 23.964617593,
+              "peak_outstanding": 459,
+              "mean_execution_span": 7.868181473693139,
+              "mean_task_seconds": 0.42813512189499997
+            },
+            {
+              "repetition": 2,
+              "wall_seconds": 118.940341848,
+              "queue_p95_seconds": 30.532142127,
+              "peak_outstanding": 519,
+              "mean_execution_span": 7.858571756490746,
+              "mean_task_seconds": 0.4629034793565
+            },
+            {
+              "repetition": 3,
+              "wall_seconds": 117.305288446,
+              "queue_p95_seconds": 29.98754006,
+              "peak_outstanding": 516,
+              "mean_execution_span": 7.848616338055726,
+              "mean_task_seconds": 0.456630636923
+            }
+          ]
+        },
+        {
+          "backend": "dbworker",
+          "baseline_medians": {
+            "wall_seconds": 153.025578435,
+            "queue_p95_seconds": 44.130610785,
+            "peak_outstanding": 775,
+            "mean_execution_span": 6.398736351701148,
+            "mean_task_seconds": 0.482587369142
+          },
+          "candidate_medians": {
+            "wall_seconds": 133.293066718,
+            "queue_p95_seconds": 35.862010419,
+            "peak_outstanding": 638,
+            "mean_execution_span": 6.893467136699562,
+            "mean_task_seconds": 0.4554542254905
+          },
+          "candidate_over_baseline": {
+            "wall_seconds": 0.8710508928062527,
+            "queue_p95_seconds": 0.8126334483271983,
+            "peak_outstanding": 0.8232258064516129,
+            "mean_execution_span": 1.0773169510050038,
+            "mean_task_seconds": 0.943775686256065
+          },
+          "candidate_samples": [
+            {
+              "repetition": 1,
+              "wall_seconds": 130.068287262,
+              "queue_p95_seconds": 34.781919464,
+              "peak_outstanding": 629,
+              "mean_execution_span": 6.915207083820168,
+              "mean_task_seconds": 0.44538682974
+            },
+            {
+              "repetition": 2,
+              "wall_seconds": 133.293066718,
+              "queue_p95_seconds": 35.862010419,
+              "peak_outstanding": 638,
+              "mean_execution_span": 6.893467136699562,
+              "mean_task_seconds": 0.4554542254905
+            },
+            {
+              "repetition": 3,
+              "wall_seconds": 135.511728106,
+              "queue_p95_seconds": 41.374209706,
+              "peak_outstanding": 664,
+              "mean_execution_span": 6.856709118895701,
+              "mean_task_seconds": 0.460567372754
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "suite": "imagededup",
+      "independent_business_admission_passed": true,
+      "review_receipt_sha256": "8addd78f89b9f20718f4ed87c147aca73c4a88c0851ef32b1efcf39da83886e2",
+      "measurements": [
+        {
+          "scenario": "build",
+          "backend": "celery",
+          "baseline": {
+            "wall_seconds": 6.848406244,
+            "cpu_seconds": 15.74
+          },
+          "candidate": {
+            "wall_seconds": 6.285889188,
+            "cpu_seconds": 14.319999999999993
+          },
+          "current_over_baseline": {
+            "wall_seconds": 0.9178616110145582,
+            "cpu_seconds": 0.9097839898348153
+          },
+          "individual_wall_seconds": [
+            6.285889188,
+            6.398202488,
+            6.057833495
+          ]
+        },
+        {
+          "scenario": "build",
+          "backend": "dbworker",
+          "baseline": {
+            "wall_seconds": 6.298005265,
+            "cpu_seconds": 11.309999999999999
+          },
+          "candidate": {
+            "wall_seconds": 6.280504436,
+            "cpu_seconds": 11.310000000000004
+          },
+          "current_over_baseline": {
+            "wall_seconds": 0.9972212108018935,
+            "cpu_seconds": 1.0000000000000004
+          },
+          "individual_wall_seconds": [
+            7.748750449,
+            5.997913949,
+            6.280504436
+          ]
+        },
+        {
+          "scenario": "comparison",
+          "backend": "celery",
+          "baseline": {
+            "wall_seconds": 83.666129088,
+            "cpu_seconds": 101.40999999999998
+          },
+          "candidate": {
+            "wall_seconds": 82.963431034,
+            "cpu_seconds": 101.63
+          },
+          "current_over_baseline": {
+            "wall_seconds": 0.9916011645135284,
+            "cpu_seconds": 1.0021694113006607
+          },
+          "individual_wall_seconds": [
+            82.109423835,
+            82.963431034,
+            84.714740594
+          ]
+        },
+        {
+          "scenario": "comparison",
+          "backend": "dbworker",
+          "baseline": {
+            "wall_seconds": 76.847815224,
+            "cpu_seconds": 87.69999999999999
+          },
+          "candidate": {
+            "wall_seconds": 78.35424261,
+            "cpu_seconds": 90.66000000000001
+          },
+          "current_over_baseline": {
+            "wall_seconds": 1.0196027353752215,
+            "cpu_seconds": 1.0337514253135693
+          },
+          "individual_wall_seconds": [
+            78.063423108,
+            78.35424261,
+            78.768979542
+          ]
+        },
+        {
+          "scenario": "mixed",
+          "backend": "celery",
+          "baseline": {
+            "wall_seconds": 94.475177496,
+            "cpu_seconds": 125.84999999999998
+          },
+          "candidate": {
+            "wall_seconds": 94.376932227,
+            "cpu_seconds": 128.78
+          },
+          "current_over_baseline": {
+            "wall_seconds": 0.9989600943697178,
+            "cpu_seconds": 1.0232816845450936
+          },
+          "individual_wall_seconds": [
+            93.89912519,
+            94.376932227,
+            95.050404601
+          ]
+        },
+        {
+          "scenario": "mixed",
+          "backend": "dbworker",
+          "baseline": {
+            "wall_seconds": 93.501581589,
+            "cpu_seconds": 114.30999999999999
+          },
+          "candidate": {
+            "wall_seconds": 90.316145629,
+            "cpu_seconds": 111.84000000000002
+          },
+          "current_over_baseline": {
+            "wall_seconds": 0.9659317424810839,
+            "cpu_seconds": 0.9783920916805181
+          },
+          "individual_wall_seconds": [
+            90.191148419,
+            90.316145629,
+            93.60924699
+          ]
+        }
+      ],
+      "metric_limit": "Image suite exposes no task queue P95 or mean execution concurrency; compare wall, CPU, RSS and API probes separately"
+    }
+  ],
+  "guard_investigation": {
+    "sentry": "Mean execution concurrency fell with shorter task service time, while wall remained flat and queue P95 fell 62.3%; lower occupancy alone is not reduced scheduler capacity. All three complete pairs are retained.",
+    "paperless_ngx": "Queue P95 rose 19.0% (2.44s to 2.91s), with 18.1% longer mean task duration; Celery task duration rose 30.5% and queue P95 rose 30.2%. Wall changed only 0.4%. SQLite ownership SQL sequence is identical to the eager baseline in the bounded core audit. This is an investigated cross-host variability signal, not same-runner causal proof.",
+    "superset": "Wall +2.0%, queue P95 -2.6%, mean execution concurrency +2.6%.",
+    "saleor": "Wall -12.9%, queue P95 -18.7%, mean execution concurrency +7.7%.",
+    "imagededup": "Wall change -0.3%, +2.0%, -3.4% across build, comparison, mixed; task queue P95 and mean execution concurrency are not exposed."
+  },
+  "pending_requirements": [
+    "Complete PostHog full-suite rerun and aggregation",
+    "Same-runner immutable eager-baseline/candidate PostHog comparison with actual input pressure",
+    "Final all-requirement goal audit"
+  ],
+  "public_api_audit": {
+    "baseline_commit": "5e7654e2c61ae68d2babd5fbd6527cdd889bfd0f",
+    "candidate_commit": "84e19e75d13f19bd0fbc6edb830d2de68f12e6cb",
+    "public_api_signatures_and_fields_unchanged": true,
+    "unchanged_native_business_and_workload_files": [
+      "benchmarks/registry.json",
+      "benchmarks/upstream/__init__.py",
+      "benchmarks/upstream/paperless_ngx-requirements.txt",
+      "benchmarks/upstream/paperless_ngx_backend.py",
+      "benchmarks/upstream/paperless_ngx_metrics.py",
+      "benchmarks/upstream/posthog_backend.py",
+      "benchmarks/upstream/posthog_setup.py",
+      "benchmarks/upstream/saleor_backend.py",
+      "benchmarks/upstream/sentry_backend.py",
+      "benchmarks/upstream/sentry_provision.py",
+      "benchmarks/upstream/suite.py",
+      "benchmarks/upstream/superset_backend.py",
+      "examples/dbworker_integration/__init__.py",
+      "examples/dbworker_integration/runtime.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/__init__.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/api/__init__.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/api/routes.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/config.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/db/__init__.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/db/engine.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/db/models.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/domain/__init__.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/domain/artifact_build.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/domain/comparison.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/main_fastapi.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/main_worker_service.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/observation.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/workers.py",
+      "examples/paperless_ngx_dbworker/README.md",
+      "examples/paperless_ngx_dbworker/__init__.py",
+      "examples/paperless_ngx_dbworker/adapter.py",
+      "examples/paperless_ngx_dbworker/runtime.py",
+      "examples/posthog_dbworker/README.md",
+      "examples/posthog_dbworker/__init__.py",
+      "examples/posthog_dbworker/adapter.py",
+      "examples/posthog_dbworker/bootstrap.py",
+      "examples/posthog_dbworker/producer.py",
+      "examples/posthog_dbworker/runtime.py",
+      "examples/posthog_dbworker/settings.py",
+      "examples/saleor_dbworker/README.md",
+      "examples/saleor_dbworker/__init__.py",
+      "examples/saleor_dbworker/adapter.py",
+      "examples/saleor_dbworker/benchmark_settings.py",
+      "examples/saleor_dbworker/producer.py",
+      "examples/saleor_dbworker/runtime.py",
+      "examples/sentry_dbworker/README.md",
+      "examples/sentry_dbworker/__init__.py",
+      "examples/sentry_dbworker/adapter.py",
+      "examples/superset_dbworker/README.md",
+      "examples/superset_dbworker/__init__.py",
+      "examples/superset_dbworker/adapter.py",
+      "examples/superset_dbworker/executor.py"
+    ],
+    "posthog_worker_change_scope": "Initialize the original native app in every spawned child before declaring pool readiness; original handler and API bodies remain unchanged",
+    "runtime_sha256": "e5154c322fb10b85fcb9b82d4a4b93b0f7ea89bc74d34600ceb6b6ac9f04690c",
+    "accepted_ci_runtime_identical": true
+  },
+  "postgres_ownership_ci": {
+    "run_id": 38182389645,
+    "source_commit": "84e19e75d13f19bd0fbc6edb830d2de68f12e6cb",
+    "job_id": 114597499820,
+    "tests_passed": 7,
+    "includes_flushed_stale_owner_write_rollback": true
+  },
+  "sqlite_sql_equivalence": {
+    "scope": "Core SQLite SQL-equivalence diagnostic; one sample per path, not application performance acceptance",
+    "baseline": "4dd7727",
+    "candidate": "7089eeb",
+    "sql_sequences_identical": true,
+    "samples": [
+      {
+        "arm": "baseline",
+        "limit": 1,
+        "finished_history": 10000,
+        "pending": 100,
+        "existing_unfinished": 50,
+        "claimed": 100,
+        "sql_count": 401,
+        "sql_sequence_sha256": "0fe4cd3af62121b89f84154965d54699f2f892973e7165b96d2cde8e3ea76773",
+        "seconds": 0.1393153751268983
+      },
+      {
+        "arm": "candidate",
+        "limit": 1,
+        "finished_history": 10000,
+        "pending": 100,
+        "existing_unfinished": 50,
+        "claimed": 100,
+        "sql_count": 401,
+        "sql_sequence_sha256": "0fe4cd3af62121b89f84154965d54699f2f892973e7165b96d2cde8e3ea76773",
+        "seconds": 0.13805145910009742
+      },
+      {
+        "arm": "baseline",
+        "limit": 8,
+        "finished_history": 10000,
+        "pending": 100,
+        "existing_unfinished": 50,
+        "claimed": 100,
+        "sql_count": 341,
+        "sql_sequence_sha256": "a76aeeb0754bb8d5edbb87cb3193ae31448764fd21e741119cc8863808172775",
+        "seconds": 0.03857795801013708
+      },
+      {
+        "arm": "candidate",
+        "limit": 8,
+        "finished_history": 10000,
+        "pending": 100,
+        "existing_unfinished": 50,
+        "claimed": 100,
+        "sql_count": 341,
+        "sql_sequence_sha256": "a76aeeb0754bb8d5edbb87cb3193ae31448764fd21e741119cc8863808172775",
+        "seconds": 0.040112665854394436
+      }
+    ]
+  }
+}
