@@ -127,6 +127,34 @@ class PollingTest(unittest.TestCase):
         self.assertEqual(limits, [2, 1, 2])
         self.assertEqual(self.handlers.submit.call_count, 2)
 
+    def test_successful_completion_resets_idle_delay_for_later_root(self) -> None:
+        self.worker.concurrency = 2
+        self.coordinator.poll_seconds = .05
+        self.coordinator.max_poll_seconds = .25
+        parent: Future[Outcome] = Future()
+        root: Future[Outcome] = Future()
+        root.set_result(Finished())
+        self.clock = CompletionEvent(parent)
+        self.handlers.submit.side_effect = [parent, root]
+        times: list[float] = []
+
+        def claim_many(worker: _Worker, limit: int) -> list[Claim]:
+            times.append(self.clock.now)
+            if len(times) == 1:
+                return [Claim(1, 'parent')]
+            if self.clock.now >= .12:
+                self.coordinator._stop.set()
+                return [Claim(2, 'later-root')]
+            return []
+
+        with patch.object(self.coordinator, '_claim_many', side_effect=claim_many):
+            self.run_scheduler()
+        self.assertEqual(len(times), 5)
+        for observed, expected in zip(times, [0, 0, .05, .1, .15]):
+            self.assertAlmostEqual(observed, expected)
+        self.assertEqual(self.handlers.submit.call_count, 2)
+        # Without the reset, the previous .2 delay postpones this root until .3.
+
     def test_failed_completion_rechecks_without_resetting_idle_delay(self) -> None:
         self.worker.concurrency = 2
         parent: Future[Outcome] = Future()

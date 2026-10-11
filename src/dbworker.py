@@ -437,6 +437,7 @@ class Coordinator:
                     next_claim_at = 0.0
                     try:
                         future.result()
+                        delay = self.poll_seconds
                     except LostClaim:
                         logger.info("Discarded stale result for %s:%s", worker.name, claim.source_id)
                     except Exception as exc:
