@@ -2,7 +2,7 @@ name: Full application benchmarks
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/posthog-default-backlog]
     paths-ignore:
       - README.md
       - 'doc/**'
