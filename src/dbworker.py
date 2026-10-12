@@ -21,6 +21,7 @@ from multiprocessing.util import Finalize
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, String, Table, Text, and_, create_engine, event, exists, inspect, insert, or_, select, tuple_, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine import CursorResult, RowMapping, URL, make_url
+from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.orm import DeclarativeBase, Mapper, Session, sessionmaker
 from sqlalchemy.sql import ColumnElement, Select
 from sqlalchemy.sql.selectable import Exists
@@ -140,17 +141,27 @@ def _initialize_process(
     engine_options: dict[str, Any],
     definitions: tuple[_WorkerDefinition, ...],
     worker_name: str,
+    ready: Any,
 ) -> None:
     global _process_worker, _process_session_factory
-    engine = create_engine(database_url, **engine_options)
-    _process_session_factory = sessionmaker(engine, expire_on_commit=False)
-    Finalize(None, engine.dispose, exitpriority=10)
-    # Rebuild registered work-table metadata locally, including dependencies used
-    # by application queries. Eligibility callbacks stay in the parent process.
-    for definition in definitions:
-        worker = _Worker(name=definition.name, source=definition.source, handler=definition.handler)
-        if definition.name == worker_name:
-            _process_worker = worker
+    try:
+        engine = create_engine(database_url, **engine_options)
+        _process_session_factory = sessionmaker(engine, expire_on_commit=False)
+        Finalize(None, engine.dispose, exitpriority=10)
+        # Rebuild registered work-table metadata locally, including dependencies used
+        # by application queries. Eligibility callbacks stay in the parent process.
+        for definition in definitions:
+            worker = _Worker(name=definition.name, source=definition.source, handler=definition.handler)
+            if definition.name == worker_name:
+                _process_worker = worker
+        ready.wait(timeout=180)
+    except BaseException:
+        ready.abort()
+        raise
+
+
+def _process_ready() -> None:
+    """Start the executor without claiming or executing an application job."""
 
 
 def _execute_in_process(claim: Claim) -> Outcome:
@@ -348,6 +359,33 @@ class Coordinator:
                 return None
         return Claim(source_id, token)
 
+    def _record_claims(
+        self, session: Session, worker: _Worker, source_ids: Iterable[object], timestamp: datetime,
+    ) -> list[Claim]:
+        ids = list(source_ids)
+        if not ids:
+            return []
+        if session.get_bind().dialect.name != "postgresql":
+            return [claim for source_id in ids
+                    if (claim := self._record_claim(session, worker, source_id, timestamp)) is not None]
+        table = worker.table
+        expires = now() + timedelta(seconds=self.lease_seconds)
+        values = [
+            dict(source_id=source_id, execution_status=ExecutionStatus.WORKING,
+                 claim_token=str(uuid.uuid4()), lease_expires_at=expires, error=None)
+            for source_id in ids
+        ]
+        statement = postgresql_insert(table).values(values[0] if len(values) == 1 else values)
+        statement = statement.on_conflict_do_update(
+            index_elements=[table.c.source_id],
+            set_={name: statement.excluded[name] for name in
+                  ("execution_status", "claim_token", "lease_expires_at", "error")},
+            where=self._available(table, timestamp),
+        ).returning(table.c.source_id, table.c.claim_token)
+        tokens = {source_id: token for source_id, token in session.execute(statement).tuples()}
+        # RETURNING order is not an eligibility-order guarantee.
+        return [Claim(source_id, tokens[source_id]) for source_id in ids if source_id in tokens]
+
     def _claim_with_db_lock(self, worker: _Worker) -> Claim | None:
         timestamp = now()
         with self.session_factory.begin() as session:
@@ -388,8 +426,7 @@ class Coordinator:
                 query = query.with_for_update(skip_locked=True, of=worker.source_table)
             # Custom eligibility joins may return the same source more than once.
             source_ids = dict.fromkeys(session.scalars(query))
-            claims = [claim for source_id in source_ids
-                      if (claim := self._record_claim(session, worker, source_id, timestamp)) is not None]
+            claims = self._record_claims(session, worker, source_ids, timestamp)
             if claims:
                 # Earlier records must not enter the queue with leases aged by
                 # the rest of this batch. Refresh while ownership is still locked.
@@ -482,11 +519,26 @@ class Coordinator:
             raise ValueError("Handlers and models must be importable; bound handler arguments and engine options must be serializable") from exc
         self._stop.clear()
         for worker in self.workers.values():
+            context = multiprocessing.get_context("spawn")
+            ready = context.Barrier(worker.concurrency + 1)
             handlers = ProcessPoolExecutor(
-                max_workers=worker.concurrency, mp_context=multiprocessing.get_context("spawn"),
+                max_workers=worker.concurrency, mp_context=context,
                 initializer=_initialize_process,
-                initargs=(self.database_url, self.engine_options, definitions, worker.name),
+                initargs=(self.database_url, self.engine_options, definitions, worker.name, ready),
             )
+            try:
+                # Initializers hold the startup barrier, so every configured
+                # process must start before any probe can finish. These probes
+                # create no source rows, claims, or execution-ledger entries.
+                probes = [handlers.submit(_process_ready) for _ in range(worker.concurrency)]
+                ready.wait(timeout=180)
+                for probe in probes:
+                    probe.result()
+            except BaseException:
+                ready.abort()
+                handlers.shutdown(wait=True, cancel_futures=True)
+                self.stop()
+                raise
             wakeup = threading.Event()
             self._wakeups[worker.name] = wakeup
             thread = threading.Thread(target=self._run, args=(worker, handlers, wakeup), name=worker.name, daemon=True)

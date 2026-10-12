@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "status": "invalid_capacity_failure",
+  "scope": "One instrumented local baseline diagnostic, not a valid performance sample or candidate comparison",
+  "baseline_source_commit": "5e7654e2c61ae68d2babd5fbd6527cdd889bfd0f",
+  "baseline_core_sha256": "e9f3648e3905938dc965502222c8f8e80510becfb065cd94c5a6208b61277689",
+  "backend": "dbworker",
+  "profile": {
+    "requests": 5000,
+    "business_tasks": 10000,
+    "worker_concurrency": 8,
+    "producers": 8,
+    "submission_window_seconds": 60,
+    "warmup_requests": 2
+  },
+  "environment": {
+    "platform": "Linux aarch64 Docker on Colima",
+    "logical_cpus": 4,
+    "memory_limit_bytes": 8307101696
+  },
+  "failure": {
+    "backend_exit_code": 137,
+    "new_docker_oom_event_observed": true,
+    "docker_oom_event_timestamp_ns": 1791749437038472741,
+    "last_observed_memory_gib": 7.403,
+    "memory_observation_is_peak": false,
+    "sample_json_produced": false
+  },
+  "partial_trace": {
+    "rows": 7895,
+    "events": {
+      "submitted": 3753,
+      "started": 2072,
+      "succeeded": 1859,
+      "retried": 211
+    }
+  },
+  "startup_observation": {
+    "warmup_initialized_workers": 2,
+    "warmup_initialization_seconds": [
+      29.676141429983545,
+      29.660715719044674
+    ],
+    "additional_workers_began_application_initialization_after_measured_publication": 6,
+    "causal_performance_effect_confirmed": false
+  },
+  "evidence": {
+    "container-state.json": "6107c90adc3129272a5e9b91d869febf47086420ba03901eb294d8a11c72a69e",
+    "worker.log": "0da3971584ca9e870b13705e9b46a649b1cc39a2b605935aae8014350bfc58b0",
+    "workflow.jsonl": "13b37c38bb1c83e6539ed0613b9335518ee4f65e0f87c74a367cac815ce42a55",
+    "redis.log": "9d69b515262877170b0e77c76c1cab788af25d4dd9f9e8bcb93ef2aafc328960",
+    "postgres.log": "9e4b768e6072879ed66f71fdef08ba84eee62a8054c8742c5cc6d8c5ced2096b",
+    "docker-memory-events.json": "3593952999be19e7e0212e0eb13b4c8f1cc52423d56f3521688708be4fc6ebd1",
+    "worker-ready.json": "776f07bfc189c739db1bb92eeae5cbcb21d1758e62899ccc07c696516352707e",
+    "schema-dump.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "cleanup": {
+    "owned_backend_services_and_handler_processes_terminated": true,
+    "original_idle_container_and_original_workspace_preserved": true
+  },
+  "limitations": [
+    "The native baseline failed before completion; no wall, queue P95, or paired performance score is accepted.",
+    "Sampled handoff and application startup instrumentation were enabled.",
+    "The observed Docker OOM event confirms local capacity exhaustion; it does not establish candidate efficacy.",
+    "Raw logs and partial trace are retained separately; published evidence hashes bind this receipt to those files."
+  ]
+}

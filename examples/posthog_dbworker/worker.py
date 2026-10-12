@@ -13,6 +13,17 @@ from pathlib import Path
 from examples.posthog_dbworker.runtime import coordinator
 
 
+if __name__ == "__mp_main__":
+    # Spawn reimports the service entrypoint before the pool initializer. Load
+    # the native application here, rather than in the first claimed business job.
+    from examples.posthog_dbworker.bootstrap import initialize
+    initialized_at = time.monotonic()
+    initialize()
+    print(json.dumps({"event": "native_application_initialized", "pid": os.getpid(),
+                      "timestamp_ns": time.time_ns(),
+                      "duration_seconds": time.monotonic() - initialized_at}), flush=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--database-url", default=os.environ.get("DBWORKER_DATABASE_URL"))
@@ -41,10 +52,12 @@ def main():
         if os.environ.get("DBWORKER_HANDOFF_TRACE_PATH"):
             from benchmarks.common.handoff_probe import install
             install(runtime)
+        startup = time.monotonic()
         runtime.start()
         receipt = {"pid": os.getpid(), "concurrency": args.concurrency,
                    "timestamp_ns": time.time_ns(),
-                   "readiness_scope": "coordinator started; application warmup is separate"}
+                   "startup_seconds": time.monotonic() - startup,
+                   "readiness_scope": "configured process pool initialized; application warmup is separate"}
         temporary = args.ready_file.with_name(f"{args.ready_file.name}.{os.getpid()}.tmp")
         temporary.write_text(json.dumps(receipt) + "\n")
         temporary.replace(args.ready_file)

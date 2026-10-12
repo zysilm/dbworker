@@ -1,0 +1,52 @@
+{
+  "scope": "Core SQLite SQL-equivalence diagnostic; one sample per path, not application performance acceptance",
+  "baseline": "4dd7727",
+  "candidate": "7089eeb",
+  "sql_sequences_identical": true,
+  "samples": [
+    {
+      "arm": "baseline",
+      "limit": 1,
+      "finished_history": 10000,
+      "pending": 100,
+      "existing_unfinished": 50,
+      "claimed": 100,
+      "sql_count": 401,
+      "sql_sequence_sha256": "0fe4cd3af62121b89f84154965d54699f2f892973e7165b96d2cde8e3ea76773",
+      "seconds": 0.1393153751268983
+    },
+    {
+      "arm": "candidate",
+      "limit": 1,
+      "finished_history": 10000,
+      "pending": 100,
+      "existing_unfinished": 50,
+      "claimed": 100,
+      "sql_count": 401,
+      "sql_sequence_sha256": "0fe4cd3af62121b89f84154965d54699f2f892973e7165b96d2cde8e3ea76773",
+      "seconds": 0.13805145910009742
+    },
+    {
+      "arm": "baseline",
+      "limit": 8,
+      "finished_history": 10000,
+      "pending": 100,
+      "existing_unfinished": 50,
+      "claimed": 100,
+      "sql_count": 341,
+      "sql_sequence_sha256": "a76aeeb0754bb8d5edbb87cb3193ae31448764fd21e741119cc8863808172775",
+      "seconds": 0.03857795801013708
+    },
+    {
+      "arm": "candidate",
+      "limit": 8,
+      "finished_history": 10000,
+      "pending": 100,
+      "existing_unfinished": 50,
+      "claimed": 100,
+      "sql_count": 341,
+      "sql_sequence_sha256": "a76aeeb0754bb8d5edbb87cb3193ae31448764fd21e741119cc8863808172775",
+      "seconds": 0.040112665854394436
+    }
+  ]
+}

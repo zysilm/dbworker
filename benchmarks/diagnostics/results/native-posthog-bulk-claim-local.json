@@ -1,0 +1,372 @@
+{
+  "scope": "Core-only PostgreSQL claim diagnostic; not native application benchmark acceptance",
+  "environment": {
+    "runner": "Local Colima Docker Linux aarch64",
+    "cpu_count": 4,
+    "memory_bytes": 8307101696
+  },
+  "protocol": {
+    "completed_source_rows": 10000,
+    "pending_source_rows": 128,
+    "paired_repetitions": 3,
+    "order": "Alternating baseline/candidate",
+    "baseline_commit": "4dd772704ccab8c93e88b8e53e4c8f4641f1648a"
+  },
+  "rejected_candidates": [
+    {
+      "reason": "Correlated candidate query doubled single-claim transaction duration on this dataset; query change reverted",
+      "results": {
+        "scope": "Core-only ownership transaction diagnostic, not native application performance acceptance",
+        "completed_source_rows": 10000,
+        "pending_source_rows": 128,
+        "samples": [
+          {
+            "strategy": "baseline",
+            "batch_size": 1,
+            "repetition": 1,
+            "claimed_sources": 128,
+            "seconds": 0.13613610161701217,
+            "sql_statements": 641,
+            "transaction_p95_seconds": 0.0012446229811757803
+          },
+          {
+            "strategy": "candidate",
+            "batch_size": 1,
+            "repetition": 1,
+            "claimed_sources": 128,
+            "seconds": 0.26190691970987245,
+            "sql_statements": 257,
+            "transaction_p95_seconds": 0.002336620003916323
+          },
+          {
+            "strategy": "candidate",
+            "batch_size": 1,
+            "repetition": 2,
+            "claimed_sources": 128,
+            "seconds": 0.25383698695804924,
+            "sql_statements": 257,
+            "transaction_p95_seconds": 0.0022228710004128516
+          },
+          {
+            "strategy": "baseline",
+            "batch_size": 1,
+            "repetition": 2,
+            "claimed_sources": 128,
+            "seconds": 0.13445868727285415,
+            "sql_statements": 641,
+            "transaction_p95_seconds": 0.00121583096915856
+          },
+          {
+            "strategy": "baseline",
+            "batch_size": 1,
+            "repetition": 3,
+            "claimed_sources": 128,
+            "seconds": 0.1307071561459452,
+            "sql_statements": 641,
+            "transaction_p95_seconds": 0.0011765399831347167
+          },
+          {
+            "strategy": "candidate",
+            "batch_size": 1,
+            "repetition": 3,
+            "claimed_sources": 128,
+            "seconds": 0.25859280524309725,
+            "sql_statements": 257,
+            "transaction_p95_seconds": 0.002298411971423775
+          },
+          {
+            "strategy": "baseline",
+            "batch_size": 8,
+            "repetition": 1,
+            "claimed_sources": 128,
+            "seconds": 0.06357586808735505,
+            "sql_statements": 545,
+            "transaction_p95_seconds": 0.004405907006002963
+          },
+          {
+            "strategy": "candidate",
+            "batch_size": 8,
+            "repetition": 1,
+            "claimed_sources": 128,
+            "seconds": 0.04350887192413211,
+            "sql_statements": 49,
+            "transaction_p95_seconds": 0.0029431189759634435
+          },
+          {
+            "strategy": "candidate",
+            "batch_size": 8,
+            "repetition": 2,
+            "claimed_sources": 128,
+            "seconds": 0.03710525715723634,
+            "sql_statements": 49,
+            "transaction_p95_seconds": 0.0026980360271409154
+          },
+          {
+            "strategy": "baseline",
+            "batch_size": 8,
+            "repetition": 2,
+            "claimed_sources": 128,
+            "seconds": 0.06270470510935411,
+            "sql_statements": 545,
+            "transaction_p95_seconds": 0.004382281971629709
+          },
+          {
+            "strategy": "baseline",
+            "batch_size": 8,
+            "repetition": 3,
+            "claimed_sources": 128,
+            "seconds": 0.06315136997727677,
+            "sql_statements": 545,
+            "transaction_p95_seconds": 0.004120575031265616
+          },
+          {
+            "strategy": "candidate",
+            "batch_size": 8,
+            "repetition": 3,
+            "claimed_sources": 128,
+            "seconds": 0.028869234025478363,
+            "sql_statements": 49,
+            "transaction_p95_seconds": 0.0021586630027741194
+          }
+        ]
+      }
+    },
+    {
+      "reason": "Singleton PostgreSQL UPSERT was slower; single-claim path restored to baseline",
+      "results": {
+        "scope": "Core-only ownership transaction diagnostic, not native application performance acceptance",
+        "completed_source_rows": 10000,
+        "pending_source_rows": 128,
+        "samples": [
+          {
+            "strategy": "baseline",
+            "batch_size": 1,
+            "repetition": 1,
+            "claimed_sources": 128,
+            "seconds": 0.1348258416983299,
+            "sql_statements": 641,
+            "transaction_p95_seconds": 0.0012699560029432178
+          },
+          {
+            "strategy": "candidate",
+            "batch_size": 1,
+            "repetition": 1,
+            "claimed_sources": 128,
+            "seconds": 0.1414424130343832,
+            "sql_statements": 257,
+            "transaction_p95_seconds": 0.0013254139921627939
+          },
+          {
+            "strategy": "candidate",
+            "batch_size": 1,
+            "repetition": 2,
+            "claimed_sources": 128,
+            "seconds": 0.13880820729536936,
+            "sql_statements": 257,
+            "transaction_p95_seconds": 0.0013328730128705502
+          },
+          {
+            "strategy": "baseline",
+            "batch_size": 1,
+            "repetition": 2,
+            "claimed_sources": 128,
+            "seconds": 0.12963064247742295,
+            "sql_statements": 641,
+            "transaction_p95_seconds": 0.001234997995197773
+          },
+          {
+            "strategy": "baseline",
+            "batch_size": 1,
+            "repetition": 3,
+            "claimed_sources": 128,
+            "seconds": 0.12754755013156682,
+            "sql_statements": 641,
+            "transaction_p95_seconds": 0.0012074150145053864
+          },
+          {
+            "strategy": "candidate",
+            "batch_size": 1,
+            "repetition": 3,
+            "claimed_sources": 128,
+            "seconds": 0.14165361336199567,
+            "sql_statements": 257,
+            "transaction_p95_seconds": 0.0013374140253290534
+          },
+          {
+            "strategy": "baseline",
+            "batch_size": 8,
+            "repetition": 1,
+            "claimed_sources": 128,
+            "seconds": 0.06444871495477855,
+            "sql_statements": 545,
+            "transaction_p95_seconds": 0.004523575014900416
+          },
+          {
+            "strategy": "candidate",
+            "batch_size": 8,
+            "repetition": 1,
+            "claimed_sources": 128,
+            "seconds": 0.028820447041653097,
+            "sql_statements": 49,
+            "transaction_p95_seconds": 0.0020589129999279976
+          },
+          {
+            "strategy": "candidate",
+            "batch_size": 8,
+            "repetition": 2,
+            "claimed_sources": 128,
+            "seconds": 0.029685406014323235,
+            "sql_statements": 49,
+            "transaction_p95_seconds": 0.002112163056153804
+          },
+          {
+            "strategy": "baseline",
+            "batch_size": 8,
+            "repetition": 2,
+            "claimed_sources": 128,
+            "seconds": 0.06341079977573827,
+            "sql_statements": 545,
+            "transaction_p95_seconds": 0.004367866960819811
+          },
+          {
+            "strategy": "baseline",
+            "batch_size": 8,
+            "repetition": 3,
+            "claimed_sources": 128,
+            "seconds": 0.06322076212381944,
+            "sql_statements": 545,
+            "transaction_p95_seconds": 0.004475741006899625
+          },
+          {
+            "strategy": "candidate",
+            "batch_size": 8,
+            "repetition": 3,
+            "claimed_sources": 128,
+            "seconds": 0.02828936598962173,
+            "sql_statements": 49,
+            "transaction_p95_seconds": 0.001951996993739158
+          }
+        ]
+      }
+    }
+  ],
+  "retained_candidate": {
+    "description": "PostgreSQL multi-slot ownership uses conditional bulk UPSERT; singleton, SQLite and MySQL paths remain unchanged",
+    "results": {
+      "scope": "Core-only ownership transaction diagnostic, not native application performance acceptance",
+      "completed_source_rows": 10000,
+      "pending_source_rows": 128,
+      "samples": [
+        {
+          "strategy": "baseline",
+          "batch_size": 1,
+          "repetition": 1,
+          "claimed_sources": 128,
+          "seconds": 0.14043530129129067,
+          "sql_statements": 641,
+          "transaction_p95_seconds": 0.0013159139780327678
+        },
+        {
+          "strategy": "candidate",
+          "batch_size": 1,
+          "repetition": 1,
+          "claimed_sources": 128,
+          "seconds": 0.13235514098778367,
+          "sql_statements": 641,
+          "transaction_p95_seconds": 0.0011716230073943734
+        },
+        {
+          "strategy": "candidate",
+          "batch_size": 1,
+          "repetition": 2,
+          "claimed_sources": 128,
+          "seconds": 0.1312587350839749,
+          "sql_statements": 641,
+          "transaction_p95_seconds": 0.0012655389728024602
+        },
+        {
+          "strategy": "baseline",
+          "batch_size": 1,
+          "repetition": 2,
+          "claimed_sources": 128,
+          "seconds": 0.13148918992374092,
+          "sql_statements": 641,
+          "transaction_p95_seconds": 0.001237581018358469
+        },
+        {
+          "strategy": "baseline",
+          "batch_size": 1,
+          "repetition": 3,
+          "claimed_sources": 128,
+          "seconds": 0.12798495072638616,
+          "sql_statements": 641,
+          "transaction_p95_seconds": 0.0011882060207426548
+        },
+        {
+          "strategy": "candidate",
+          "batch_size": 1,
+          "repetition": 3,
+          "claimed_sources": 128,
+          "seconds": 0.1304703950881958,
+          "sql_statements": 641,
+          "transaction_p95_seconds": 0.0012535819550976157
+        },
+        {
+          "strategy": "baseline",
+          "batch_size": 8,
+          "repetition": 1,
+          "claimed_sources": 128,
+          "seconds": 0.06388359994161874,
+          "sql_statements": 545,
+          "transaction_p95_seconds": 0.004589825985021889
+        },
+        {
+          "strategy": "candidate",
+          "batch_size": 8,
+          "repetition": 1,
+          "claimed_sources": 128,
+          "seconds": 0.029544281016569585,
+          "sql_statements": 49,
+          "transaction_p95_seconds": 0.0019667880260385573
+        },
+        {
+          "strategy": "candidate",
+          "batch_size": 8,
+          "repetition": 2,
+          "claimed_sources": 128,
+          "seconds": 0.02853945200331509,
+          "sql_statements": 49,
+          "transaction_p95_seconds": 0.0018877880065701902
+        },
+        {
+          "strategy": "baseline",
+          "batch_size": 8,
+          "repetition": 2,
+          "claimed_sources": 128,
+          "seconds": 0.06439613603288308,
+          "sql_statements": 545,
+          "transaction_p95_seconds": 0.00423036701977253
+        },
+        {
+          "strategy": "baseline",
+          "batch_size": 8,
+          "repetition": 3,
+          "claimed_sources": 128,
+          "seconds": 0.061989807814825326,
+          "sql_statements": 545,
+          "transaction_p95_seconds": 0.004160075972322375
+        },
+        {
+          "strategy": "candidate",
+          "batch_size": 8,
+          "repetition": 3,
+          "claimed_sources": 128,
+          "seconds": 0.02943198988214135,
+          "sql_statements": 49,
+          "transaction_p95_seconds": 0.002041371015366167
+        }
+      ]
+    }
+  },
+  "acceptance": "Pending official native full-suite GitHub benchmark; no backlog target claimed"
+}

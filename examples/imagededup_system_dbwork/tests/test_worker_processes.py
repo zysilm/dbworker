@@ -155,9 +155,13 @@ class ProcessTest(unittest.TestCase):
         claim = self.coordinator.claim(worker)
         assert claim is not None
         definition = _WorkerDefinition(worker.name, worker.source, worker.handler)
-        with ProcessPoolExecutor(1, mp_context=multiprocessing.get_context('spawn'),
-                                 initializer=_initialize_process, initargs=(self.url, {}, (definition,), worker.name)) as pool:
+        context = multiprocessing.get_context('spawn')
+        ready = context.Barrier(2)
+        with ProcessPoolExecutor(1, mp_context=context,
+                                 initializer=_initialize_process,
+                                 initargs=(self.url, {}, (definition,), worker.name, ready)) as pool:
             future = pool.submit(_execute_in_process, claim)
+            ready.wait(timeout=20)
             self.wait_for(started.exists)
             try:
                 with self.session_factory.begin() as session:
