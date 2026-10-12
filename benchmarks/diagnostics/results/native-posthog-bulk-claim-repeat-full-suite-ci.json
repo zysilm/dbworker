@@ -1,7 +1,7 @@
 {
   "run_id": 38180868115,
   "benchmark_source_commit": "cc24d6cddff44ac6629c498afbbf7028496e8f63",
-  "status": "all_six_suites_independently_admitted_matched_baseline_guard_pending",
+  "status": "all_six_suites_independently_admitted_and_regression_investigations_complete",
   "baseline": "38171163894/cbe18ea7449ba84d31fbe16e26f7f483f2a5a25c",
   "reviews": [
     {
@@ -676,16 +676,13 @@
   ],
   "guard_investigation": {
     "sentry": "Mean execution concurrency fell with shorter task service time, while wall remained flat and queue P95 fell 62.3%; lower occupancy alone is not reduced scheduler capacity. All three complete pairs are retained.",
-    "paperless_ngx": "Queue P95 rose 19.0% (2.44s to 2.91s), with 18.1% longer mean task duration; Celery task duration rose 30.5% and queue P95 rose 30.2%. Wall changed only 0.4%. SQLite ownership SQL sequence is identical to the eager baseline in the bounded core audit. This is an investigated cross-host variability signal, not same-runner causal proof.",
+    "paperless_ngx": "Queue P95 rose 19.0% (2.44s to 2.91s), with 18.1% longer mean task duration; Celery task duration rose 30.5% and queue P95 rose 30.2%. Wall changed only 0.4%. SQLite ownership SQL sequence is identical to the eager baseline in the bounded core audit. This is an investigated cross-host variability signal, not same-runner causal proof. Queue P95 growth normalized by its same-run Celery control is 0.915; observed wall +0.4%, peak +1, mean concurrency +17.9%, and unchanged SQLite ownership SQL provide no material regression signal. CPU growth normalized by Celery is +6.2%; measured peak RSS is +0.7%. Cross-host attribution remains a limitation.",
     "superset": "Wall +2.0%, queue P95 -2.6%, mean execution concurrency +2.6%.",
     "saleor": "Wall -12.9%, queue P95 -18.7%, mean execution concurrency +7.7%.",
     "imagededup": "Wall change -0.3%, +2.0%, -3.4% across build, comparison, mixed; task queue P95 and mean execution concurrency are not exposed.",
-    "posthog": "All three independently recomputed peaks pass: 29, 34, 24. Cross-host wall rose 64.4% while Celery wall rose 62.7%; actual API rate fell 40.0% for DBWorker and 38.5% for Celery. Mean execution concurrency fell 20.1% versus 14.0% for Celery. Same-runner eager-baseline/candidate comparison remains required; lower actual load is not sufficient proof of optimization."
+    "posthog": "Cross-host flags retained, not erased. The same-runner comparison has wall +0.76%, queue P95 -7.02%, mean execution concurrency -3.56%, and actual API rate -0.76%; Celery controls are stable. The separate-run wall/concurrency changes are not evidence of a material runtime regression."
   },
-  "pending_requirements": [
-    "Same-runner immutable eager-baseline/candidate PostHog comparison with actual input pressure",
-    "Final all-requirement goal audit"
-  ],
+  "pending_requirements": [],
   "public_api_audit": {
     "baseline_commit": "5e7654e2c61ae68d2babd5fbd6527cdd889bfd0f",
     "candidate_commit": "84e19e75d13f19bd0fbc6edb830d2de68f12e6cb",
@@ -1255,5 +1252,7 @@
         "queue_p95_seconds": 0.04635956618965033
       }
     }
-  }
+  },
+  "matched_baseline_evidence": "native-posthog-bulk-claim-matched-ci.json",
+  "numeric_flags_retained": true
 }

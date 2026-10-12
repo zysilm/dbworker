@@ -1,0 +1,338 @@
+{
+  "status": "completion_requirements_verified",
+  "branch": "feature/posthog-default-backlog",
+  "audited_parent_commit": "611cb66667b1263ec561086d2ce86d687696dfbe",
+  "runtime_sha256": "e5154c322fb10b85fcb9b82d4a4b93b0f7ea89bc74d34600ceb6b6ac9f04690c",
+  "requirements": [
+    {
+      "requirement": "Feature branch from current main source baseline",
+      "status": "verified",
+      "evidence": "Git ancestry from 5e7654e; origin/feature/posthog-default-backlog"
+    },
+    {
+      "requirement": "Peak published unfinished <=50 in all three complete paired repetitions",
+      "status": "verified",
+      "evidence": "38176440630: 28,31,25; 38180868115: 29,34,24; 38180921187: 23,33,30; final two sets independently recomputed from full traces"
+    },
+    {
+      "requirement": "Default two-operation warmup, 5000 APIs, 10000 individual tasks, 8 producers/slots, fixed 60s offered schedule",
+      "status": "verified",
+      "evidence": "Full-suite independent_goal_gate and matched exact_workload_and_peak_audit; zero dropped operations"
+    },
+    {
+      "requirement": "Original Celery APIs/task bodies, task granularity, and business input/output equivalence",
+      "status": "verified",
+      "evidence": "All six canonical source/business admissions; both matched sources independently admitted; unchanged native business seams in public_api_audit"
+    },
+    {
+      "requirement": "Public dbworker API preserved",
+      "status": "verified",
+      "evidence": "Public function/method signatures and fields unchanged; src/dbworker.py and PostHog worker bytes identical to accepted native CI"
+    },
+    {
+      "requirement": "No increased warmup, selective throttling, reduced work, or substitute execution pools",
+      "status": "verified",
+      "evidence": "Exact configuration and producer/task counts; native Celery pool unchanged; persistent spawn pool unchanged; no sampled handoff instrumentation in acceptance runs"
+    },
+    {
+      "requirement": "Local diagnosis followed by isolated GitHub validation",
+      "status": "verified",
+      "evidence": "Core claim diagnostic, SQLite SQL-equivalence audit, PostgreSQL ownership tests, full-suite and same-runner native CI"
+    },
+    {
+      "requirement": "Preserve all repetitions and failed evidence without selective replacement",
+      "status": "verified",
+      "evidence": "All three pairs in each receipt; local OOM and failed Superset upload retained; repeated entire six-suite workload after upload failure"
+    },
+    {
+      "requirement": "Revert ineffective runtime candidates promptly",
+      "status": "verified",
+      "evidence": "Rejected correlated candidate query and singleton UPSERT retained in local receipt but absent from source; only proven eager startup and batch ownership path retained"
+    },
+    {
+      "requirement": "Investigate wall/P95 >+10% or mean execution concurrency <-10%; no material regression",
+      "status": "verified",
+      "evidence": "Matched guards all within threshold; cross-host flags retained and reviewed with Celery controls, task service times and actual input pressure"
+    },
+    {
+      "requirement": "Review all six official suites for collateral regressions",
+      "status": "verified",
+      "evidence": "38180868115 complete workflow success; independent source/trace/report checks across 16 groups and 48 measured runs; suite-specific guard investigations"
+    },
+    {
+      "requirement": "Simple implementation and English code/documents/results",
+      "status": "verified",
+      "evidence": "Private startup barrier/no-op probes plus private PostgreSQL bulk-ownership helper; original candidate/singleton/execution logic retained; decoded JSON and changed-file language audit"
+    },
+    {
+      "requirement": "Clean feature scope without merging or publishing",
+      "status": "verified",
+      "evidence": "Main-only benchmark trigger restored; temporary matched workflow remains on a separate diagnostic branch; main and PyPI not changed by this goal"
+    }
+  ],
+  "matched_guard_ratios": {
+    "wall_seconds": 1.007600973436364,
+    "queue_p95_seconds": 0.9298026998020029,
+    "mean_execution_span": 0.9644293360881959
+  },
+  "pressure_ratio": 0.9924172537075737,
+  "guard_dispositions": {
+    "posthog": "Same-runner guard resolved; all matched ratios within threshold.",
+    "sentry": "Lower concurrency tracks shorter service time, flat wall, and 62.3% lower queue P95; no capacity regression signal.",
+    "paperless_ngx": "19.0% queue P95 increase follows 18.1% longer task service; Celery queue P95 +30.2%; wall +0.4%, peak +1, unchanged SQLite SQL. Investigated cross-host variability.",
+    "saleor": "Wall -12.9%, queue P95 -18.7%, mean concurrency +7.7%.",
+    "superset": "Wall +2.0%, queue P95 -2.6%, mean concurrency +2.6%.",
+    "imagededup": "Wall -0.3%, +2.0%, -3.4%; available CPU changes near flat. Queue P95 and execution concurrency not exposed."
+  },
+  "ownership_ci": {
+    "run_id": 38182389645,
+    "source_commit": "84e19e75d13f19bd0fbc6edb830d2de68f12e6cb",
+    "job_id": 114597499820,
+    "tests_passed": 7,
+    "includes_flushed_stale_owner_write_rollback": true
+  },
+  "api_evidence": {
+    "baseline_commit": "5e7654e2c61ae68d2babd5fbd6527cdd889bfd0f",
+    "candidate_commit": "84e19e75d13f19bd0fbc6edb830d2de68f12e6cb",
+    "public_api_signatures_and_fields_unchanged": true,
+    "unchanged_native_business_and_workload_files": [
+      "benchmarks/registry.json",
+      "benchmarks/upstream/__init__.py",
+      "benchmarks/upstream/paperless_ngx-requirements.txt",
+      "benchmarks/upstream/paperless_ngx_backend.py",
+      "benchmarks/upstream/paperless_ngx_metrics.py",
+      "benchmarks/upstream/posthog_backend.py",
+      "benchmarks/upstream/posthog_setup.py",
+      "benchmarks/upstream/saleor_backend.py",
+      "benchmarks/upstream/sentry_backend.py",
+      "benchmarks/upstream/sentry_provision.py",
+      "benchmarks/upstream/suite.py",
+      "benchmarks/upstream/superset_backend.py",
+      "examples/dbworker_integration/__init__.py",
+      "examples/dbworker_integration/runtime.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/__init__.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/api/__init__.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/api/routes.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/config.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/db/__init__.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/db/engine.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/db/models.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/domain/__init__.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/domain/artifact_build.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/domain/comparison.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/main_fastapi.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/main_worker_service.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/observation.py",
+      "examples/imagededup_system_dbwork/src/imagededup_system_dbwork/workers.py",
+      "examples/paperless_ngx_dbworker/README.md",
+      "examples/paperless_ngx_dbworker/__init__.py",
+      "examples/paperless_ngx_dbworker/adapter.py",
+      "examples/paperless_ngx_dbworker/runtime.py",
+      "examples/posthog_dbworker/README.md",
+      "examples/posthog_dbworker/__init__.py",
+      "examples/posthog_dbworker/adapter.py",
+      "examples/posthog_dbworker/bootstrap.py",
+      "examples/posthog_dbworker/producer.py",
+      "examples/posthog_dbworker/runtime.py",
+      "examples/posthog_dbworker/settings.py",
+      "examples/saleor_dbworker/README.md",
+      "examples/saleor_dbworker/__init__.py",
+      "examples/saleor_dbworker/adapter.py",
+      "examples/saleor_dbworker/benchmark_settings.py",
+      "examples/saleor_dbworker/producer.py",
+      "examples/saleor_dbworker/runtime.py",
+      "examples/sentry_dbworker/README.md",
+      "examples/sentry_dbworker/__init__.py",
+      "examples/sentry_dbworker/adapter.py",
+      "examples/superset_dbworker/README.md",
+      "examples/superset_dbworker/__init__.py",
+      "examples/superset_dbworker/adapter.py",
+      "examples/superset_dbworker/executor.py"
+    ],
+    "posthog_worker_change_scope": "Initialize the original native app in every spawned child before declaring pool readiness; original handler and API bodies remain unchanged",
+    "runtime_sha256": "e5154c322fb10b85fcb9b82d4a4b93b0f7ea89bc74d34600ceb6b6ac9f04690c",
+    "accepted_ci_runtime_identical": true
+  },
+  "language_audit": {
+    "scope": "All files changed from the main source baseline, including decoded JSON strings",
+    "baseline": "5e7654e",
+    "candidate": "611cb66667b1263ec561086d2ce86d687696dfbe",
+    "files_checked": [
+      ".github/workflows/ci.yml",
+      "benchmarks/diagnostics/results/native-posthog-bulk-claim-first-ci.json",
+      "benchmarks/diagnostics/results/native-posthog-bulk-claim-local.json",
+      "benchmarks/diagnostics/results/native-posthog-bulk-claim-repeat-full-suite-ci.json",
+      "benchmarks/diagnostics/results/native-posthog-bulk-claim-sqlite-equivalence.json",
+      "benchmarks/diagnostics/results/native-posthog-default-backlog-local-capacity.json",
+      "benchmarks/diagnostics/results/native-posthog-eager-startup-full-suite-ci.json",
+      "benchmarks/tests/test_posthog_worker_service.py",
+      "examples/imagededup_system_dbwork/tests/test_worker_processes.py",
+      "examples/posthog_dbworker/worker.py",
+      "src/dbworker.py",
+      "tests/test_postgres_claims.py",
+      "tests/test_worker_startup.py"
+    ],
+    "chinese_text_found": false,
+    "runtime_sha256": "e5154c322fb10b85fcb9b82d4a4b93b0f7ea89bc74d34600ceb6b6ac9f04690c",
+    "runtime_matches_native_ci": true
+  },
+  "remaining_required_work": [],
+  "limitations": [
+    "Source order can drift over time; each source retains its own Celery controls.",
+    "Scheduled API rate is 83.33/s, but original API latency limits actual submission to about 28/s; this is not proof of sustained 83.33/s admission.",
+    "Execution concurrency measures business task intervals, not CPU utilization.",
+    "Image reports have no queue P95 or execution concurrency; unavailable CPU/RSS metrics are not claimed verified."
+  ],
+  "all_nine_candidate_samples_recomputed": {
+    "run_ids": [
+      38176440630,
+      38180868115,
+      38180921187
+    ],
+    "sources": {
+      "first_bulk": {
+        "commit": "7089eeb17480c46be55b326c2d23d77419d6dd2f",
+        "report_sha256": "f18e57b2fc7123a2d3d7da1a7ed3236efd313461cd06aa37a9981aea47776cf2",
+        "exact_workload_passed": true,
+        "sampled_handoff_probe_absent": true,
+        "independently_recomputed_peaks": [
+          {
+            "backend": "celery",
+            "repetition": 1,
+            "peak_published_outstanding": 14
+          },
+          {
+            "backend": "dbworker",
+            "repetition": 1,
+            "peak_published_outstanding": 28
+          },
+          {
+            "backend": "dbworker",
+            "repetition": 2,
+            "peak_published_outstanding": 31
+          },
+          {
+            "backend": "celery",
+            "repetition": 2,
+            "peak_published_outstanding": 14
+          },
+          {
+            "backend": "celery",
+            "repetition": 3,
+            "peak_published_outstanding": 15
+          },
+          {
+            "backend": "dbworker",
+            "repetition": 3,
+            "peak_published_outstanding": 25
+          }
+        ]
+      },
+      "full_repeat": {
+        "commit": "cc24d6cddff44ac6629c498afbbf7028496e8f63",
+        "report_sha256": "c42cfbf27023411f6ff50ab9ac2bf3e8157533a1304a4b16cbb0fa2fec0b6bb2",
+        "exact_workload_passed": true,
+        "sampled_handoff_probe_absent": true,
+        "independently_recomputed_peaks": [
+          {
+            "backend": "celery",
+            "repetition": 1,
+            "peak_published_outstanding": 15
+          },
+          {
+            "backend": "dbworker",
+            "repetition": 1,
+            "peak_published_outstanding": 29
+          },
+          {
+            "backend": "dbworker",
+            "repetition": 2,
+            "peak_published_outstanding": 34
+          },
+          {
+            "backend": "celery",
+            "repetition": 2,
+            "peak_published_outstanding": 15
+          },
+          {
+            "backend": "celery",
+            "repetition": 3,
+            "peak_published_outstanding": 16
+          },
+          {
+            "backend": "dbworker",
+            "repetition": 3,
+            "peak_published_outstanding": 24
+          }
+        ]
+      },
+      "candidate": {
+        "commit": "0ea2383c4d9cb4dc8ae785223e9d8d12765e56cc",
+        "report_sha256": "4bb737b2bd70fe93883ded484dcffe4ff2ff00a4ea69af01b2de9b7dcbda2454",
+        "exact_workload_passed": true,
+        "sampled_handoff_probe_absent": true,
+        "independently_recomputed_peaks": [
+          {
+            "backend": "celery",
+            "repetition": 1,
+            "peak_published_outstanding": 14
+          },
+          {
+            "backend": "dbworker",
+            "repetition": 1,
+            "peak_published_outstanding": 23
+          },
+          {
+            "backend": "dbworker",
+            "repetition": 2,
+            "peak_published_outstanding": 33
+          },
+          {
+            "backend": "celery",
+            "repetition": 2,
+            "peak_published_outstanding": 14
+          },
+          {
+            "backend": "celery",
+            "repetition": 3,
+            "peak_published_outstanding": 14
+          },
+          {
+            "backend": "dbworker",
+            "repetition": 3,
+            "peak_published_outstanding": 30
+          }
+        ]
+      }
+    },
+    "candidate_all_three_peak_targets_passed": true
+  },
+  "final_public_api_shape_verified": true,
+  "final_runtime_identical_to_all_accepted_candidates": true,
+  "final_language_audit": {
+    "files_checked": [
+      ".github/workflows/ci.yml",
+      "benchmarks/diagnostics/results/native-posthog-bulk-claim-first-ci.json",
+      "benchmarks/diagnostics/results/native-posthog-bulk-claim-local.json",
+      "benchmarks/diagnostics/results/native-posthog-bulk-claim-matched-ci.json",
+      "benchmarks/diagnostics/results/native-posthog-bulk-claim-repeat-full-suite-ci.json",
+      "benchmarks/diagnostics/results/native-posthog-bulk-claim-sqlite-equivalence.json",
+      "benchmarks/diagnostics/results/native-posthog-default-backlog-goal-audit.json",
+      "benchmarks/diagnostics/results/native-posthog-default-backlog-local-capacity.json",
+      "benchmarks/diagnostics/results/native-posthog-eager-startup-full-suite-ci.json",
+      "benchmarks/tests/test_posthog_worker_service.py",
+      "examples/imagededup_system_dbwork/tests/test_worker_processes.py",
+      "examples/posthog_dbworker/worker.py",
+      "src/dbworker.py",
+      "tests/test_postgres_claims.py",
+      "tests/test_worker_startup.py"
+    ],
+    "chinese_text_found": false,
+    "decoded_json_checked": true
+  },
+  "final_identical_candidates_checked": [
+    "7089eeb",
+    "cc24d6c",
+    "0ea2383"
+  ]
+}
