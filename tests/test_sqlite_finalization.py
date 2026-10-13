@@ -2,6 +2,7 @@ import sqlite3
 import tempfile
 import threading
 import unittest
+from contextlib import closing
 from pathlib import Path
 from unittest.mock import patch
 
@@ -56,7 +57,7 @@ class FinalizationTest(unittest.TestCase):
 
         def writer():
             try:
-                with sqlite3.connect(self.path, timeout=2) as connection:
+                with closing(sqlite3.connect(self.path, timeout=2)) as connection, connection:
                     connection.execute("BEGIN IMMEDIATE")
                     if replace_token:
                         connection.execute("UPDATE finalize_work SET claim_token='replacement' WHERE source_id=1")
@@ -165,7 +166,7 @@ class FinalizationTest(unittest.TestCase):
             session.connection().exec_driver_sql("BEGIN")
             session.refresh(source)
             source.value += 1
-            with sqlite3.connect(self.path) as writer:
+            with closing(sqlite3.connect(self.path)) as writer, writer:
                 writer.execute("UPDATE finalization_source SET value=10 WHERE id=2")
             return Finished()
 
