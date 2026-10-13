@@ -188,3 +188,41 @@ Resetting does not call the handler immediately. The running coordinator can cla
 | `max_poll_seconds` | Maximum wait after exponential backoff. Successful claims continue without waiting. | `10` |
 
 For SQLite, use a file-backed database. Worker names must start with a lowercase letter and contain only lowercase letters, digits and underscores.
+
+### SQLite lock contention
+
+SQLite permits only one writer at a time, even when workers own different rows.
+DBWorker retries transient SQLite `SQLITE_BUSY`, `SQLITE_BUSY_RECOVERY`, and
+`SQLITE_BUSY_TIMEOUT` errors from the final execution-status UPDATE in the same
+transaction. Retries use backoff from 10 ms to 100 ms, with a five-second retry
+window after the first error. Each database call can additionally wait for the
+connection's configured busy timeout. The handler is not rerun, pending business
+writes are preserved, and every attempt retains the original claim-token check.
+An exhausted retry window follows the normal rollback and failure path.
+
+This retry applies only to the final status UPDATE. It does not retry handler
+queries, flushes, commits, or coordinator queries. Other errors, invalidated
+connections, and transactions that SQLite has rolled back are propagated.
+`SQLITE_BUSY_SNAPSHOT` is also propagated: an invalidated WAL read snapshot needs
+a new transaction, so retrying the UPDATE cannot repair it. DBWorker does not
+automatically restart handlers that may already have performed external effects.
+
+For an application encountering contention, start with a connection timeout such
+as `connect_args={"timeout": 5.0}` on **both** the application's coordination
+engine and `Coordinator(engine_options={"connect_args": {"timeout": 5.0}})` for
+child engines. Five seconds is sqlite3's default; increase it only if the
+application can tolerate the additional wait. A timeout cannot repair a stale
+snapshot or a read-to-write upgrade deadlock.
+
+WAL mode can reduce reader/writer contention, but still allows only one writer.
+If appropriate for your deployment, configure `PRAGMA journal_mode=WAL` once
+during database setup before starting services. DBWorker does not change journal
+mode or connection timeouts. Keep write transactions short, release read
+transactions before long computations when safe (see the session guidance above),
+and reduce worker concurrency if write contention dominates. Even one execution
+slot can contend with the API or coordinator; use PostgreSQL or MySQL when the
+workload requires many simultaneous writers.
+
+References: [SQLite transaction behavior](https://www.sqlite.org/lang_transaction.html),
+[SQLite result codes](https://www.sqlite.org/rescode.html), and
+[SQLAlchemy SQLite transaction control](https://docs.sqlalchemy.org/en/20/dialects/sqlite.html#transactions-with-sqlite-and-the-sqlite3-driver).

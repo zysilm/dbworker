@@ -6,6 +6,7 @@ import logging
 import multiprocessing
 import pickle  # nosec B403 -- used only for local pre-flight serialization; this module never deserializes pickle data.
 import re
+import sqlite3
 import threading
 import time
 import uuid
@@ -19,14 +20,16 @@ from typing import Any, TypeAlias, TypeVar, cast
 from multiprocessing.util import Finalize
 
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, String, Table, Text, and_, create_engine, event, exists, inspect, insert, or_, select, tuple_, update
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.engine import CursorResult, RowMapping, URL, make_url
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.orm import DeclarativeBase, Mapper, Session, sessionmaker
-from sqlalchemy.sql import ColumnElement, Select
+from sqlalchemy.sql import ColumnElement, Select, Update
 from sqlalchemy.sql.selectable import Exists
 
 logger = logging.getLogger(__name__)
+
+_SQLITE_FINALIZATION_RETRY_SECONDS = 5.0
 
 
 def now() -> datetime:
@@ -170,6 +173,37 @@ def _execute_in_process(claim: Claim) -> Outcome:
     return _execute_claim(_process_worker, claim, _process_session_factory)
 
 
+def _retry_sqlite_completion(session: Session, completion: Update, error: OperationalError) -> CursorResult[Any]:
+    """Wait for a writer without discarding business writes or replaying a handler."""
+    deadline = time.monotonic() + _SQLITE_FINALIZATION_RETRY_SECONDS
+    delay = 0.01
+    while True:
+        # A busy SQLite statement leaves the transaction intact. A stale WAL
+        # snapshot cannot become writable by waiting (SQLITE_BUSY_SNAPSHOT).
+        if (not isinstance(error.orig, sqlite3.OperationalError)
+                or getattr(error.orig, "sqlite_errorcode", None) not in (
+                    sqlite3.SQLITE_BUSY, sqlite3.SQLITE_BUSY_RECOVERY, sqlite3.SQLITE_BUSY_TIMEOUT,
+                )
+                or error.connection_invalidated or not session.is_active):
+            raise error
+        connection = session.connection()
+        driver = connection.connection.driver_connection
+        if (connection.dialect.name != "sqlite"
+                or driver is None or not driver.in_transaction):
+            raise error
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise error
+        time.sleep(min(delay, remaining))
+        if time.monotonic() >= deadline:
+            raise error
+        delay = min(delay * 2, 0.1)
+        try:
+            return cast(CursorResult[Any], session.execute(completion))
+        except OperationalError as exc:
+            error = exc
+
+
 def _execute_claim(worker: _Worker, claim: Claim, session_factory: sessionmaker[Session]) -> Outcome:
     """Run a whole handler and atomically persist its writes and outcome."""
     with session_factory() as session:
@@ -187,14 +221,16 @@ def _execute_claim(worker: _Worker, claim: Claim, session_factory: sessionmaker[
             # All handler writes, including already-flushed SQL, are still in
             # this transaction. Rejecting ownership rolls them all back.
             with session.no_autoflush:
-                result = cast(CursorResult[Any], session.execute(
-                    update(worker.table).where(
-                        worker.table.c.source_id == claim.source_id,
-                        worker.table.c.execution_status == ExecutionStatus.WORKING,
-                        worker.table.c.claim_token == claim.token,
-                    ).values(execution_status=ExecutionStatus.FINISHED if isinstance(outcome, Finished) else ExecutionStatus.UNFINISHED,
-                             claim_token=None, lease_expires_at=None, error=None)
-                ))
+                completion = update(worker.table).where(
+                    worker.table.c.source_id == claim.source_id,
+                    worker.table.c.execution_status == ExecutionStatus.WORKING,
+                    worker.table.c.claim_token == claim.token,
+                ).values(execution_status=ExecutionStatus.FINISHED if isinstance(outcome, Finished) else ExecutionStatus.UNFINISHED,
+                         claim_token=None, lease_expires_at=None, error=None)
+                try:
+                    result = cast(CursorResult[Any], session.execute(completion))
+                except OperationalError as exc:
+                    result = _retry_sqlite_completion(session, completion, exc)
             if result.rowcount != 1:
                 raise LostClaim()
         finally:
