@@ -77,15 +77,15 @@ Median wall time in seconds; **bold** marks the faster backend. Each experiment 
 
 | Experiment | Workload | Celery wall (s) | DBWorker wall (s) | C / D | Task P95 / peak outstanding (C; D) |
 |---|---|---:|---:|---:|---|
-| imagededup | Build 1,000 image hashes (one bulk import) | **5.781** | 6.066 | 0.95 | n/a; n/a |
-| imagededup | Compare 1,000 images / 999,000 directed pairs | 82.087 | **77.527** | 1.06 | n/a; n/a |
-| imagededup | Build + compare 1,000 images / 999,000 directed pairs | 91.669 | **90.453** | 1.01 | n/a; n/a |
-| superset | SQL Lab: 3,000 queries / 10,000 rows | **130.809** | 146.255 | 0.89 | 34.381s / 1384; 41.335s / 1494 |
-| saleor | Export: 1,000 x 256 products + 1,000 emails | **132.599** | 160.993 | 0.82 | 35.885s / 606; 48.863s / 792 |
-| paperless_ngx | OCR: 200 scans, archive and index | 134.649 | **75.436** | 1.78 | 71.852s / 114; 47.910s / 51 |
-| posthog | 2FA: 5,000 requests / 10,000 tasks | 115.049 | **110.402** | 1.04 | 0.109s / 15; 0.594s / 65 |
-| sentry | Email: 2,000 requests / 4,000 deliveries | **60.263** | 60.300 | 1.00 | 0.033s / 20; 0.147s / 26 |
+| imagededup | Build 1,000 image hashes (one bulk import) | 6.459 | **6.005** | 1.08 | n/a; n/a |
+| imagededup | Compare 1,000 images / 999,000 directed pairs | 81.712 | **77.167** | 1.06 | n/a; n/a |
+| imagededup | Build + compare 1,000 images / 999,000 directed pairs | 92.450 | **88.584** | 1.04 | n/a; n/a |
+| superset | SQL Lab: 3,000 queries / 10,000 rows | **153.735** | 168.862 | 0.91 | 42.354s / 1462; 48.725s / 1511 |
+| saleor | Export: 1,000 x 256 products + 1,000 emails | **137.652** | 167.635 | 0.82 | 39.572s / 630; 54.428s / 812 |
+| paperless_ngx | OCR: 200 scans, archive and index | 142.059 | **81.849** | 1.74 | 78.973s / 118; 57.944s / 61 |
+| posthog | 2FA: 5,000 requests / 10,000 tasks | 184.240 | **164.843** | 1.12 | 0.161s / 14; 0.179s / 30 |
+| sentry | Email: 2,000 requests / 4,000 deliveries | **60.314** | 60.336 | 1.00 | 0.057s / 16; 0.479s / 149 |
 
-Run: `github-38214437264-1`. [Details and scope](doc/benchmark-results.md) · [JSON results](benchmarks/results/latest/index.json).
+Run: `github-38401468222-1`. [Details and scope](doc/benchmark-results.md) · [JSON results](benchmarks/results/latest/index.json).
 Scoped application workloads; Sentry uses historical 24.1.0. Wall time includes the fixed submission window, so a ratio near 1 does not prove equal processing capacity. Task P95 starts at publication; peak outstanding counts already published tasks. Ratios above 1 favor DBWorker; no cross-project average is computed.
 <!-- benchmark-results:end -->
