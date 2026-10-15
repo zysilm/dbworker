@@ -1,11 +1,27 @@
-# Usage Instructions
+# DBWorker usage: SQLAlchemy workers, transactions, and recovery
 
 Use DBWorker with your existing SQLAlchemy models, session factory and database.
-Requires Python 3.12+. Install with `poetry add dbworker`.
+Requires Python `>=3.12,<4.0` and SQLAlchemy `>=2.0,<3.0`. Install with
+`poetry add dbworker`. This reference describes DBWorker 0.1.2.
 
 For a complete runnable example, start with the [SQLite quickstart](quickstart.md).
 See the [FAQ](faq.md) for transaction, retry, and SQLite limits, or
 [Choosing DBWorker](choosing-dbworker.md) to assess the fit for your application.
+
+## Find the task you need
+
+| I want to… | Read |
+| --- | --- |
+| Run a complete SQLite example | [Install and run the quickstart](quickstart.md#install) |
+| Decide whether DBWorker fits my application | [Fit and migration decisions](choosing-dbworker.md#when-dbworker-fits) |
+| Register a handler for existing rows | [Quick start](#quick-start) |
+| Commit business writes with the task outcome | [Transaction ownership](faq.md#what-commits-together-and-who-owns-the-session) |
+| Process work in pages | [What Unfinished saves](faq.md#what-does-unfinished-save) |
+| Query progress or wait for another worker | [Progress and dependencies](#track-progress-and-coordinate-dependent-work) |
+| Inspect and retry failed work | [Failure recovery](#understand-failures-and-retry-work) |
+| Understand lease expiry and stale results | [Ownership and fencing](faq.md#how-are-stale-results-fenced-off) |
+| Handle SQLite writer contention | [SQLite configuration](#sqlite-lock-contention) |
+| Interpret the published Celery comparisons | [Benchmark scope](choosing-dbworker.md#evaluate-performance-on-your-workload) |
 
 ## Quick start
 
@@ -177,6 +193,10 @@ with session_factory.begin() as session:
 ```
 
 `reset_failed()` changes a failed execution to `UNFINISHED` and clears its recorded error and claim. It returns `True` if it reset a failed execution, or `False` if there was no failed execution to reset. The `begin()` block commits this change.
+
+Changing `eligible` alone cannot bypass the exclusion of recorded `FAILED` work.
+The [availability predicate](https://github.com/zysilm/dbworker/blob/c6652e904b29c597988b2d3ba65e612de24825d7/src/dbworker.py#L344-L365) and
+[reset operation](https://github.com/zysilm/dbworker/blob/c6652e904b29c597988b2d3ba65e612de24825d7/src/dbworker.py#L120-L127) are separate checks.
 
 Resetting does not call the handler immediately. The running coordinator can claim the work again when it matches `eligible`. The handler starts from the beginning; resetting does not delete application results or progress. If the handler has effects outside the database transaction, make them safe to repeat.
 

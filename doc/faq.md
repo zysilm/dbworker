@@ -20,11 +20,15 @@ records need an application-defined data model and query.
 ## Which databases and models can I use?
 
 The package is intended for SQLite, PostgreSQL, and MySQL through SQLAlchemy 2.x.
-It requires Python 3.12 or later. Install the appropriate database driver for
-PostgreSQL or MySQL. A worker's source model must have exactly one primary-key
+Its package requirements are Python `>=3.12,<4.0` and SQLAlchemy `>=2.0,<3.0`.
+Install the appropriate database driver for PostgreSQL or MySQL. A worker's source model must have exactly one primary-key
 column; it need not be an integer key. The worker interface uses a synchronous
-SQLAlchemy `Session`, rather than `AsyncSession`. Worker processes require file-backed SQLite,
-so an in-memory SQLite URL is rejected at startup.
+SQLAlchemy `Session`, rather than `AsyncSession`. Worker processes require
+file-backed SQLite, so an in-memory SQLite URL is rejected at startup.
+
+References: [package requirements](https://github.com/zysilm/dbworker/blob/c6652e904b29c597988b2d3ba65e612de24825d7/pyproject.toml#L16-L18),
+[single-column source key](https://github.com/zysilm/dbworker/blob/c6652e904b29c597988b2d3ba65e612de24825d7/src/dbworker.py#L91-L115), and
+[SQLite startup validation](https://github.com/zysilm/dbworker/blob/c6652e904b29c597988b2d3ba65e612de24825d7/src/dbworker.py#L545-L554).
 
 ## What commits together, and who owns the session?
 
@@ -38,6 +42,8 @@ network requests, and external service effects are outside that transaction.
 For a long computation, a handler may release its read transaction with
 `session.rollback()` before making writes it needs to keep; first copy the values
 needed for computation. Rollback is not a way to preserve uncommitted progress.
+
+Reference: [handler execution and runtime-owned commit](https://github.com/zysilm/dbworker/blob/c6652e904b29c597988b2d3ba65e612de24825d7/src/dbworker.py#L207-L239).
 
 ## Does this guarantee exactly-once email or payment delivery?
 
@@ -56,6 +62,12 @@ call `reset_failed()` inside a committed transaction to mark it `UNFINISHED` and
 clear the previous error and claim. The running coordinator may then claim it
 again if it matches `eligible`.
 
+**Changing `eligible` alone cannot retry a recorded `FAILED` execution.**
+DBWorker applies its execution-availability check in addition to the application
+query. A query that selects the business row still cannot bypass that check.
+See the [availability filter](https://github.com/zysilm/dbworker/blob/c6652e904b29c597988b2d3ba65e612de24825d7/src/dbworker.py#L344-L365) and
+[reset operation](https://github.com/zysilm/dbworker/blob/c6652e904b29c597988b2d3ba65e612de24825d7/src/dbworker.py#L120-L127).
+
 Resetting does not undo already committed application progress or external effects.
 See the [failure and retry examples](usage.md#understand-failures-and-retry-work).
 
@@ -66,6 +78,15 @@ more work remains. The next invocation starts the Python function from its
 beginning. DBWorker does not save the function's instruction pointer or local
 variables. Store a cursor, processed-page ledger, or another continuation marker
 in application data when implementing work in steps.
+
+For example, a handler can process IDs 1–100, store `last_processed_id = 100`
+in application data through the supplied session, and return `Unfinished()`.
+Its next invocation reads that cursor and selects IDs after 100. The application
+owns the cursor and must use a selection order appropriate for its data.
+Successful finalization clears the old claim token and lease; a later invocation
+obtains a new claim.
+
+Reference: [outcome finalization](https://github.com/zysilm/dbworker/blob/c6652e904b29c597988b2d3ba65e612de24825d7/src/dbworker.py#L207-L239).
 
 ## Can an expired claim still report WORKING?
 
@@ -79,6 +100,21 @@ An observed handler failure with a live coordinator can instead be recorded as
 `execution_status()` reports recorded execution state, not a live process-health
 probe.
 
+For a source row that matches `eligible`, execution tracking applies these rules:
+
+| Recorded execution state | Available for claiming? |
+| --- | --- |
+| No execution record | Yes |
+| `UNFINISHED` | Yes |
+| `WORKING`, with an expired lease | Yes |
+| `WORKING`, with an unexpired lease | No |
+| `FAILED` | No; use the explicit failure-reset workflow |
+| `FINISHED` | No |
+
+References: [recorded status lookup](https://github.com/zysilm/dbworker/blob/c6652e904b29c597988b2d3ba65e612de24825d7/src/dbworker.py#L313-L323),
+[availability and candidate selection](https://github.com/zysilm/dbworker/blob/c6652e904b29c597988b2d3ba65e612de24825d7/src/dbworker.py#L344-L365), and
+[active-claim renewal](https://github.com/zysilm/dbworker/blob/c6652e904b29c597988b2d3ba65e612de24825d7/src/dbworker.py#L477-L484).
+
 ## How are stale results fenced off?
 
 Before committing, DBWorker updates the work row only if its source ID,
@@ -86,6 +122,12 @@ Before committing, DBWorker updates the work row only if its source ID,
 been replaced, the conditional update cannot succeed, `LostClaim` rejects the
 result, and writes in the supplied transaction are rolled back. This protects
 that database transaction; it cannot roll back an external effect already sent.
+
+For example, if execution A owns token A and the expired claim is replaced with
+token B, execution A's final update still requires token A. It cannot commit its
+pending business writes using the new owner's token.
+
+Reference: [claim-token condition and LostClaim](https://github.com/zysilm/dbworker/blob/c6652e904b29c597988b2d3ba65e612de24825d7/src/dbworker.py#L207-L239).
 
 ## Why can two independently claimed SQLite tasks still contend?
 
@@ -111,6 +153,9 @@ driver, or `BUSY_SNAPSHOT`. A stale WAL snapshot needs a new transaction; repeat
 the status update cannot repair it. Exhausted retries follow the ordinary failure
 path. See [SQLite configuration and limitations](usage.md#sqlite-lock-contention).
 
+References: [retry error checks and backoff](https://github.com/zysilm/dbworker/blob/c6652e904b29c597988b2d3ba65e612de24825d7/src/dbworker.py#L176-L204) and
+[conditional final status update](https://github.com/zysilm/dbworker/blob/c6652e904b29c597988b2d3ba65e612de24825d7/src/dbworker.py#L221-L238).
+
 ## How do I make one worker wait for another?
 
 Use `has_execution_status()` in the dependent worker's `eligible` query. It builds
@@ -119,7 +164,8 @@ a database query or return a Python boolean when constructed. Register the named
 worker before constructing that condition. Inputs with no execution record do
 not match a requested recorded status.
 
-See [progress and dependent work](usage.md#track-progress-and-coordinate-dependent-work).
+See [progress and dependent work](usage.md#track-progress-and-coordinate-dependent-work)
+and the [SQL EXISTS helper](https://github.com/zysilm/dbworker/blob/c6652e904b29c597988b2d3ba65e612de24825d7/src/dbworker.py#L325-L337).
 
 ## Does changing a finished row make its handler run again?
 
@@ -141,6 +187,10 @@ stay alive while processing is required. `stop()` stops new claims and waits for
 active handlers; lease renewal continues while draining. It does not forcibly
 terminate an indefinitely blocked handler.
 
+References: [registration returns the callable](https://github.com/zysilm/dbworker/blob/c6652e904b29c597988b2d3ba65e612de24825d7/src/dbworker.py#L287-L311),
+[spawned process setup](https://github.com/zysilm/dbworker/blob/c6652e904b29c597988b2d3ba65e612de24825d7/src/dbworker.py#L545-L582), and
+[draining shutdown](https://github.com/zysilm/dbworker/blob/c6652e904b29c597988b2d3ba65e612de24825d7/src/dbworker.py#L584-L592).
+
 ## Is DBWorker a drop-in Celery replacement or always faster?
 
 Neither conclusion follows from this project. DBWorker's integration point is a
@@ -156,6 +206,7 @@ to assess the fit before testing your own workload.
 
 ## Source of these guarantees
 
-The transaction, claim predicates, status helpers, pool startup, and stop behavior
-are implemented in [src/dbworker.py](../src/dbworker.py). The documentation above
-is scoped to DBWorker 0.1.2 and should be reviewed when those implementations change.
+The implementation links beside each answer point to the source revision reviewed
+for this page. The documentation is scoped to DBWorker 0.1.2. Review those claims
+against the relevant implementation when upgrading; a fixed source link records
+the evidence for this revision rather than describing every future release.
