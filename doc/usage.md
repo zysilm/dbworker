@@ -3,6 +3,10 @@
 Use DBWorker with your existing SQLAlchemy models, session factory and database.
 Requires Python 3.12+. Install with `poetry add dbworker`.
 
+For a complete runnable example, start with the [SQLite quickstart](quickstart.md).
+See the [FAQ](faq.md) for transaction, retry, and SQLite limits, or
+[Choosing DBWorker](choosing-dbworker.md) to assess the fit for your application.
+
 ## Quick start
 
 Use your existing SQLAlchemy `session_factory` and database URL:
