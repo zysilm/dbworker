@@ -1,9 +1,11 @@
+import sqlite3
 import unittest
 from concurrent.futures import Future
 from typing import cast
 from unittest.mock import Mock, patch
 
 from sqlalchemy import create_engine
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker
 
 from dbworker import Claim, Coordinator, Finished, Outcome, _Worker
@@ -100,6 +102,99 @@ class PollingTest(unittest.TestCase):
             self.run_scheduler()
         self.assertEqual(times, [0] * 5)
         self.assertEqual(self.clock.waits, [])
+
+    def test_busy_claims_back_off_to_cap_and_success_resets_delay(self) -> None:
+        for code in (sqlite3.SQLITE_BUSY, sqlite3.SQLITE_BUSY_RECOVERY,
+                     sqlite3.SQLITE_BUSY_TIMEOUT, sqlite3.SQLITE_BUSY_SNAPSHOT):
+            with self.subTest(code=code):
+                self.coordinator._stop.clear()
+                self.clock = ClockEvent()
+                error = sqlite3.OperationalError('database is locked')
+                error.sqlite_errorcode = code
+                times: list[float] = []
+                completed: Future[Outcome] = Future()
+                completed.set_result(Finished())
+                self.handlers.submit.return_value = completed
+
+                def claim_many(worker: _Worker, limit: int) -> list[Claim]:
+                    times.append(self.clock.now)
+                    if len(times) < 9:
+                        raise OperationalError('BEGIN IMMEDIATE', {}, error)
+                    if len(times) == 9:
+                        return [Claim(1, 'token')]
+                    if len(times) == 11:
+                        self.coordinator._stop.set()
+                    return []
+
+                with patch.object(self.coordinator, '_claim_many', side_effect=claim_many), \
+                        patch('dbworker.logger.exception') as logged:
+                    self.run_scheduler()
+                self.assertEqual(times, [0, .25, .75, 1.75, 3.75, 7.75, 15.75, 25.75, 35.75, 35.75, 36])
+                self.assertEqual(self.clock.waits, [.25, .5, 1, 2, 4, 8, 10, 10, .25])
+                self.assertEqual(logged.call_count, 8)
+
+    def test_non_busy_claim_errors_are_not_swallowed(self) -> None:
+        locked = sqlite3.OperationalError('database table is locked')
+        locked.sqlite_errorcode = sqlite3.SQLITE_LOCKED
+        readonly = sqlite3.OperationalError('attempt to write a readonly database')
+        readonly.sqlite_errorcode = sqlite3.SQLITE_READONLY
+        for original in (sqlite3.OperationalError('no such table'),
+                         sqlite3.OperationalError('database is locked'),
+                         locked, readonly,
+                         RuntimeError('connection failed')):
+            with self.subTest(original=original):
+                error = OperationalError('SELECT', {}, original)
+                with patch.object(self.coordinator, '_claim_many', side_effect=error):
+                    with self.assertRaises(OperationalError) as raised:
+                        self.run_scheduler()
+                self.assertIs(raised.exception, error)
+        self.handlers.submit.assert_not_called()
+
+    def test_stop_during_busy_claim_backoff(self) -> None:
+        error = sqlite3.OperationalError('database is locked')
+        error.sqlite_errorcode = sqlite3.SQLITE_BUSY
+
+        def stop_wait(timeout: float) -> None:
+            self.assertEqual(timeout, self.coordinator.poll_seconds)
+            self.coordinator._stop.set()
+
+        with patch.object(self.coordinator, '_claim_many', side_effect=OperationalError('BEGIN IMMEDIATE', {}, error)) as claim, \
+                patch.object(self.clock, 'wait', side_effect=stop_wait), \
+                patch('dbworker.logger.exception'):
+            self.run_scheduler()
+        claim.assert_called_once()
+        self.handlers.submit.assert_not_called()
+
+    def test_renewal_continues_during_busy_claim_backoff(self) -> None:
+        self.worker.concurrency = 2
+        self.coordinator.lease_seconds = 3
+        pending: Future[Outcome] = Future()
+        self.handlers.submit.return_value = pending
+        error = sqlite3.OperationalError('database is locked')
+        error.sqlite_errorcode = sqlite3.SQLITE_BUSY
+        times: list[float] = []
+        renewals: list[float] = []
+
+        def claim_many(worker: _Worker, limit: int) -> list[Claim]:
+            times.append(self.clock.now)
+            if len(times) == 1:
+                return [Claim(1, 'token')]
+            raise OperationalError('BEGIN IMMEDIATE', {}, error)
+
+        def renew(worker: _Worker, claims: object) -> None:
+            self.assertEqual(list(claims), [Claim(1, 'token')])
+            renewals.append(self.clock.now)
+            if len(renewals) == 3:
+                self.coordinator._stop.set()
+                pending.set_result(Finished())
+
+        with patch.object(self.coordinator, '_claim_many', side_effect=claim_many), \
+                patch.object(self.coordinator, 'renew', side_effect=renew), \
+                patch('dbworker.logger.exception'):
+            self.run_scheduler()
+        self.assertEqual(times, [0, 0, .25, .75, 1.75])
+        self.assertEqual(renewals, [1, 2, 3])
+        self.handlers.submit.assert_called_once()
 
     def test_committed_child_ignores_previous_empty_claim_deadline(self) -> None:
         self.worker.concurrency = 2

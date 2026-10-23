@@ -224,12 +224,18 @@ connection's configured busy timeout. The handler is not rerun, pending business
 writes are preserved, and every attempt retains the original claim-token check.
 An exhausted retry window follows the normal rollback and failure path.
 
-This retry applies only to the final status UPDATE. It does not retry handler
-queries, flushes, commits, or coordinator queries. Other errors, invalidated
+This same-transaction retry applies only to the final status UPDATE. It does not retry handler
+queries, flushes, or commits. Other errors, invalidated
 connections, and transactions that SQLite has rolled back are propagated.
 `SQLITE_BUSY_SNAPSHOT` is also propagated: an invalidated WAL read snapshot needs
 a new transaction, so retrying the UPDATE cannot repair it. DBWorker does not
 automatically restart handlers that may already have performed external effects.
+
+Separately, if claiming work encounters SQLite `BUSY`, `BUSY_RECOVERY`,
+`BUSY_TIMEOUT`, or `BUSY_SNAPSHOT`, the coordinator rolls back the claim transaction
+and logs the error. It uses the existing polling backoff before trying again with
+a fresh session, without rerunning handlers or marking work failed. This recovery
+applies only to claiming, not lease renewal or recording handler failures.
 
 For an application encountering contention, start with a connection timeout such
 as `connect_args={"timeout": 5.0}` on **both** the application's coordination
