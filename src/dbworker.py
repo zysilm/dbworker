@@ -522,7 +522,17 @@ class Coordinator:
                 next_renewal = time.monotonic() + self.lease_seconds / 3
             if not self._stop.is_set() and time.monotonic() >= next_claim_at:
                 while len(active) < worker.concurrency and not self._stop.is_set():
-                    claims = self._claim_many(worker, worker.concurrency - len(active))
+                    try:
+                        claims = self._claim_many(worker, worker.concurrency - len(active))
+                    except OperationalError as exc:
+                        if (not isinstance(exc.orig, sqlite3.OperationalError)
+                                or getattr(exc.orig, "sqlite_errorcode", None) not in (
+                                    sqlite3.SQLITE_BUSY, sqlite3.SQLITE_BUSY_RECOVERY,
+                                    sqlite3.SQLITE_BUSY_TIMEOUT, sqlite3.SQLITE_BUSY_SNAPSHOT,
+                                )):
+                            raise
+                        logger.exception("Error claiming work for %s; retrying after backoff", worker.name)
+                        claims = []
                     if not claims:
                         next_claim_at = time.monotonic() + delay
                         delay = min(delay * 2, self.max_poll_seconds)
