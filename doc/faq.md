@@ -213,6 +213,6 @@ to assess the fit before testing your own workload.
 ## Source of these guarantees
 
 The implementation links beside each answer point to the source revision reviewed
-for this page. The documentation is scoped to DBWorker 0.1.2. Review those claims
+for this page. The documentation is scoped to DBWorker 0.1.4. Review those claims
 against the relevant implementation when upgrading; a fixed source link records
 the evidence for this revision rather than describing every future release.
