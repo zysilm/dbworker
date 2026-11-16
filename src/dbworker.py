@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import multiprocessing
-import pickle  # nosec B403 -- used only for local pre-flight serialization; this module never deserializes pickle data.
+import pickle  # nosec B403 -- used only for local serialization checks; this module never deserializes foreign pickle data.
 import re
 import sqlite3
 import threading
@@ -12,6 +12,7 @@ import time
 import uuid
 from collections.abc import Callable, Iterable
 from concurrent.futures import Future, ProcessPoolExecutor
+from concurrent.futures.process import BrokenProcessPool
 from dataclasses import dataclass
 from functools import cached_property
 from enum import StrEnum
@@ -19,17 +20,20 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, TypeAlias, TypeVar, cast
 from multiprocessing.util import Finalize
 
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, String, Table, Text, and_, create_engine, event, exists, inspect, insert, or_, select, tuple_, update
-from sqlalchemy.exc import IntegrityError, OperationalError
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Table, Text, and_, create_engine, event, exists, inspect, insert, or_, select, tuple_, update
+from sqlalchemy.exc import DBAPIError, IntegrityError, OperationalError
 from sqlalchemy.engine import CursorResult, RowMapping, URL, make_url
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.orm import DeclarativeBase, Mapper, Session, sessionmaker
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.schema import ExecutableDDLElement
 from sqlalchemy.sql import ColumnElement, Select, Update
 from sqlalchemy.sql.selectable import Exists
 
 logger = logging.getLogger(__name__)
 
 _SQLITE_FINALIZATION_RETRY_SECONDS = 5.0
+_MAX_RETRY_BACKOFF_SECONDS = 300.0
 
 
 def now() -> datetime:
@@ -78,16 +82,24 @@ class _Worker:
         handler: Handler,
         eligible: Callable[[], Select[tuple[Any]]] | None = None,
         concurrency: int = 1,
+        max_attempts: int = 3,
+        retry_backoff_seconds: float = 1.0,
     ) -> None:
         if not re.fullmatch(r"[a-z][a-z0-9_]*", name):
             raise ValueError("Worker name must contain lowercase letters, digits, and underscores")
         if concurrency < 1:
             raise ValueError("Worker concurrency must be positive")
+        if max_attempts < 1:
+            raise ValueError("Worker max_attempts must be positive")
+        if retry_backoff_seconds < 0:
+            raise ValueError("Worker retry backoff must not be negative")
         self.name = name
         self.source = source
         self.handler = handler
         self.eligible = eligible or (lambda: select(source))
         self.concurrency = concurrency
+        self.max_attempts = max_attempts
+        self.retry_backoff_seconds = retry_backoff_seconds
         mapper = cast(Mapper[Any], inspect(source))
         if len(mapper.primary_key) != 1:
             raise ValueError("Worker sources must have one primary-key column")
@@ -112,6 +124,10 @@ class _Worker:
                 Column("claim_token", String(36)),
                 Column("lease_expires_at", DateTime, index=True),
                 Column("error", Text),
+                # Consecutive handler failures; a committed outcome resets it.
+                Column("attempts", Integer, nullable=False, default=0, server_default="0"),
+                # A failed attempt is not claimable again before this time.
+                Column("available_at", DateTime),
             )
 
     def state(self, session: Session, source_id: object) -> RowMapping | None:
@@ -121,9 +137,23 @@ class _Worker:
         result = cast(CursorResult[Any], session.execute(
             update(self.table)
             .where(self.table.c.source_id == source_id, self.table.c.execution_status == ExecutionStatus.FAILED)
-            .values(execution_status=ExecutionStatus.UNFINISHED, error=None, claim_token=None, lease_expires_at=None)
+            .values(execution_status=ExecutionStatus.UNFINISHED, error=None, claim_token=None, lease_expires_at=None,
+                    attempts=0, available_at=None)
         ))
         return result.rowcount == 1
+
+
+class _AddColumn(ExecutableDDLElement):
+    """ALTER TABLE ... ADD COLUMN for a work table created by an earlier release."""
+
+    def __init__(self, column: Column[Any]) -> None:
+        self.column = column
+
+
+@compiles(_AddColumn)
+def _compile_add_column(element: _AddColumn, compiler: Any, **kw: Any) -> str:
+    return (f"ALTER TABLE {compiler.preparer.format_table(element.column.table)} "
+            f"ADD COLUMN {compiler.get_column_specification(element.column)}")
 
 
 @dataclass(frozen=True)
@@ -170,7 +200,16 @@ def _process_ready() -> None:
 def _execute_in_process(claim: Claim) -> Outcome:
     if _process_worker is None or _process_session_factory is None:
         raise RuntimeError("Handler process has not been initialized")
-    return _execute_claim(_process_worker, claim, _process_session_factory)
+    try:
+        return _execute_claim(_process_worker, claim, _process_session_factory)
+    except Exception as exc:
+        # An exception the parent cannot rebuild (for example a required
+        # multi-argument __init__) would break the whole process pool there.
+        try:
+            pickle.loads(pickle.dumps(exc))  # nosec B301 -- round-trips an object this process just created.
+        except Exception:
+            raise RuntimeError(f"{type(exc).__qualname__}: {exc}") from exc
+        raise
 
 
 def _retry_sqlite_completion(session: Session, completion: Update, error: OperationalError) -> CursorResult[Any]:
@@ -226,7 +265,7 @@ def _execute_claim(worker: _Worker, claim: Claim, session_factory: sessionmaker[
                     worker.table.c.execution_status == ExecutionStatus.WORKING,
                     worker.table.c.claim_token == claim.token,
                 ).values(execution_status=ExecutionStatus.FINISHED if isinstance(outcome, Finished) else ExecutionStatus.UNFINISHED,
-                         claim_token=None, lease_expires_at=None, error=None)
+                         claim_token=None, lease_expires_at=None, error=None, attempts=0, available_at=None)
                 try:
                     result = cast(CursorResult[Any], session.execute(completion))
                 except OperationalError as exc:
@@ -268,6 +307,7 @@ class Coordinator:
         self.max_poll_seconds = max_poll_seconds
         self.workers: dict[str, _Worker] = {}
         self._running: dict[str, tuple[threading.Thread, ProcessPoolExecutor]] = {}
+        self._definitions: tuple[_WorkerDefinition, ...] = ()
         self._stop = threading.Event()
         self._wakeups: dict[str, threading.Event] = {}
 
@@ -291,8 +331,15 @@ class Coordinator:
         source: type[DeclarativeBase],
         eligible: Callable[[], Select[tuple[Any]]] | None = None,
         concurrency: int = 1,
+        max_attempts: int = 3,
+        retry_backoff_seconds: float = 1.0,
     ) -> Callable[[_Function], _Function]:
         """Register a handler whose session and final commit belong to the runtime.
+
+        A handler exception rolls back that attempt. The work is retried after
+        retry_backoff_seconds (doubling per consecutive failure) and is marked
+        FAILED once max_attempts consecutive attempts have raised. Use
+        max_attempts=1 to fail on the first exception.
 
         Registration creates worker metadata, but starts no processing. The
         original function is returned unchanged; direct calls are not managed.
@@ -305,6 +352,7 @@ class Coordinator:
             self.workers[name] = _Worker(
                 name=name, source=source, handler=handler,
                 eligible=eligible, concurrency=concurrency,
+                max_attempts=max_attempts, retry_backoff_seconds=retry_backoff_seconds,
             )
             return handler
 
@@ -337,13 +385,38 @@ class Coordinator:
         ).correlate_except(table)
 
     def create_worker_tables(self) -> None:
+        """Create missing work tables and add columns introduced by later releases."""
         with self.session_factory() as session:
-            for worker in self.workers.values():
-                worker.table.create(session.get_bind(), checkfirst=True)
+            bind = session.get_bind()
+        for worker in self.workers.values():
+            table = worker.table
+            table.create(bind, checkfirst=True)
+
+            def present(column: Column[Any]) -> bool:
+                # Probe with ordinary SQL rather than reflection, so the session's
+                # schema translation and search path apply as they do to claims.
+                try:
+                    with self.session_factory() as session:
+                        session.execute(select(column).limit(0))
+                    return True
+                except DBAPIError:
+                    return False
+
+            for column in (table.c.attempts, table.c.available_at):
+                if present(column):
+                    continue
+                try:
+                    with self.session_factory.begin() as session:
+                        session.connection().execute(_AddColumn(column))
+                except DBAPIError:
+                    # Another service may have added it while starting up.
+                    if not present(column):
+                        raise
 
     def _available(self, table: Table, timestamp: datetime) -> ColumnElement[bool]:
         return or_(
-            table.c.execution_status == ExecutionStatus.UNFINISHED,
+            and_(table.c.execution_status == ExecutionStatus.UNFINISHED,
+                 or_(table.c.available_at.is_(None), table.c.available_at <= timestamp)),
             and_(table.c.execution_status == ExecutionStatus.WORKING, table.c.lease_expires_at < timestamp),
         )
 
@@ -484,21 +557,101 @@ class Coordinator:
                 ).values(lease_expires_at=now() + timedelta(seconds=self.lease_seconds)))
 
     def _fail(self, worker: _Worker, claim: Claim, error: Exception) -> None:
+        """Record a handler exception: schedule a retry, or FAILED when attempts run out."""
         table = worker.table
+        owned = (table.c.source_id == claim.source_id, table.c.execution_status == ExecutionStatus.WORKING,
+                 table.c.claim_token == claim.token)
         with self.session_factory.begin() as session:
-            session.execute(update(table).where(
-                table.c.source_id == claim.source_id, table.c.execution_status == ExecutionStatus.WORKING,
-                table.c.claim_token == claim.token,
-            ).values(execution_status=ExecutionStatus.FAILED, error=str(error), claim_token=None, lease_expires_at=None))
+            # Only the claim owner changes this row, so read-then-write is safe;
+            # a replaced claim matches neither statement.
+            attempts = session.scalar(select(table.c.attempts).where(*owned))
+            if attempts is None:
+                return
+            attempts += 1
+            retry = attempts < worker.max_attempts
+            delay = min(worker.retry_backoff_seconds * 2 ** (attempts - 1), _MAX_RETRY_BACKOFF_SECONDS)
+            session.execute(update(table).where(*owned).values(
+                execution_status=ExecutionStatus.UNFINISHED if retry else ExecutionStatus.FAILED,
+                error=str(error), claim_token=None, lease_expires_at=None, attempts=attempts,
+                available_at=now() + timedelta(seconds=delay) if retry else None,
+            ))
+        if retry:
+            logger.warning("Worker %s will retry %s in %.1fs (attempt %d of %d failed)",
+                           worker.name, claim.source_id, delay, attempts, worker.max_attempts)
+
+    def _release(self, worker: _Worker, claims: Iterable[Claim], error: Exception) -> None:
+        """Requeue work whose handler process was lost, without consuming an attempt.
+
+        A broken pool does not say which handler caused it, so no claim is blamed.
+        """
+        table = worker.table
+        try:
+            with self.session_factory.begin() as session:
+                for claim in claims:
+                    session.execute(update(table).where(
+                        table.c.source_id == claim.source_id, table.c.execution_status == ExecutionStatus.WORKING,
+                        table.c.claim_token == claim.token,
+                    ).values(execution_status=ExecutionStatus.UNFINISHED, error=str(error), claim_token=None,
+                             lease_expires_at=None,
+                             available_at=now() + timedelta(seconds=worker.retry_backoff_seconds)))
+        except Exception:
+            logger.exception("Could not requeue work for %s; it becomes claimable when its lease expires", worker.name)
+
+    def _start_pool(self, worker: _Worker) -> ProcessPoolExecutor:
+        context = multiprocessing.get_context("spawn")
+        ready = context.Barrier(worker.concurrency + 1)
+        handlers = ProcessPoolExecutor(
+            max_workers=worker.concurrency, mp_context=context,
+            initializer=_initialize_process,
+            initargs=(self.database_url, self.engine_options, self._definitions, worker.name, ready),
+        )
+        try:
+            # Initializers hold the startup barrier, so every configured
+            # process must start before any probe can finish. These probes
+            # create no source rows, claims, or execution-ledger entries.
+            probes = [handlers.submit(_process_ready) for _ in range(worker.concurrency)]
+            ready.wait(timeout=180)
+            for probe in probes:
+                probe.result()
+        except BaseException:
+            ready.abort()
+            handlers.shutdown(wait=True, cancel_futures=True)
+            raise
+        return handlers
+
+    def _replace_pool(self, worker: _Worker, broken: ProcessPoolExecutor) -> ProcessPoolExecutor:
+        """Start fresh handler processes after the executor lost one."""
+        broken.shutdown(wait=False, cancel_futures=True)
+        handlers = self._start_pool(worker)
+        thread, _ = self._running[worker.name]
+        self._running[worker.name] = (thread, handlers)
+        return handlers
 
     def _run(
         self, worker: _Worker, handlers: ProcessPoolExecutor,
         wakeup: threading.Event,
     ) -> None:
+        # No database or process error may end this loop: a dead scheduler
+        # stops claiming and renewing while the coordinator still looks alive.
         active: dict[Future[Outcome], Claim] = {}
         next_renewal = time.monotonic()
         next_claim_at = 0.0
         delay = self.poll_seconds
+        # A lost handler process breaks the pool and fails every in-flight
+        # future without saying which handler caused it. Work lost together is
+        # requeued unblamed, then run one at a time (see suspects) so that a
+        # handler which keeps killing its process is charged alone.
+        broken: BrokenProcessPool | None = None
+        lost: list[Claim] = []
+        suspects: dict[object, float] = {}
+
+        def record_failure(claim: Claim, error: Exception) -> None:
+            try:
+                self._fail(worker, claim, error)
+            except Exception:
+                logger.exception("Could not record the failure of %s:%s; it becomes claimable "
+                                 "when its lease expires", worker.name, claim.source_id)
+
         while not self._stop.is_set() or active:
             # Clear before inspecting futures so a completion during this iteration
             # still wakes the wait below.
@@ -513,24 +666,56 @@ class Coordinator:
                         delay = self.poll_seconds
                     except LostClaim:
                         logger.info("Discarded stale result for %s:%s", worker.name, claim.source_id)
+                    except BrokenProcessPool as exc:
+                        broken = exc
+                        lost.append(claim)
+                        continue
                     except Exception as exc:
                         logger.exception("Worker %s failed for %s", worker.name, claim.source_id)
-                        self._fail(worker, claim, exc)
+                        record_failure(claim, exc)
+                    suspects.pop(claim.source_id, None)
+            if broken is not None and lost and not active:
+                if len(lost) == 1:
+                    logger.error("Worker %s lost its handler process while running only %s",
+                                 worker.name, lost[0].source_id)
+                    record_failure(lost[0], broken)
+                    suspects.pop(lost[0].source_id, None)
+                else:
+                    logger.warning("Worker %s lost a handler process while running %s; requeueing them "
+                                   "to run one at a time", worker.name, [claim.source_id for claim in lost])
+                    self._release(worker, lost, broken)
+                    expiry = time.monotonic() + self.lease_seconds + worker.retry_backoff_seconds
+                    suspects.update((claim.source_id, expiry) for claim in lost)
+                lost = []
             if time.monotonic() >= next_renewal:
-                if active:
-                    self.renew(worker, active.values())
                 next_renewal = time.monotonic() + self.lease_seconds / 3
-            if not self._stop.is_set() and time.monotonic() >= next_claim_at:
-                while len(active) < worker.concurrency and not self._stop.is_set():
+                if active:
                     try:
-                        claims = self._claim_many(worker, worker.concurrency - len(active))
-                    except OperationalError as exc:
-                        if (not isinstance(exc.orig, sqlite3.OperationalError)
-                                or getattr(exc.orig, "sqlite_errorcode", None) not in (
-                                    sqlite3.SQLITE_BUSY, sqlite3.SQLITE_BUSY_RECOVERY,
-                                    sqlite3.SQLITE_BUSY_TIMEOUT, sqlite3.SQLITE_BUSY_SNAPSHOT,
-                                )):
-                            raise
+                        self.renew(worker, active.values())
+                    except Exception:
+                        logger.exception("Error renewing leases for %s; retrying", worker.name)
+                        next_renewal = time.monotonic() + self.lease_seconds / 10
+            # Suspects not seen again (no longer eligible, or claimed elsewhere) are forgotten.
+            for source_id in [source_id for source_id, expiry in suspects.items() if time.monotonic() >= expiry]:
+                del suspects[source_id]
+            capacity = 1 if suspects else worker.concurrency
+            # A broken pool is replaced once its remaining futures have reported.
+            claiming = not self._stop.is_set() and not (broken is not None and active)
+            if claiming and time.monotonic() >= next_claim_at:
+                if broken is not None:
+                    try:
+                        handlers = self._replace_pool(worker, handlers)
+                        broken = None
+                        logger.warning("Restarted handler processes for %s", worker.name)
+                    except Exception:
+                        logger.exception("Could not restart handler processes for %s; retrying after backoff",
+                                         worker.name)
+                        next_claim_at = time.monotonic() + delay
+                        delay = min(delay * 2, self.max_poll_seconds)
+                while broken is None and len(active) < capacity and not self._stop.is_set():
+                    try:
+                        claims = self._claim_many(worker, capacity - len(active))
+                    except Exception:
                         logger.exception("Error claiming work for %s; retrying after backoff", worker.name)
                         claims = []
                     if not claims:
@@ -539,14 +724,21 @@ class Coordinator:
                         break
                     delay = self.poll_seconds
                     next_claim_at = 0.0
-                    for claim in claims:
-                        future = handlers.submit(_execute_in_process, claim)
+                    for index, claim in enumerate(claims):
+                        try:
+                            future = handlers.submit(_execute_in_process, claim)
+                        except BrokenProcessPool as exc:
+                            logger.warning("Handler process pool for %s is broken; requeueing undispatched work",
+                                           worker.name)
+                            broken = exc
+                            self._release(worker, claims[index:], exc)
+                            break
                         active[future] = claim
                         future.add_done_callback(lambda completed: wakeup.set())
             deadlines: list[float] = []
             if active:
                 deadlines.append(next_renewal)
-            if not self._stop.is_set() and len(active) < worker.concurrency:
+            if not self._stop.is_set() and not (broken is not None and active) and len(active) < capacity:
                 deadlines.append(next_claim_at)
             if not deadlines:
                 break
@@ -563,26 +755,12 @@ class Coordinator:
             pickle.dumps((self.database_url, self.engine_options, definitions))
         except (TypeError, AttributeError, pickle.PicklingError) as exc:
             raise ValueError("Handlers and models must be importable; bound handler arguments and engine options must be serializable") from exc
+        self._definitions = definitions
         self._stop.clear()
         for worker in self.workers.values():
-            context = multiprocessing.get_context("spawn")
-            ready = context.Barrier(worker.concurrency + 1)
-            handlers = ProcessPoolExecutor(
-                max_workers=worker.concurrency, mp_context=context,
-                initializer=_initialize_process,
-                initargs=(self.database_url, self.engine_options, definitions, worker.name, ready),
-            )
             try:
-                # Initializers hold the startup barrier, so every configured
-                # process must start before any probe can finish. These probes
-                # create no source rows, claims, or execution-ledger entries.
-                probes = [handlers.submit(_process_ready) for _ in range(worker.concurrency)]
-                ready.wait(timeout=180)
-                for probe in probes:
-                    probe.result()
+                handlers = self._start_pool(worker)
             except BaseException:
-                ready.abort()
-                handlers.shutdown(wait=True, cancel_futures=True)
                 self.stop()
                 raise
             wakeup = threading.Event()
@@ -595,8 +773,10 @@ class Coordinator:
         self._stop.set()
         for wakeup in self._wakeups.values():
             wakeup.set()
-        for thread, handlers in self._running.values():
+        for thread, _ in list(self._running.values()):
             thread.join()
+        # A scheduler may have replaced its pool; shut down the current one.
+        for _, handlers in self._running.values():
             handlers.shutdown(wait=True)
         self._running.clear()
         self._wakeups.clear()

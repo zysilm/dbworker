@@ -7,7 +7,7 @@ SQLite file and needs no broker setup or enqueue call.
 
 | Requirement | This tutorial |
 | --- | --- |
-| Package | `dbworker==0.1.2` |
+| Package | `dbworker==0.1.4` |
 | Python | `>=3.12,<4.0` |
 | SQLAlchemy | `>=2.0,<3.0`; installed with DBWorker |
 | Database | A local SQLite file, created next to the script |
@@ -24,7 +24,7 @@ questions, see the [FAQ](faq.md).
 In a Python environment of your choice:
 
 ```sh
-python -m pip install dbworker==0.1.2
+python -m pip install dbworker==0.1.4
 ```
 
 SQLite uses Python's standard-library driver. PostgreSQL and MySQL deployments
@@ -163,8 +163,9 @@ and the [candidate query](https://github.com/zysilm/dbworker/blob/c6652e904b29c5
 
 ## Inspect a failure and allow another attempt
 
-If a handler fails, DBWorker records `FAILED` and does not automatically run it
-again. In the example's application process, inspect source ID `1` with:
+If a handler raises, DBWorker retries it after a backoff. After three consecutive
+failed attempts (the default `max_attempts`) it records `FAILED` and does not run
+it again automatically. In the example's application process, inspect source ID `1` with:
 
 ```python
 with sessions() as session:

@@ -5,7 +5,7 @@ rows. The coordinator discovers eligible rows, claims ownership, and runs your
 handler in a spawned process. The supplied database session owns both business
 writes and the recorded execution outcome.
 
-DBWorker 0.1.2 fits applications where pending work can be expressed as a query
+DBWorker 0.1.4 fits applications where pending work can be expressed as a query
 over existing business rows. It uses the database for coordination and requires
 no separate message broker. Your application still owns its models, schema
 migrations, service lifecycle, failure policy, and external-effect recovery.
@@ -65,12 +65,12 @@ DBWorker changes the work-discovery and transaction boundary. To evaluate a
 migration, map the existing workflow explicitly. The [usage reference](usage.md)
 contains the corresponding registration, status, and reset APIs:
 
-| Decision | DBWorker 0.1.2 behavior | What to establish in the application |
+| Decision | DBWorker 0.1.4 behavior | What to establish in the application |
 | --- | --- | --- |
 | How does work appear? | The coordinator polls source rows matching `eligible`, with a separate execution-availability filter. | Find each existing publication path and identify the durable row or readiness condition that would replace it. |
 | What identifies an execution? | Worker name plus the source row's single primary key. | Model new business inputs when the same operation must run again; changing a finished row does not clear its history. |
 | What commits together? | Writes through the handler's supplied session and its execution outcome. | Find other sessions, existing commits, and external effects that fall outside that boundary. |
-| What permits a retry? | `Unfinished()` allows later eligible work; `FAILED` needs explicit `reset_failed()`. | Preserve the intended failure policy and decide who authorizes resets. |
+| What permits a retry? | `Unfinished()` allows later eligible work; a handler exception is retried up to `max_attempts`; `FAILED` needs explicit `reset_failed()`. | Preserve the intended failure policy and decide who authorizes resets. |
 | How are prerequisites expressed? | SQL predicates over application data and recorded execution status. | Check that the existing dependencies can be represented by those queries and data. |
 | What runs in production? | An application-managed coordinator with spawned handler processes and database access. | Plan startup, shutdown, process resources, database drivers, and contention alongside the API. |
 
@@ -151,5 +151,5 @@ ratio to another application.
 The public registration, eligibility, transaction, and ownership behavior is in
 the [reviewed implementation](https://github.com/zysilm/dbworker/blob/c6652e904b29c597988b2d3ba65e612de24825d7/src/dbworker.py). The
 [benchmark method](../benchmarks/README.md) explains the scope of the application
-adapters. This page describes DBWorker 0.1.2 and the repository evidence available
+adapters. This page describes DBWorker 0.1.4 and the repository evidence available
 with that implementation.

@@ -1,6 +1,7 @@
 import sqlite3
 import unittest
 from concurrent.futures import Future
+from concurrent.futures.process import BrokenProcessPool
 from typing import cast
 from unittest.mock import Mock, patch
 
@@ -57,7 +58,7 @@ class PollingTest(unittest.TestCase):
     def setUp(self) -> None:
         self.engine = create_engine('sqlite://')
         self.coordinator = Coordinator(sessionmaker(self.engine), database_url=self.engine.url)
-        self.worker = cast(_Worker, Mock(name='worker', concurrency=1))
+        self.worker = cast(_Worker, Mock(name='worker', concurrency=1, retry_backoff_seconds=1.0))
         self.clock = ClockEvent()
         self.handlers = Mock()
         self.addCleanup(self.engine.dispose)
@@ -133,22 +134,197 @@ class PollingTest(unittest.TestCase):
                 self.assertEqual(self.clock.waits, [.25, .5, 1, 2, 4, 8, 10, 10, .25])
                 self.assertEqual(logged.call_count, 8)
 
-    def test_non_busy_claim_errors_are_not_swallowed(self) -> None:
+    def test_any_claim_error_is_logged_and_retried_with_backoff(self) -> None:
         locked = sqlite3.OperationalError('database table is locked')
         locked.sqlite_errorcode = sqlite3.SQLITE_LOCKED
         readonly = sqlite3.OperationalError('attempt to write a readonly database')
         readonly.sqlite_errorcode = sqlite3.SQLITE_READONLY
-        for original in (sqlite3.OperationalError('no such table'),
-                         sqlite3.OperationalError('database is locked'),
-                         locked, readonly,
-                         RuntimeError('connection failed')):
-            with self.subTest(original=original):
-                error = OperationalError('SELECT', {}, original)
-                with patch.object(self.coordinator, '_claim_many', side_effect=error):
-                    with self.assertRaises(OperationalError) as raised:
-                        self.run_scheduler()
-                self.assertIs(raised.exception, error)
+        for error in (OperationalError('SELECT', {}, sqlite3.OperationalError('no such table')),
+                      OperationalError('SELECT', {}, locked),
+                      OperationalError('SELECT', {}, readonly),
+                      OperationalError('SELECT', {}, RuntimeError('server closed the connection')),
+                      RuntimeError('eligible query failed')):
+            with self.subTest(error=error):
+                self.coordinator._stop.clear()
+                self.clock = ClockEvent()
+                times: list[float] = []
+
+                def claim_many(worker: _Worker, limit: int) -> list[Claim]:
+                    times.append(self.clock.now)
+                    if len(times) == 4:
+                        self.coordinator._stop.set()
+                        return []
+                    raise error
+
+                with patch.object(self.coordinator, '_claim_many', side_effect=claim_many), \
+                        patch('dbworker.logger.exception') as logged:
+                    self.run_scheduler()
+                self.assertEqual(times, [0, .25, .75, 1.75])
+                self.assertEqual(logged.call_count, 3)
         self.handlers.submit.assert_not_called()
+
+    def test_renewal_error_is_retried_without_stopping_the_scheduler(self) -> None:
+        self.coordinator.lease_seconds = 3
+        pending: Future[Outcome] = Future()
+        self.handlers.submit.return_value = pending
+        renewals: list[float] = []
+
+        def claim(worker: _Worker) -> Claim:
+            self.coordinator._stop.set()
+            return Claim(1, 'token')
+
+        def renew(worker: _Worker, claims: object) -> None:
+            renewals.append(self.clock.now)
+            if len(renewals) < 3:
+                raise OperationalError('UPDATE', {}, sqlite3.OperationalError('database is locked'))
+            pending.set_result(Finished())
+
+        with patch.object(self.coordinator, 'claim', side_effect=claim), \
+                patch.object(self.coordinator, 'renew', side_effect=renew), \
+                patch('dbworker.logger.exception') as logged:
+            self.run_scheduler()
+        # A failed renewal is repeated well inside the remaining lease.
+        self.assertEqual(len(renewals), 3)
+        for observed, expected in zip(renewals, [1, 1.3, 1.6]):
+            self.assertAlmostEqual(observed, expected)
+        self.assertEqual(logged.call_count, 2)
+
+    def test_failure_recording_error_does_not_stop_the_scheduler(self) -> None:
+        failed: Future[Outcome] = Future()
+        failed.set_exception(RuntimeError('handler failure'))
+        completed: Future[Outcome] = Future()
+        completed.set_result(Finished())
+        self.handlers.submit.side_effect = [failed, completed]
+        claims = 0
+
+        def claim(worker: _Worker) -> Claim | None:
+            nonlocal claims
+            claims += 1
+            if claims == 3:
+                self.coordinator._stop.set()
+                return None
+            return Claim(claims, str(claims))
+
+        with patch.object(self.coordinator, 'claim', side_effect=claim), \
+                patch.object(self.coordinator, '_fail', side_effect=OperationalError(
+                    'UPDATE', {}, sqlite3.OperationalError('database is locked'))) as fail, \
+                patch('dbworker.logger.exception'):
+            self.run_scheduler()
+        fail.assert_called_once()
+        self.assertEqual(self.handlers.submit.call_count, 2)
+
+    def test_broken_pool_on_dispatch_releases_claims_and_rebuilds(self) -> None:
+        self.worker.concurrency = 2
+        self.handlers.submit.side_effect = BrokenProcessPool('a child process terminated abruptly')
+        completed: Future[Outcome] = Future()
+        completed.set_result(Finished())
+        replacement = Mock()
+        replacement.submit.return_value = completed
+        limits: list[int] = []
+
+        def claim_many(worker: _Worker, limit: int) -> list[Claim]:
+            limits.append(limit)
+            if len(limits) == 1:
+                return [Claim(1, 'a'), Claim(2, 'b')]
+            if len(limits) == 2:
+                return [Claim(1, 'c')]
+            self.coordinator._stop.set()
+            return []
+
+        with patch.object(self.coordinator, '_claim_many', side_effect=claim_many), \
+                patch.object(self.coordinator, '_release') as release, \
+                patch.object(self.coordinator, '_fail') as fail, \
+                patch.object(self.coordinator, '_replace_pool', return_value=replacement) as replace, \
+                patch('dbworker.logger.exception'), patch('dbworker.logger.warning'):
+            self.run_scheduler()
+        release.assert_called_once()
+        self.assertEqual(list(release.call_args.args[1]), [Claim(1, 'a'), Claim(2, 'b')])
+        fail.assert_not_called()
+        replace.assert_called_once_with(self.worker, self.handlers)
+        self.assertEqual(limits[:2], [2, 2])
+        replacement.submit.assert_called_once()
+
+    def test_process_lost_while_running_one_claim_is_recorded_as_its_failure(self) -> None:
+        self.worker.concurrency = 2
+        error = BrokenProcessPool('a process was terminated abruptly')
+        broken: Future[Outcome] = Future()
+        broken.set_exception(error)
+        self.handlers.submit.return_value = broken
+        calls = 0
+
+        def claim_many(worker: _Worker, limit: int) -> list[Claim]:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                return [Claim(1, 'a')]
+            if calls > 2:
+                self.coordinator._stop.set()
+            return []
+
+        with patch.object(self.coordinator, '_claim_many', side_effect=claim_many), \
+                patch.object(self.coordinator, '_release') as release, \
+                patch.object(self.coordinator, '_fail') as fail, \
+                patch.object(self.coordinator, '_replace_pool', return_value=Mock()) as replace, \
+                patch('dbworker.logger.error'), patch('dbworker.logger.warning'):
+            self.run_scheduler()
+        # The only handler in flight is the only possible cause.
+        fail.assert_called_once_with(self.worker, Claim(1, 'a'), error)
+        release.assert_not_called()
+        replace.assert_called_once_with(self.worker, self.handlers)
+
+    def test_claims_lost_together_are_requeued_and_then_run_one_at_a_time(self) -> None:
+        self.worker.concurrency = 2
+        error = BrokenProcessPool('a process was terminated abruptly')
+        lost: list[Future[Outcome]] = [Future(), Future()]
+        for future in lost:
+            future.set_exception(error)
+        self.handlers.submit.side_effect = lost
+        replacement = Mock()
+        completed: list[Future[Outcome]] = [Future(), Future(), Future()]
+        for future in completed:
+            future.set_result(Finished())
+        replacement.submit.side_effect = completed
+        limits: list[int] = []
+        batches = [[Claim(1, 'a'), Claim(2, 'b')], [Claim(1, 'c')], [Claim(2, 'd')], [Claim(3, 'e')]]
+
+        def claim_many(worker: _Worker, limit: int) -> list[Claim]:
+            limits.append(limit)
+            if len(limits) <= len(batches):
+                return batches[len(limits) - 1]
+            self.coordinator._stop.set()
+            return []
+
+        with patch.object(self.coordinator, '_claim_many', side_effect=claim_many), \
+                patch.object(self.coordinator, '_release') as release, \
+                patch.object(self.coordinator, '_fail') as fail, \
+                patch.object(self.coordinator, '_replace_pool', return_value=replacement) as replace, \
+                patch('dbworker.logger.warning'):
+            self.run_scheduler()
+        fail.assert_not_called()
+        release.assert_called_once_with(self.worker, [Claim(1, 'a'), Claim(2, 'b')], error)
+        replace.assert_called_once()
+        # Both suspects run alone; full concurrency returns once they have settled.
+        self.assertEqual(limits[:4], [2, 1, 1, 2])
+        self.assertEqual(replacement.submit.call_count, 3)
+
+    def test_failed_pool_rebuild_is_retried_with_backoff(self) -> None:
+        self.handlers.submit.side_effect = BrokenProcessPool('a child process terminated abruptly')
+        rebuilds: list[float] = []
+
+        def replace_pool(worker: _Worker, handlers: object) -> Mock:
+            rebuilds.append(self.clock.now)
+            if len(rebuilds) < 3:
+                raise BrokenProcessPool('initializer failed')
+            self.coordinator._stop.set()
+            return Mock()
+
+        with patch.object(self.coordinator, 'claim', return_value=Claim(1, 'a')) as claim, \
+                patch.object(self.coordinator, '_release'), \
+                patch.object(self.coordinator, '_replace_pool', side_effect=replace_pool), \
+                patch('dbworker.logger.exception'), patch('dbworker.logger.warning'):
+            self.run_scheduler()
+        self.assertEqual(rebuilds, [0, .25, .75])
+        claim.assert_called_once()  # nothing is claimed while there is no usable pool
 
     def test_stop_during_busy_claim_backoff(self) -> None:
         error = sqlite3.OperationalError('database is locked')

@@ -24,7 +24,7 @@ class ExecutionStatusTest(unittest.TestCase):
         self.session_factory = sessionmaker(self.engine)
         self.coordinator = Coordinator(self.session_factory, database_url=self.engine.url)
 
-        @self.coordinator.transactional_worker(name="build", source=Source)
+        @self.coordinator.transactional_worker(name="build", source=Source, max_attempts=1)
         def build(source: Source, session: Session) -> Finished | Unfinished:
             return Unfinished() if source.id == "partial" else Finished()
 
