@@ -45,6 +45,7 @@ class ClaimsTest(unittest.TestCase):
             coordinator.transactional_worker(
                 name="artifact_build", source=FeatureArtifact,
                 eligible=lambda: select(FeatureArtifact).where(FeatureArtifact.hash_value.is_(None)).order_by(FeatureArtifact.id),
+                max_attempts=1,  # these tests record a build failure as final
             )(artifact_build.build_artifact)
             coordinator.transactional_worker(
                 name="comparison", source=ComparisonRequest,

@@ -6,7 +6,7 @@ from datetime import timedelta
 from pathlib import Path
 from unittest.mock import patch
 
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 import dbworker
@@ -207,6 +207,31 @@ class HandlerRetryTest(unittest.TestCase):
         with self.sessions.begin() as session:
             self.assertTrue(coordinator.workers["retry"].reset_failed(session, 1))
         self.assertIsNotNone(coordinator.claim(coordinator.workers["retry"]))
+
+    def test_retry_columns_are_added_through_schema_translation(self):
+        engine = create_engine(f"sqlite:///{self.directory / 'main.db'}")
+        self.addCleanup(engine.dispose)
+        attached = str(self.directory / "tenant.db").replace("'", "''")
+
+        @event.listens_for(engine, "connect")
+        def attach(connection, record):
+            connection.execute(f"ATTACH DATABASE '{attached}' AS tenant")
+
+        translated = engine.execution_options(schema_translate_map={None: "tenant"})
+        with translated.begin() as connection:
+            Base.metadata.tables["retry_job"].create(connection)
+            connection.execute(text(
+                "CREATE TABLE tenant.retry_work (source_id INTEGER NOT NULL PRIMARY KEY, "
+                "execution_status VARCHAR(10) NOT NULL, claim_token VARCHAR(36), "
+                "lease_expires_at DATETIME, error TEXT)"))
+        coordinator = Coordinator(sessionmaker(translated), database_url=engine.url)
+        coordinator.transactional_worker(name="retry", source=RetryJob)(flaky_handler)
+        coordinator.create_worker_tables()
+        coordinator.create_worker_tables()
+        with engine.connect() as connection:
+            columns = {row[1] for row in connection.execute(text("PRAGMA tenant.table_info(retry_work)"))}
+            self.assertLessEqual({"attempts", "available_at"}, columns)
+            self.assertEqual(connection.execute(text("PRAGMA main.table_info(retry_work)")).all(), [])
 
     def test_retry_options_are_validated(self):
         coordinator = Coordinator(self.sessions, database_url=self.engine.url)

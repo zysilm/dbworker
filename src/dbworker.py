@@ -25,7 +25,8 @@ from sqlalchemy.exc import DBAPIError, IntegrityError, OperationalError
 from sqlalchemy.engine import CursorResult, RowMapping, URL, make_url
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.orm import DeclarativeBase, Mapper, Session, sessionmaker
-from sqlalchemy.schema import CreateColumn
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.schema import ExecutableDDLElement
 from sqlalchemy.sql import ColumnElement, Select, Update
 from sqlalchemy.sql.selectable import Exists
 
@@ -140,6 +141,19 @@ class _Worker:
                     attempts=0, available_at=None)
         ))
         return result.rowcount == 1
+
+
+class _AddColumn(ExecutableDDLElement):
+    """ALTER TABLE ... ADD COLUMN for a work table created by an earlier release."""
+
+    def __init__(self, column: Column[Any]) -> None:
+        self.column = column
+
+
+@compiles(_AddColumn)
+def _compile_add_column(element: _AddColumn, compiler: Any, **kw: Any) -> str:
+    return (f"ALTER TABLE {compiler.preparer.format_table(element.column.table)} "
+            f"ADD COLUMN {compiler.get_column_specification(element.column)}")
 
 
 @dataclass(frozen=True)
@@ -378,19 +392,25 @@ class Coordinator:
             table = worker.table
             table.create(bind, checkfirst=True)
 
-            def missing() -> list[Column[Any]]:
-                existing = {column["name"] for column in inspect(bind).get_columns(table.name, schema=table.schema)}
-                return [table.c[name] for name in ("attempts", "available_at") if name not in existing]
+            def present(column: Column[Any]) -> bool:
+                # Probe with ordinary SQL rather than reflection, so the session's
+                # schema translation and search path apply as they do to claims.
+                try:
+                    with self.session_factory() as session:
+                        session.execute(select(column).limit(0))
+                    return True
+                except DBAPIError:
+                    return False
 
-            for column in missing():
-                definition = CreateColumn(column).compile(dialect=bind.dialect)
+            for column in (table.c.attempts, table.c.available_at):
+                if present(column):
+                    continue
                 try:
                     with self.session_factory.begin() as session:
-                        session.connection().exec_driver_sql(
-                            f"ALTER TABLE {bind.dialect.identifier_preparer.format_table(table)} ADD COLUMN {definition}")
+                        session.connection().execute(_AddColumn(column))
                 except DBAPIError:
                     # Another service may have added it while starting up.
-                    if column in missing():
+                    if not present(column):
                         raise
 
     def _available(self, table: Table, timestamp: datetime) -> ColumnElement[bool]:
