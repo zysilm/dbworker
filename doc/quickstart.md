@@ -163,8 +163,9 @@ and the [candidate query](https://github.com/zysilm/dbworker/blob/c6652e904b29c5
 
 ## Inspect a failure and allow another attempt
 
-If a handler fails, DBWorker records `FAILED` and does not automatically run it
-again. In the example's application process, inspect source ID `1` with:
+If a handler raises, DBWorker retries it after a backoff. After three consecutive
+failed attempts (the default `max_attempts`) it records `FAILED` and does not run
+it again automatically. In the example's application process, inspect source ID `1` with:
 
 ```python
 with sessions() as session:

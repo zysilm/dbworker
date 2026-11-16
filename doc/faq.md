@@ -55,7 +55,12 @@ such effects, and consider ambiguous external acknowledgments explicitly.
 
 ## What happens when a handler raises an exception?
 
-DBWorker rolls back the handler transaction and records `FAILED` with an error.
+DBWorker rolls back the handler transaction and records the error. The work is
+retried automatically after a backoff (`retry_backoff_seconds`, doubling per
+failure) until `max_attempts` consecutive attempts have raised (default 3); it is
+then recorded as `FAILED`. A pending retry is `UNFINISHED` and runs the whole
+handler again. Set `max_attempts=1` to record `FAILED` on the first exception.
+
 Failed work is not automatically claimable. Inspect it through
 `coordinator.workers[name].state(session, source_id)`. After correcting the cause,
 call `reset_failed()` inside a committed transaction to mark it `UNFINISHED` and
@@ -95,8 +100,9 @@ Yes. Lease expiration alone does not update the recorded enum status. A recorded
 renewed by the coordinator. If the coordinator dies or stops renewing ownership,
 other coordinators can reclaim expired work.
 
-An observed handler failure with a live coordinator can instead be recorded as
-`FAILED`. Do not assume every process failure follows only the lease-expiry path.
+An observed handler failure with a live coordinator can instead be retried or
+recorded as `FAILED`. A handler process that dies is
+[handled by the live coordinator](usage.md#when-a-handler-process-dies) as well. Do not assume every process failure follows only the lease-expiry path.
 `execution_status()` reports recorded execution state, not a live process-health
 probe.
 
@@ -105,7 +111,7 @@ For a source row that matches `eligible`, execution tracking applies these rules
 | Recorded execution state | Available for claiming? |
 | --- | --- |
 | No execution record | Yes |
-| `UNFINISHED` | Yes |
+| `UNFINISHED` | Yes; after a handler exception, once its retry backoff has passed |
 | `WORKING`, with an expired lease | Yes |
 | `WORKING`, with an unexpired lease | No |
 | `FAILED` | No; use the explicit failure-reset workflow |

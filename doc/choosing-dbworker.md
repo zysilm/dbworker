@@ -70,7 +70,7 @@ contains the corresponding registration, status, and reset APIs:
 | How does work appear? | The coordinator polls source rows matching `eligible`, with a separate execution-availability filter. | Find each existing publication path and identify the durable row or readiness condition that would replace it. |
 | What identifies an execution? | Worker name plus the source row's single primary key. | Model new business inputs when the same operation must run again; changing a finished row does not clear its history. |
 | What commits together? | Writes through the handler's supplied session and its execution outcome. | Find other sessions, existing commits, and external effects that fall outside that boundary. |
-| What permits a retry? | `Unfinished()` allows later eligible work; `FAILED` needs explicit `reset_failed()`. | Preserve the intended failure policy and decide who authorizes resets. |
+| What permits a retry? | `Unfinished()` allows later eligible work; a handler exception is retried up to `max_attempts`; `FAILED` needs explicit `reset_failed()`. | Preserve the intended failure policy and decide who authorizes resets. |
 | How are prerequisites expressed? | SQL predicates over application data and recorded execution status. | Check that the existing dependencies can be represented by those queries and data. |
 | What runs in production? | An application-managed coordinator with spawned handler processes and database access. | Plan startup, shutdown, process resources, database drivers, and contention alongside the API. |
 

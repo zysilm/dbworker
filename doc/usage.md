@@ -99,7 +99,7 @@ def process_in_steps(source: YourModel, session: Session) -> Outcome:
 
 `Finished()` means the work item is complete. `Unfinished()` means this invocation is done, but more work remains. Both save the execution status and commit any writes made through the supplied session; the handler does not have to make any database writes. After `Unfinished()`, DBWorker can invoke the handler again when eligible. Each invocation starts the function from the beginning. Your procedure decides how to continue; DBWorker does not save its position in the function. Use `Outcome` as the return annotation when a handler can return either result.
 
-If the handler raises an exception, DBWorker rolls back its transaction and marks the work failed. If your procedure has prerequisites that can be checked in the database, `eligible` can delay claiming until they are met.
+If the handler raises an exception, DBWorker rolls back its transaction and retries the work after a delay; once `max_attempts` consecutive attempts have raised, it marks the work failed. If your procedure has prerequisites that can be checked in the database, `eligible` can delay claiming until they are met.
 
 DBWorker owns the handler's commit and session cleanup. Do not commit or close this session yourself. For long computations, you can release a read transaction with `session.rollback()` first. Copy needed values before rollback, and do this before making writes you want to keep.
 
@@ -173,7 +173,34 @@ The same condition can be combined with other query filters, including in an `el
 
 ## Understand failures and retry work
 
-When a handler raises an exception, DBWorker records the error and marks the work as `FAILED`. It will not automatically run that work again. Your application may need to show what went wrong and let someone retry after correcting the cause.
+When a handler raises an exception, DBWorker rolls back that attempt, records the error, and retries the work automatically. This covers transient errors such as a lock timeout or a dropped connection:
+
+```python
+@coordinator.transactional_worker(
+    name="process",
+    source=YourModel,
+    max_attempts=3,             # default
+    retry_backoff_seconds=1.0,  # default
+)
+```
+
+- `max_attempts` is the number of consecutive attempts that may raise before the work is marked `FAILED`. Use `max_attempts=1` to fail on the first exception.
+- `retry_backoff_seconds` is the wait before the second attempt. It doubles after each further failure, up to five minutes. A running coordinator picks the work up at its next poll after the wait.
+
+While a retry is pending, the status is `UNFINISHED` and `state()` shows the last `error`, the number of failed `attempts`, and `available_at`, the earliest time of the next attempt. A committed `Finished()` or `Unfinished()` resets the count. Every exception type is retried, and each retry runs the whole handler again from the beginning, so handler effects outside the supplied session must be safe to repeat. Retrying reduces failures from contention but does not remove the contention: fix a recurring cause, such as a short lock timeout, where it occurs.
+
+### When a handler process dies
+
+If a handler process is killed or crashes (for example, it runs out of memory), Python reports every handler running in that worker as lost, without saying which one caused it. DBWorker restarts the worker's processes and continues:
+
+- If only one handler was running, the loss is recorded as a failed attempt of that work, with the same retry and `FAILED` rules as an exception.
+- If several were running, all of them are returned to the queue as `UNFINISHED` without a failed attempt, after `retry_backoff_seconds`. Until each of them has run again, the worker runs one handler at a time, so that work which keeps killing its process is identified and eventually marked `FAILED` on its own.
+
+Lost work starts again from the beginning. Its uncommitted database writes are rolled back, but effects outside the supplied session may already have happened.
+
+Work marked `FAILED` is not run again automatically. Your application may need to show what went wrong and let someone retry after correcting the cause.
+
+**Upgrading from 0.1.3 or earlier:** retries need two new columns, `attempts` and `available_at`, in each work table. `create_worker_tables()` adds them to existing tables; run it before starting upgraded services. If you manage the schema yourself, add `attempts INTEGER NOT NULL DEFAULT 0` and a nullable `available_at` timestamp to each `<name>_work` table.
 
 `state()` reads the execution details for one input, giving you more information than its status alone:
 
@@ -192,7 +219,7 @@ with session_factory.begin() as session:
     reset = coordinator.workers["process"].reset_failed(session, source_id)
 ```
 
-`reset_failed()` changes a failed execution to `UNFINISHED` and clears its recorded error and claim. It returns `True` if it reset a failed execution, or `False` if there was no failed execution to reset. The `begin()` block commits this change.
+`reset_failed()` changes a failed execution to `UNFINISHED`, clears its recorded error and claim, and restores its full attempt budget. It returns `True` if it reset a failed execution, or `False` if there was no failed execution to reset. The `begin()` block commits this change.
 
 Changing `eligible` alone cannot bypass the exclusion of recorded `FAILED` work.
 The [availability predicate](https://github.com/zysilm/dbworker/blob/c6652e904b29c597988b2d3ba65e612de24825d7/src/dbworker.py#L344-L365) and
@@ -222,7 +249,8 @@ transaction. Retries use backoff from 10 ms to 100 ms, with a five-second retry
 window after the first error. Each database call can additionally wait for the
 connection's configured busy timeout. The handler is not rerun, pending business
 writes are preserved, and every attempt retains the original claim-token check.
-An exhausted retry window follows the normal rollback and failure path.
+An exhausted retry window follows the normal rollback and failure path, including
+the [automatic handler retry](#understand-failures-and-retry-work).
 
 This same-transaction retry applies only to the final status UPDATE. It does not retry handler
 queries, flushes, or commits. Other errors, invalidated
@@ -234,8 +262,10 @@ automatically restart handlers that may already have performed external effects.
 Separately, if claiming work encounters SQLite `BUSY`, `BUSY_RECOVERY`,
 `BUSY_TIMEOUT`, or `BUSY_SNAPSHOT`, the coordinator rolls back the claim transaction
 and logs the error. It uses the existing polling backoff before trying again with
-a fresh session, without rerunning handlers or marking work failed. This recovery
-applies only to claiming, not lease renewal or recording handler failures.
+a fresh session, without rerunning handlers or marking work failed. Any other
+error while claiming, renewing leases, or recording a handler failure is likewise
+logged and retried; it does not stop the worker. If a failure cannot be recorded,
+the work becomes claimable again when its lease expires.
 
 For an application encountering contention, start with a connection timeout such
 as `connect_args={"timeout": 5.0}` on **both** the application's coordination
